@@ -1,0 +1,57 @@
+/*
+ * Copyright 2013 Odysseus Software GmbH
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.musicmount.builder;
+
+import java.io.File;
+
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.musicmount.builder.impl.AssetLocator;
+import org.musicmount.builder.impl.LibraryParser;
+import org.musicmount.builder.impl.LocalStrings;
+import org.musicmount.builder.impl.ResourceLocator;
+import org.musicmount.builder.impl.ResponseFormatter;
+import org.musicmount.builder.impl.SimpleAssetLocator;
+import org.musicmount.builder.impl.SimpleAssetParser;
+import org.musicmount.builder.impl.SimpleResourceLocator;
+import org.musicmount.builder.impl.TrackStore;
+import org.musicmount.builder.model.Library;
+
+/*
+ * TODO test doesn't assert anything
+ */
+public class MusicMountBuilderTest {
+    @Rule
+    public TemporaryFolder outputFolder = new TemporaryFolder();
+
+	@Test
+	public void testMain() throws Exception {
+		String input = new File(getClass().getResource("/sample-library").toURI()).getAbsolutePath();
+		String output = outputFolder.getRoot().getAbsolutePath();
+		MusicMountBuilder.main(new String[]{ "--pretty", "--full", input, output });
+	}
+
+	@Test
+	public void testGenerateResponseFiles() throws Exception {
+		File inputFolder = new File(getClass().getResource("/sample-library").toURI());
+		Library library = new LibraryParser(new SimpleAssetParser()).parse(inputFolder, new TrackStore(MusicMountBuilder.API_VERSION));
+		ResourceLocator resourceLocator = new SimpleResourceLocator(outputFolder.getRoot(), false, false);
+		ResponseFormatter<?> formatter = new ResponseFormatter.JSON(MusicMountBuilder.API_VERSION, new LocalStrings(), false, false, true);
+		AssetLocator assetLocator = new SimpleAssetLocator(inputFolder, "music", null);
+		MusicMountBuilder.generateResponseFiles(library, outputFolder.getRoot(), formatter, resourceLocator, assetLocator);
+	}
+}

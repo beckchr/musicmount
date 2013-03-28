@@ -1,0 +1,19 @@
+# setup authentication
+#AuthType Basic
+#AuthName "Music Mount"
+#AuthUserFile /path/to/.htpasswd
+#Require valid-user
+
+# set JSON directory index
+DirectoryIndex index.json
+
+# make the music link work
+Options +FollowSymlinks
+
+# add audio content types
+AddType audio/mpeg .mp3
+AddType audio/mp4 .m4a
+AddType text/json .json
+
+# set JSON content charset
+AddCharset UTF-8 .json
