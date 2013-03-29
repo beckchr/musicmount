@@ -33,22 +33,6 @@ import org.musicmount.builder.model.TrackArtist;
 public class LibraryParser {
 	static final Logger LOGGER = Logger.getLogger(LibraryParser.class.getName());
 	
-	private static <T extends Comparable<T>> int compareNullLast(Comparable<T> o1, T o2) {
-		if (o1 != o2) {
-			if (o1 == null) {
-				return +1;
-			} else if (o2 == null) {
-				return -1;
-			} else {
-				int result = o1.compareTo(o2);
-				if (result != 0) {
-					return result;
-				}
-			}
-		}
-		return 0;
-	}
-	
 	private final AssetParser assetParser;
 	
 	public LibraryParser(AssetParser assetParser) {
@@ -62,83 +46,60 @@ public class LibraryParser {
 	};
 
 	void sortTracks(Library library) {
-		/**
-		 * sort disc tracks by track number, title, artist, year, genre
+		/*
+		 * sort tracks by disc number, track number, title, artist
 		 */
+		Comparator<Track> comparator = new Comparator<Track>() {
+			<T extends Comparable<T>> int compareNullLast(Comparable<T> o1, T o2) {
+				if (o1 != o2) {
+					if (o1 == null) {
+						return +1;
+					} else if (o2 == null) {
+						return -1;
+					} else {
+						int result = o1.compareTo(o2);
+						if (result != 0) {
+							return result;
+						}
+					}
+				}
+				return 0;
+			}
+
+			@Override
+			public int compare(Track o1, Track o2) {
+				int result = compareNullLast(o1.getDiscNumber(), o2.getDiscNumber());
+				if (result != 0) {
+					return result;
+				}
+				result = compareNullLast(o1.getTrackNumber(), o2.getTrackNumber());
+				if (result != 0) {
+					return result;
+				}
+				result = compareNullLast(o1.getTitle(), o2.getTitle());
+				if (result != 0) {
+					return result;
+				}
+				return compareNullLast(o1.getArtist().getTitle(), o2.getArtist().getTitle());
+			}
+		};
+		
 		for (Album album : library.getAlbums()) {
 			for (Disc disc : album.getDiscs().values()) {
-				Collections.sort(disc.getTracks(), new Comparator<Track>() {
-					@Override
-					public int compare(Track o1, Track o2) {
-						// 
-						int result = compareNullLast(o1.getTrackNumber(), o2.getTrackNumber());
-						if (result != 0) {
-							return result;
-						}
-						result = compareNullLast(o1.getName(), o2.getName());
-						if (result != 0) {
-							return result;
-						}
-						result = compareNullLast(o1.getArtist(), o2.getArtist());
-						if (result != 0) {
-							return result;
-						}
-						result = compareNullLast(o1.getYear(), o2.getYear());
-						if (result != 0) {
-							return result;
-						}
-						result = compareNullLast(o1.getGenre(), o2.getGenre());
-						if (result != 0) {
-							return result;
-						}
-						return 0;
-					}
-				});
+				Collections.sort(disc.getTracks(), comparator);
 			}
 		}
 
-		/**
-		 * sort album tracks by disc number, track number, title, artist, year, genre
-		 */
 		for (Album album : library.getAlbums()) {
-			Collections.sort(album.getTracks(), new Comparator<Track>() {
-				@Override
-				public int compare(Track o1, Track o2) {
-					int result = compareNullLast(o1.getDiscNumber(), o2.getDiscNumber());
-					if (result != 0) {
-						return result;
-					}
-					result = compareNullLast(o1.getTrackNumber(), o2.getTrackNumber());
-					if (result != 0) {
-						return result;
-					}
-					result = compareNullLast(o1.getName(), o2.getName());
-					if (result != 0) {
-						return result;
-					}
-					result = compareNullLast(o1.getArtist(), o2.getArtist());
-					if (result != 0) {
-						return result;
-					}
-					result = compareNullLast(o1.getYear(), o2.getYear());
-					if (result != 0) {
-						return result;
-					}
-					result = compareNullLast(o1.getGenre(), o2.getGenre());
-					if (result != 0) {
-						return result;
-					}
-					return 0;
-				}
-			});
+			Collections.sort(album.getTracks(), comparator);
 		}
 	}
 
-	private String uniqueArtistName(Album album) {
-		String artist = album.getTracks().get(0).getArtist();
+	private TrackArtist uniqueTrackArtist(Album album) {
+		TrackArtist artist = album.getTracks().get(0).getArtist();
 		if (artist != null) {
 			for (Track track : album.getTracks()) {
-				if (!artist.equals(track.getArtist())) {
+				if (track.getArtist() != artist) {
 					return null;
 				}
 			}
@@ -146,7 +107,7 @@ public class LibraryParser {
 		return artist;
 	}
 
-	public final Library parse(File assetBaseDir, TrackStore trackStore) {
+	public final Library parse(File assetBaseDir, AssetStore assetStore) {
 		Library library = new Library();
 		
 		// add "various artists" with id 0
@@ -156,7 +117,7 @@ public class LibraryParser {
 		library.getTrackArtists().put(null, new TrackArtist(0, null));
 
 		// parse tracks into library
-		parseLibrary(library, assetBaseDir.getAbsoluteFile(), trackStore);
+		parseLibrary(library, assetBaseDir.getAbsoluteFile(), assetStore);
 
 		/*
 		 * distribute compilations without album artist into "various artists" and
@@ -166,17 +127,17 @@ public class LibraryParser {
 		Iterator<Album> variousArtistsAlbumIterator = variousArtists.getAlbums().values().iterator();
 		while (variousArtistsAlbumIterator.hasNext()) {
 			Album album = variousArtistsAlbumIterator.next();
-			String uniqueArtistName = uniqueArtistName(album);
-			if (uniqueArtistName != null) {
-				// insert album to unique artist
-				AlbumArtist albumArtist = library.getAlbumArtists().get(uniqueArtistName);
+			TrackArtist uniqueTrackArtist = uniqueTrackArtist(album);
+			if (uniqueTrackArtist != null) {
+				// get album artist
+				AlbumArtist albumArtist = library.getAlbumArtists().get(uniqueTrackArtist.getTitle());
 				if (albumArtist == null) {
-					albumArtist = new AlbumArtist(library.getAlbumArtists().size(), uniqueArtistName);
-					library.getAlbumArtists().put(uniqueArtistName, albumArtist);
+					albumArtist = new AlbumArtist(library.getAlbumArtists().size(), uniqueTrackArtist.getTitle());
+					library.getAlbumArtists().put(uniqueTrackArtist.getTitle(), albumArtist);
 				}
 				// move album from variousArtists to albumArtist
 				albumArtist.getAlbums().put(album.getTitle(), album);
-				album.setAlbumArtist(albumArtist);
+				album.setArtist(albumArtist);
 				variousArtistsAlbumIterator.remove();
 			}
 		}
@@ -197,32 +158,32 @@ public class LibraryParser {
 		return library;
 	}
 
-	void parseLibrary(Library library, File directory, TrackStore trackStore) {
+	void parseLibrary(Library library, File directory, AssetStore assetStore) {
 		for (File file : directory.listFiles(searchAudioFilter)) {
 			if (file.isDirectory()) {
-				parseLibrary(library, file, trackStore);
+				parseLibrary(library, file, assetStore);
 			} else {
-				Track track = null;
+				Asset asset = null;
 				try {
-					track = trackStore.getTrack(file);
-					if (track == null) {
-						track = assetParser.parse(file);
+					asset = assetStore.getAsset(file);
+					if (asset == null) {
+						asset = assetParser.parse(file);
 					}
 				} catch (Exception e) {
-					LOGGER.log(Level.WARNING, "Could not parse audio file: " + file.getAbsolutePath(), e);
+					LOGGER.log(Level.WARNING, "Could not parse asset file: " + file.getAbsolutePath(), e);
 					continue;
 				}
-				if (track.getName() == null || track.getAlbum() == null && track.getArtist() == null) { // unusable
-					LOGGER.log(Level.INFO, "Will skip poorly tagged audio file: " + file.getAbsolutePath());
+				if (asset.getName() == null || asset.getAlbum() == null && asset.getArtist() == null) { // unusable
+					LOGGER.log(Level.INFO, "Will skip poorly tagged asset file: " + file.getAbsolutePath());
 					continue;
 				}
 				
 				/*
 				 * determine album artist
 				 */
-				String albumArtistName = track.getAlbumArtist();
-				if (albumArtistName == null && !track.isCompilation()) {
-					albumArtistName = track.getArtist();
+				String albumArtistName = asset.getAlbumArtist();
+				if (albumArtistName == null && !asset.isCompilation()) {
+					albumArtistName = asset.getArtist();
 				}
 				AlbumArtist albumArtist = library.getAlbumArtists().get(albumArtistName);
 				if (albumArtist == null) {
@@ -233,19 +194,48 @@ public class LibraryParser {
 				/*
 				 * determine album
 				 */
-				Album album = albumArtist.getAlbums().get(track.getAlbum());
+				Album album = albumArtist.getAlbums().get(asset.getAlbum());
 				if (album == null) {
-					album = trackStore.createAlbum(track, track.getAlbum());
-					album.setAlbumArtist(albumArtist);
-					albumArtist.getAlbums().put(track.getAlbum(), album);
+					long albumId = assetStore.createAlbum(asset);
+					album = new Album(albumId, asset.getAlbum());
+					album.setArtist(albumArtist);
+					albumArtist.getAlbums().put(asset.getAlbum(), album);
 					library.getAlbums().add(album);
 					if (library.getAlbums().size() % 100 == 0) {
 						LOGGER.fine("Progress: #albums = " + library.getAlbums().size());
 					}
 				} else {
-					trackStore.addTrack(track, album);
+					assetStore.addAsset(asset, album.getAlbumId());
 				}
+				
+				/*
+				 * determine track artist
+				 */
+				TrackArtist trackArtist = library.getTrackArtists().get(asset.getArtist());
+				if (trackArtist == null) {
+					trackArtist = new TrackArtist(library.getTrackArtists().size(), asset.getArtist());
+					library.getTrackArtists().put(asset.getArtist(), trackArtist);
+				}
+				trackArtist.getAlbums().add(album);
+				
+				/*
+				 * create track
+				 */
+				Track track = new Track(
+						asset.getName(),
+						asset.getFile(),
+						asset.isArtworkAvailable(),
+						asset.isCompilation(),
+						asset.getComposer(),
+						asset.getDiscNumber(),
+						asset.getDuration(),
+						asset.getGenre(),
+						asset.getTrackNumber(),
+						asset.getYear()
+				);
 				album.getTracks().add(track);
+				track.setAlbum(album);
+				track.setArtist(trackArtist);
 
 				/*
 				 * determine disc
@@ -260,29 +250,19 @@ public class LibraryParser {
 					album.getDiscs().put(discKey, disc);
 				}
 				disc.getTracks().add(track);
-				
+
 				/*
-				 * determine track artist
+				 * make sure the album artist also appears as asset artist???
 				 */
-				TrackArtist trackArtist = library.getTrackArtists().get(track.getArtist());
-				if (trackArtist == null) {
-					trackArtist = new TrackArtist(library.getTrackArtists().size(), track.getArtist());
-					library.getTrackArtists().put(track.getArtist(), trackArtist);
-				}
-				trackArtist.getAlbums().add(album);
-				
-				/*
-				 * make sure the album artist also appears as track artist???
-				 */
-//				if (albumArtistName != null && !albumArtistName.equals(track.getArtist())) {
+//				if (albumArtistName != null && !albumArtistName.equals(asset.getArtist())) {
 //					TrackArtist albumTrackArtist = library.getTrackArtists().get(albumArtistName);
 //					if (albumTrackArtist == null) {
 //						albumTrackArtist = new TrackArtist(library.getTrackArtists().size(), albumArtistName);
 //						library.getTrackArtists().put(albumArtistName, albumTrackArtist);
 //					}
-//					albumTrackArtist.getTracks().add(track);
 //					albumTrackArtist.getAlbums().add(album);
 //				}
+
 			}
 		}
 	}

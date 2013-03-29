@@ -28,7 +28,7 @@ public class LibraryParserTest {
 	@Test
 	public void testSampleAlbum() throws Exception {
 		File inputFolder = new File(getClass().getResource("/sample-album").toURI());
-		Library library = new LibraryParser(new SimpleAssetParser()).parse(inputFolder, new TrackStore("test"));
+		Library library = new LibraryParser(new SimpleAssetParser()).parse(inputFolder, new AssetStore("test"));
 		
 		// aif and wav samples are skipped; expect one album with three tracks (m4a-aac, m4a-alac and mp3)
 		
@@ -38,29 +38,29 @@ public class LibraryParserTest {
 		
 		Album album = library.getAlbums().get(0);
 		Assert.assertEquals("Sample Album", album.getTitle());
-		Assert.assertEquals("Sample Artist", album.representativeTrack().getArtist());
+		Assert.assertEquals("Sample Artist", album.representativeTrack().getArtist().getTitle());
 		Assert.assertEquals(1, album.getDiscs().size());
 		Assert.assertTrue(album.getDiscs().containsKey(1));
 		Assert.assertEquals(3, album.getDiscs().get(1).getTracks().size());
 
-		Assert.assertEquals("Sample - M4A (AAC)", album.getDiscs().get(1).getTracks().get(0).getName());
+		Assert.assertEquals("Sample - M4A (AAC)", album.getDiscs().get(1).getTracks().get(0).getTitle());
 		Assert.assertEquals(Integer.valueOf(1), album.getDiscs().get(1).getTracks().get(0).getTrackNumber());
 		Assert.assertEquals(Integer.valueOf(2013), album.getDiscs().get(1).getTracks().get(0).getYear());
-		Assert.assertNull(album.getDiscs().get(1).getTracks().get(0).getAlbumArtist());
+		Assert.assertEquals(album, album.getDiscs().get(1).getTracks().get(0).getAlbum());
 		Assert.assertTrue(album.getDiscs().get(1).getTracks().get(0).isArtworkAvailable());
 		Assert.assertFalse(album.getDiscs().get(1).getTracks().get(0).isCompilation());
 		
-		Assert.assertEquals("Sample - M4A (ALAC)", album.getDiscs().get(1).getTracks().get(1).getName());
+		Assert.assertEquals("Sample - M4A (ALAC)", album.getDiscs().get(1).getTracks().get(1).getTitle());
 		Assert.assertEquals(Integer.valueOf(2), album.getDiscs().get(1).getTracks().get(1).getTrackNumber());
 		Assert.assertEquals(Integer.valueOf(2013), album.getDiscs().get(1).getTracks().get(1).getYear());
-		Assert.assertNull(album.getDiscs().get(1).getTracks().get(1).getAlbumArtist());
+		Assert.assertEquals(album, album.getDiscs().get(1).getTracks().get(1).getAlbum());
 		Assert.assertTrue(album.getDiscs().get(1).getTracks().get(1).isArtworkAvailable());
 		Assert.assertFalse(album.getDiscs().get(1).getTracks().get(1).isCompilation());
 		
-		Assert.assertEquals("Sample - MP3", album.getDiscs().get(1).getTracks().get(2).getName());
+		Assert.assertEquals("Sample - MP3", album.getDiscs().get(1).getTracks().get(2).getTitle());
 		Assert.assertEquals(Integer.valueOf(3), album.getDiscs().get(1).getTracks().get(2).getTrackNumber());
 		Assert.assertEquals(Integer.valueOf(2013), album.getDiscs().get(1).getTracks().get(2).getYear());
-		Assert.assertNull(album.getDiscs().get(1).getTracks().get(2).getAlbumArtist());
+		Assert.assertEquals(album, album.getDiscs().get(1).getTracks().get(1).getAlbum());
 		Assert.assertTrue(album.getDiscs().get(1).getTracks().get(2).isArtworkAvailable());
 		Assert.assertFalse(album.getDiscs().get(1).getTracks().get(2).isCompilation());
 	}
@@ -68,7 +68,7 @@ public class LibraryParserTest {
 	@Test
 	public void testSampleLibrary() throws Exception {
 		File inputFolder = new File(getClass().getResource("/sample-library").toURI());
-		Library library = new LibraryParser(new SimpleAssetParser()).parse(inputFolder, new TrackStore("test"));
+		Library library = new LibraryParser(new SimpleAssetParser()).parse(inputFolder, new AssetStore("test"));
 
 		Assert.assertEquals(4, library.getAlbumArtists().size());
 		Assert.assertEquals(6, library.getTrackArtists().size());
@@ -110,7 +110,7 @@ public class LibraryParserTest {
 		Assert.assertEquals(2, variousArtistsAlbum.getTracks().size());
 
 		/*
-		 * verify track artists 
+		 * verify asset artists 
 		 */
 		TrackArtist trackArtist1 = library.getTrackArtists().get("Album Artist");
 		Assert.assertNotNull(trackArtist1);

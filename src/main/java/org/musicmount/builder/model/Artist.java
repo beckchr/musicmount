@@ -19,19 +19,24 @@ package org.musicmount.builder.model;
 public abstract class Artist implements Titled {
 	private final long artistId;
 	private final String title;
+	private final ArtistType artistType;
 
-	public Artist(long id, String title) {
+	public Artist(long id, String title, ArtistType artistType) {
 		this.artistId = id;
 		this.title = title;
+		this.artistType = artistType;
 	}
 	
-	public abstract ArtistType getArtistType();
 	public abstract Iterable<Album> albums();
 	public abstract int albumsCount();
 	
 	public long getArtistId() {
 		return artistId;
-	}	
+	}
+	
+	public ArtistType getArtistType() {
+		return artistType;
+	}
 
 	public String getTitle() {
 		return title;

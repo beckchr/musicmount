@@ -18,10 +18,8 @@ package org.musicmount.builder.impl;
 import java.awt.image.BufferedImage;
 import java.io.File;
 
-import org.musicmount.builder.model.Track;
-
 public interface AssetParser {
 	boolean isAssetFile(File file);
-	Track parse(File file) throws Exception;
+	Asset parse(File file) throws Exception;
 	BufferedImage extractArtwork(File file) throws Exception;
 }

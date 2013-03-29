@@ -32,25 +32,35 @@ public class SimpleResourceLocatorTest {
 		Assert.assertEquals("albumArtists/10/01/index.json", resourceLocator.getAlbumCollectionPath(new AlbumArtist(0x1001, "foo")));
 	}
 
+	Album createAlbum(long albumId, AlbumArtist artist, boolean artworkAvailable) {
+		Track track = new Track(null, null, artworkAvailable, false, null, null, null, null, null, null);
+		Album album = new Album(albumId, null);
+		album.getTracks().add(track);
+		track.setAlbum(album);
+		if (artist != null) {
+			album.setArtist(artist);
+			artist.getAlbums().put(album.getTitle(), album);
+		}
+		return album;
+	}
+	
 	@Test
 	public void testGetAlbumImagePath() {
+		Album album;
+		
 		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
-		Album album = new Album(0x1001, "foo");
-		Track track = new Track(null);
-		album.getTracks().add(track);
-
-		track.setArtworkAvailable(true);
+		album = createAlbum(0x1001, null, true);
 		Assert.assertEquals("albums/10/01/artwork.jpg", resourceLocator.getAlbumImagePath(album, ImageType.Artwork));
 		Assert.assertEquals("albums/10/01/tile.jpg", resourceLocator.getAlbumImagePath(album, ImageType.Tile));
 		Assert.assertEquals("albums/10/01/thumbnail.png", resourceLocator.getAlbumImagePath(album, ImageType.Thumbnail));
 
-		track.setArtworkAvailable(false);
+		album = createAlbum(0x1001, null, false); // no artwork available
 		Assert.assertNull(resourceLocator.getAlbumImagePath(album, ImageType.Artwork));
 		Assert.assertNull(resourceLocator.getAlbumImagePath(album, ImageType.Tile));
 		Assert.assertNull(resourceLocator.getAlbumImagePath(album, ImageType.Thumbnail));
 
 		resourceLocator = new SimpleResourceLocator(null, false, true); // noImages
-		track.setArtworkAvailable(true);
+		album = createAlbum(0x1001, null, true);
 		Assert.assertNull(resourceLocator.getAlbumImagePath(album, ImageType.Artwork));
 		Assert.assertNull(resourceLocator.getAlbumImagePath(album, ImageType.Tile));
 		Assert.assertNull(resourceLocator.getAlbumImagePath(album, ImageType.Thumbnail));
@@ -70,25 +80,26 @@ public class SimpleResourceLocatorTest {
 
 	@Test
 	public void testGetArtistImagePath() {
-		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
-		AlbumArtist artist = new AlbumArtist(0, "foo");
-		Album album = new Album(0x1001, "foo");
-		Track track = new Track(null);
-		album.getTracks().add(track);
-		artist.getAlbums().put(album.getTitle(), album);
+		AlbumArtist artist;
 
-		track.setArtworkAvailable(true);
+		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
+		artist = createAlbum(0x1001, new AlbumArtist(0, "foo"), true).getArtist();
 		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Artwork));
 		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Tile));
-		Assert.assertEquals("albums/10/01/thumbnail.png", resourceLocator.getAlbumImagePath(album, ImageType.Thumbnail));
+		Assert.assertEquals("albums/10/01/thumbnail.png", resourceLocator.getArtistImagePath(artist, ImageType.Thumbnail));
 
-		track.setArtworkAvailable(false);
+		artist = createAlbum(0x1001, new AlbumArtist(0, null), true).getArtist(); // no album artist name -> no images
+		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Artwork));
+		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Tile));
+		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Thumbnail));
+
+		artist = createAlbum(0x1001, new AlbumArtist(0, null), false).getArtist(); // no artwork available
 		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Artwork));
 		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Tile));
 		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Thumbnail));
 		
 		resourceLocator = new SimpleResourceLocator(null, false, true); // noImages
-		track.setArtworkAvailable(true);
+		artist = createAlbum(0x1001, new AlbumArtist(0, null), true).getArtist();
 		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Artwork));
 		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Tile));
 		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Thumbnail));

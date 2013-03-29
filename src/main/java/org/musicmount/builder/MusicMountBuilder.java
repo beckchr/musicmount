@@ -42,7 +42,7 @@ import org.musicmount.builder.impl.SimpleAssetLocator;
 import org.musicmount.builder.impl.SimpleResourceLocator;
 import org.musicmount.builder.impl.AssetParser;
 import org.musicmount.builder.impl.SimpleAssetParser;
-import org.musicmount.builder.impl.TrackStore;
+import org.musicmount.builder.impl.AssetStore;
 import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.Artist;
 import org.musicmount.builder.model.ArtistType;
@@ -72,9 +72,9 @@ public class MusicMountBuilder {
 	public static final String API_VERSION = "0.8";	
 
 	/**
-	 * Name of track store file.
+	 * Name of asset store file.
 	 */
-	static final String TRACK_STORE = ".musicmount.gz";	
+	static final String ASSET_STORE = ".musicmount.gz";	
 
 	public static void generateResponseFiles(
 			Library library,
@@ -139,7 +139,7 @@ public class MusicMountBuilder {
 		System.err.println("Options:");
 		System.err.println("       --music <path>     music path prefix, default is 'music'");
 		System.err.println("       --retina           double image resolution");
-		System.err.println("       --full             full parse, don't use track store");
+		System.err.println("       --full             full parse, don't use asset store");
 		System.err.println("       --unknownGenre     report missing genre as 'Unknown'");
 		System.err.println("       --noVariousArtists exclude 'Various Artists' from album artist index");
 //		System.err.println("       --pretty           pretty-print JSON documents");
@@ -238,24 +238,24 @@ public class MusicMountBuilder {
 		}
 		
 		LocalStrings localStrings = new LocalStrings(Locale.ENGLISH);
-		File trackStoreFile = new File(outputFolder, TRACK_STORE);
+		File assetStoreFile = new File(outputFolder, ASSET_STORE);
 
-		AssetLocator trackStoreAssetLocator = new SimpleAssetLocator(inputFolder, optionMusic, null); // no normalization
-		TrackStore trackStore = new TrackStore(API_VERSION);
-		if (!optionFull && trackStoreFile.exists()) {
-			LOGGER.info("Reading Track Store...");
-			try (InputStream trackStoreInput = createInputStream(trackStoreFile)) {
-				trackStore.load(trackStoreInput, trackStoreAssetLocator);
+		AssetLocator assetStoreAssetLocator = new SimpleAssetLocator(inputFolder, optionMusic, null); // no normalization
+		AssetStore assetStore = new AssetStore(API_VERSION);
+		if (!optionFull && assetStoreFile.exists()) {
+			LOGGER.info("Loading Asset Store...");
+			try (InputStream assetStoreInput = createInputStream(assetStoreFile)) {
+				assetStore.load(assetStoreInput, assetStoreAssetLocator);
 			} catch (Exception e) {
-				LOGGER.warning("Failed to parse track store...");
-				trackStore = new TrackStore(API_VERSION);
+				LOGGER.warning("Failed to load asset store...");
+				assetStore = new AssetStore(API_VERSION);
 			}
 		}
 
-		AssetParser trackParser = new SimpleAssetParser();
+		AssetParser assetParser = new SimpleAssetParser();
 
 		LOGGER.info("Parsing Music Libary...");
-		Library library = new LibraryParser(trackParser).parse(inputFolder, trackStore);
+		Library library = new LibraryParser(assetParser).parse(inputFolder, assetStore);
 		if (optionNoVariousArtists) { // remove "various artists" album artist (hack)
 			library.getAlbumArtists().remove(null);
 		}
@@ -264,8 +264,8 @@ public class MusicMountBuilder {
 
 		if (!optionNoImages) {
 			LOGGER.info("Generating images...");
-			ImageFormatter formatter = new ImageFormatter(trackParser, optionRetina);
-			formatter.formatImages(library, resourceLocator, trackStore);
+			ImageFormatter formatter = new ImageFormatter(assetParser, optionRetina);
+			formatter.formatImages(library, resourceLocator, assetStore);
 		}
 
 		ResponseFormatter<?> responseFormatter;
@@ -277,12 +277,12 @@ public class MusicMountBuilder {
 		AssetLocator responseAssetLocator = new SimpleAssetLocator(inputFolder, optionMusic, optionNormalize);
 		generateResponseFiles(library, outputFolder, responseFormatter, resourceLocator, responseAssetLocator);
 
-		LOGGER.info("Writing Track Store...");
-		try (OutputStream trackStoreOutput = createOutputStream(trackStoreFile)) {
-			trackStore.save(trackStoreOutput, trackStoreAssetLocator);
+		LOGGER.info("Saving Asset Store...");
+		try (OutputStream assetStoreOutput = createOutputStream(assetStoreFile)) {
+			assetStore.save(assetStoreOutput, assetStoreAssetLocator);
 		} catch (Exception e) {
-			LOGGER.warning("Failed to save track store...");
-			trackStoreFile.deleteOnExit();
+			LOGGER.warning("Failed to save asset store...");
+			assetStoreFile.deleteOnExit();
 		}
 
 		LOGGER.info(String.format("Done (%d albums).", library.getAlbums().size()));

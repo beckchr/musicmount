@@ -21,7 +21,6 @@ import java.util.Arrays;
 import junit.framework.Assert;
 
 import org.junit.Test;
-import org.musicmount.builder.model.Track;
 
 public class SimpleAssetParserTest {
 	@Test
@@ -37,32 +36,32 @@ public class SimpleAssetParserTest {
 		SimpleAssetParser assetParser = new SimpleAssetParser();
 
 		File mp3File = new File(getClass().getResource("/sample-assets/sample.mp3").toURI());
-		Track mp3Track = assetParser.parse(mp3File);
-		Assert.assertEquals("Sample MP3", mp3Track.getName());
-		Assert.assertEquals("Sample Album", mp3Track.getAlbum());
-		Assert.assertEquals("Sample Album Artist", mp3Track.getAlbumArtist());
-		Assert.assertEquals("Sample Artist", mp3Track.getArtist());
-		Assert.assertEquals(mp3File, mp3Track.getAssetFile());
-		Assert.assertEquals("Sample Composer", mp3Track.getComposer());
-		Assert.assertEquals("Sample Genre", mp3Track.getGenre());
-		Assert.assertEquals(Integer.valueOf(1), mp3Track.getDiscNumber());
-		Assert.assertEquals(Integer.valueOf(4), mp3Track.getDuration());
-		Assert.assertEquals(Integer.valueOf(1), mp3Track.getTrackNumber());
-		Assert.assertEquals(Integer.valueOf(2013), mp3Track.getYear());
+		Asset mp3Asset = assetParser.parse(mp3File);
+		Assert.assertEquals("Sample MP3", mp3Asset.getName());
+		Assert.assertEquals("Sample Album", mp3Asset.getAlbum());
+		Assert.assertEquals("Sample Album Artist", mp3Asset.getAlbumArtist());
+		Assert.assertEquals("Sample Artist", mp3Asset.getArtist());
+		Assert.assertEquals(mp3File, mp3Asset.getFile());
+		Assert.assertEquals("Sample Composer", mp3Asset.getComposer());
+		Assert.assertEquals("Sample Genre", mp3Asset.getGenre());
+		Assert.assertEquals(Integer.valueOf(1), mp3Asset.getDiscNumber());
+		Assert.assertEquals(Integer.valueOf(4), mp3Asset.getDuration());
+		Assert.assertEquals(Integer.valueOf(1), mp3Asset.getTrackNumber());
+		Assert.assertEquals(Integer.valueOf(2013), mp3Asset.getYear());
 
 		File m4aFile = new File(getClass().getResource("/sample-assets/sample.m4a").toURI());
-		Track m4aTrack = assetParser.parse(m4aFile);
-		Assert.assertEquals("Sample M4A", m4aTrack.getName());
-		Assert.assertEquals("Sample Album", m4aTrack.getAlbum());
-		Assert.assertEquals("Sample Album Artist", m4aTrack.getAlbumArtist());
-		Assert.assertEquals("Sample Artist", m4aTrack.getArtist());
-		Assert.assertEquals(m4aFile, m4aTrack.getAssetFile());
-		Assert.assertEquals("Sample Composer", m4aTrack.getComposer());
-		Assert.assertEquals("Sample Genre", m4aTrack.getGenre());
-		Assert.assertEquals(Integer.valueOf(1), m4aTrack.getDiscNumber());
-		Assert.assertEquals(Integer.valueOf(4), m4aTrack.getDuration());
-		Assert.assertEquals(Integer.valueOf(1), m4aTrack.getTrackNumber());
-		Assert.assertEquals(Integer.valueOf(2013), m4aTrack.getYear());
+		Asset m4aAsset = assetParser.parse(m4aFile);
+		Assert.assertEquals("Sample M4A", m4aAsset.getName());
+		Assert.assertEquals("Sample Album", m4aAsset.getAlbum());
+		Assert.assertEquals("Sample Album Artist", m4aAsset.getAlbumArtist());
+		Assert.assertEquals("Sample Artist", m4aAsset.getArtist());
+		Assert.assertEquals(m4aFile, m4aAsset.getFile());
+		Assert.assertEquals("Sample Composer", m4aAsset.getComposer());
+		Assert.assertEquals("Sample Genre", m4aAsset.getGenre());
+		Assert.assertEquals(Integer.valueOf(1), m4aAsset.getDiscNumber());
+		Assert.assertEquals(Integer.valueOf(4), m4aAsset.getDuration());
+		Assert.assertEquals(Integer.valueOf(1), m4aAsset.getTrackNumber());
+		Assert.assertEquals(Integer.valueOf(2013), m4aAsset.getYear());
 	}
 	
 	@Test

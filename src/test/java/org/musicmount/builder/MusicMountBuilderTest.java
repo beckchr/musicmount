@@ -28,7 +28,7 @@ import org.musicmount.builder.impl.ResponseFormatter;
 import org.musicmount.builder.impl.SimpleAssetLocator;
 import org.musicmount.builder.impl.SimpleAssetParser;
 import org.musicmount.builder.impl.SimpleResourceLocator;
-import org.musicmount.builder.impl.TrackStore;
+import org.musicmount.builder.impl.AssetStore;
 import org.musicmount.builder.model.Library;
 
 /*
@@ -48,7 +48,7 @@ public class MusicMountBuilderTest {
 	@Test
 	public void testGenerateResponseFiles() throws Exception {
 		File inputFolder = new File(getClass().getResource("/sample-library").toURI());
-		Library library = new LibraryParser(new SimpleAssetParser()).parse(inputFolder, new TrackStore(MusicMountBuilder.API_VERSION));
+		Library library = new LibraryParser(new SimpleAssetParser()).parse(inputFolder, new AssetStore(MusicMountBuilder.API_VERSION));
 		ResourceLocator resourceLocator = new SimpleResourceLocator(outputFolder.getRoot(), false, false);
 		ResponseFormatter<?> formatter = new ResponseFormatter.JSON(MusicMountBuilder.API_VERSION, new LocalStrings(), false, false, true);
 		AssetLocator assetLocator = new SimpleAssetLocator(inputFolder, "music", null);

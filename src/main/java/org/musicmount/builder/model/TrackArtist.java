@@ -22,12 +22,7 @@ public class TrackArtist extends Artist {
 	private final Set<Album> albums = new LinkedHashSet<Album>();
 
 	public TrackArtist(long id, String title) {
-		super(id, title);
-	}
-
-	@Override
-	public ArtistType getArtistType() {
-		return ArtistType.TrackArtist;
+		super(id, title, ArtistType.TrackArtist);
 	}
 	
 	@Override
@@ -42,5 +37,10 @@ public class TrackArtist extends Artist {
 	@Override
 	public int albumsCount() {
 		return albums.size();
+	}
+	
+	@Override
+	public String toString() {
+		return "TrackArtist(" + getTitle() + ")";
 	}
 }

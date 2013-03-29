@@ -24,10 +24,9 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.musicmount.builder.model.Library;
-import org.musicmount.builder.model.Track;
 import org.musicmount.util.LoggingUtil;
 
-public class TrackStoreTest {
+public class AssetStoreTest {
 	@BeforeClass
 	public static void beforeClass() {
 		LoggingUtil.configure("org.jaudiotagger", Level.WARNING);
@@ -37,46 +36,46 @@ public class TrackStoreTest {
 	public void test() throws Exception {
 		File assetDir = new File(getClass().getResource("/sample-album/sample.mp3").toURI()).getParentFile();
 		AssetLocator assetLocator = new SimpleAssetLocator(assetDir, null, null);
-		TrackStore trackStore = new TrackStore("test");
-		Library library = new LibraryParser(new SimpleAssetParser()).parse(assetDir, trackStore);
+		AssetStore assetStore = new AssetStore("test");
+		Library library = new LibraryParser(new SimpleAssetParser()).parse(assetDir, assetStore);
 
 		Assert.assertEquals(1, library.getAlbumArtists().size());
 		Assert.assertEquals(1, library.getTrackArtists().size());
 		Assert.assertEquals(1, library.getAlbums().size());
 
-		Assert.assertEquals(3, trackStore.getEntities().size());
-		Assert.assertEquals(0, trackStore.getLoadedAlbumIds().size());
-		Assert.assertEquals(1, trackStore.getCreatedAlbumIds().size());
-		Assert.assertEquals(1, trackStore.getChangedAlbumIds().size());
+		Assert.assertEquals(3, assetStore.getEntities().size());
+		Assert.assertEquals(0, assetStore.getLoadedAlbumIds().size());
+		Assert.assertEquals(1, assetStore.getCreatedAlbumIds().size());
+		Assert.assertEquals(1, assetStore.getChangedAlbumIds().size());
 
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		trackStore.save(output, assetLocator);
+		assetStore.save(output, assetLocator);
 		output.close();
 
 		ByteArrayInputStream input = new ByteArrayInputStream(output.toByteArray());
-		trackStore = new TrackStore("test");
-		trackStore.load(input, assetLocator);
+		assetStore = new AssetStore("test");
+		assetStore.load(input, assetLocator);
 		input.close();
 		
-		Assert.assertEquals(3, trackStore.getEntities().size());
-		Assert.assertEquals(1, trackStore.getLoadedAlbumIds().size());
-		Assert.assertEquals(0, trackStore.getCreatedAlbumIds().size());
-		Assert.assertEquals(0, trackStore.getChangedAlbumIds().size());
+		Assert.assertEquals(3, assetStore.getEntities().size());
+		Assert.assertEquals(1, assetStore.getLoadedAlbumIds().size());
+		Assert.assertEquals(0, assetStore.getCreatedAlbumIds().size());
+		Assert.assertEquals(0, assetStore.getChangedAlbumIds().size());
 
-		library = new LibraryParser(new SimpleAssetParser()).parse(assetDir, trackStore);
+		library = new LibraryParser(new SimpleAssetParser()).parse(assetDir, assetStore);
 
 		Assert.assertEquals(1, library.getAlbumArtists().size());
 		Assert.assertEquals(1, library.getTrackArtists().size());
 		Assert.assertEquals(1, library.getAlbums().size());
 
-		Assert.assertEquals(3, trackStore.getEntities().size());
-		Assert.assertEquals(1, trackStore.getLoadedAlbumIds().size());
-		Assert.assertEquals(1, trackStore.getCreatedAlbumIds().size());
-		Assert.assertEquals(0, trackStore.getChangedAlbumIds().size());
+		Assert.assertEquals(3, assetStore.getEntities().size());
+		Assert.assertEquals(1, assetStore.getLoadedAlbumIds().size());
+		Assert.assertEquals(1, assetStore.getCreatedAlbumIds().size());
+		Assert.assertEquals(0, assetStore.getChangedAlbumIds().size());
 
-		Track track = trackStore.getTrack(new File(getClass().getResource("/sample-album/sample.mp3").toURI()));
-		Assert.assertEquals("Sample Album", track.getAlbum());
-		Assert.assertEquals("Sample - MP3", track.getName());
-		Assert.assertTrue(track.getAssetFile().exists());
+		Asset asset = assetStore.getAsset(new File(getClass().getResource("/sample-album/sample.mp3").toURI()));
+		Assert.assertEquals("Sample Album", asset.getAlbum());
+		Assert.assertEquals("Sample - MP3", asset.getName());
+		Assert.assertTrue(asset.getFile().exists());
 	}
 }

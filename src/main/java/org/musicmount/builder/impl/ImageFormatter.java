@@ -146,7 +146,7 @@ public class ImageFormatter {
 		    			image = tmpImage;
 		    		}
 		        } catch(Exception e) {
-		        	LOGGER.log(Level.WARNING, "Could not extract artwork from " + track.getAssetFile().getAbsolutePath(), e);
+		        	LOGGER.log(Level.WARNING, "Could not extract artwork from " + track.getAssetFile(), e);
 		        	return;
 		        }
 		        formatImages(image, targets);
@@ -155,10 +155,10 @@ public class ImageFormatter {
 		}
 	}
 	
-	public void formatImages(Library library, ResourceLocator resourceLocator, TrackStore trackStore) {
+	public void formatImages(Library library, ResourceLocator resourceLocator, AssetStore assetStore) {
 		int count = 0;
 		for (Album album : library.getAlbums()) {
-			formatAlbumImages(album, resourceLocator, trackStore.isAlbumChanged(album));
+			formatAlbumImages(album, resourceLocator, assetStore.isAlbumChanged(album.getAlbumId()));
 			if (++count % 100 == 0) {
 				LOGGER.fine("Progress: #albums = " + count);
 			}

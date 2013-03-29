@@ -52,7 +52,7 @@ public class ResponseFormatterTest {
 		ResponseFormatter.JSON responseFormatter = new ResponseFormatter.JSON("test", new LocalStrings(), false, false, true);
 
 		File inputFolder = new File(getClass().getResource("/sample-library").toURI());
-		Library library = new LibraryParser(new SimpleAssetParser()).parse(inputFolder, new TrackStore("test"));
+		Library library = new LibraryParser(new SimpleAssetParser()).parse(inputFolder, new AssetStore("test"));
 
 		SimpleAssetLocator assetLocator = new SimpleAssetLocator(outputFolder.getRoot(), "music", null);
 		ByteArrayOutputStream output;

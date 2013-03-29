@@ -35,11 +35,11 @@ public class ImageFormatterTest {
 	public void testBasic() throws Exception {
 		File input = new File(getClass().getResource("/sample-album").toURI()); // has a square image
 		AssetParser assetParser = new SimpleAssetParser();
-		Library library = new LibraryParser(assetParser).parse(input, new TrackStore("test"));
+		Library library = new LibraryParser(assetParser).parse(input, new AssetStore("test"));
 		File output = outputFolder.getRoot();
 		ResourceLocator resourceLocator = new SimpleResourceLocator(output, false, false);
 		ImageFormatter imageFormatter = new ImageFormatter(assetParser, false);
-		imageFormatter.formatImages(library, resourceLocator, new TrackStore("test"));
+		imageFormatter.formatImages(library, resourceLocator, new AssetStore("test"));
 		
 		String artworkPath = resourceLocator.getAlbumImagePath(library.getAlbums().get(0), ImageType.Artwork);
 		File artworkFile = resourceLocator.getFile(artworkPath);
@@ -67,11 +67,11 @@ public class ImageFormatterTest {
 	public void testRetina() throws Exception {
 		File input = new File(getClass().getResource("/sample-album").toURI()); // has a square image
 		AssetParser assetParser = new SimpleAssetParser();
-		Library library = new LibraryParser(assetParser).parse(input, new TrackStore("test"));
+		Library library = new LibraryParser(assetParser).parse(input, new AssetStore("test"));
 		File output = outputFolder.getRoot();
 		ResourceLocator resourceLocator = new SimpleResourceLocator(output, false, false);
 		ImageFormatter imageFormatter = new ImageFormatter(assetParser, true); // retina
-		imageFormatter.formatImages(library, resourceLocator, new TrackStore("test"));
+		imageFormatter.formatImages(library, resourceLocator, new AssetStore("test"));
 		
 		String artworkPath = resourceLocator.getAlbumImagePath(library.getAlbums().get(0), ImageType.Artwork);
 		File artworkFile = resourceLocator.getFile(artworkPath);

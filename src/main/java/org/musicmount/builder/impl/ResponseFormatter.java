@@ -163,7 +163,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		for (Album album : artist.albums()) {
 			if (artist.getArtistType() == ArtistType.TrackArtist) {
 				for (Track track : album.getTracks()) {
-					if (track.getArtist() == artist.getTitle() || track.getArtist() != null && track.getArtist().equals(artist.getTitle())) {
+					if (track.getArtist() == artist) {
 						playlist.getTracks().add(track);
 					}
 				}
@@ -228,10 +228,10 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 					writeStringProperty(writer, "imagePath", imagePath);
 				}
 				Track representativeTrack = item.representativeTrack();
-				if (writeCompilationInfo && representativeTrack.isCompilation() && item.getAlbumArtist().getTitle() != null) {
+				if (writeCompilationInfo && representativeTrack.isCompilation() && item.getArtist().getTitle() != null) {
 					writeStringProperty(writer, "info", localStrings.getCompilation());
 				}
-				writeStringProperty(writer, "artist", item.getAlbumArtist().getTitle() == null ? getDefaultArtistTitle(ArtistType.AlbumArtist) : item.getAlbumArtist().getTitle());
+				writeStringProperty(writer, "artist", item.getArtist().getTitle() == null ? getDefaultArtistTitle(ArtistType.AlbumArtist) : item.getArtist().getTitle());
 				writeStringProperty(writer, "albumPath", getDocumentPath(resourceLocator.getAlbumPath(item)));
 				List<String> genreList = genreList(item);
 				if (genreList.size() > 0) {
@@ -303,8 +303,8 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		CollectionSectionIndex<Album> index = new CollectionSectionIndex<Album>(localStrings, albums, getDefaultAlbumTitle(), new Comparator<Album>() {
 			@Override
 			public int compare(Album o1, Album o2) { // sort equally titled albums by album artist
-				String title1 = o1.getAlbumArtist().getTitle() == null ? getDefaultArtistTitle(ArtistType.AlbumArtist) : o1.getAlbumArtist().getTitle();
-				String title2 = o2.getAlbumArtist().getTitle() == null ? getDefaultArtistTitle(ArtistType.AlbumArtist) : o2.getAlbumArtist().getTitle();
+				String title1 = o1.getArtist().getTitle() == null ? getDefaultArtistTitle(ArtistType.AlbumArtist) : o1.getArtist().getTitle();
+				String title2 = o2.getArtist().getTitle() == null ? getDefaultArtistTitle(ArtistType.AlbumArtist) : o2.getArtist().getTitle();
 				return title1.compareTo(title2);
 			}
 		});
@@ -389,10 +389,10 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		writer.writeStartElement("album");
 		Track representativeTrack = album.representativeTrack();
 		writeStringProperty(writer, "title", album.getTitle() == null ? getDefaultAlbumTitle() : album.getTitle());
-		if (representativeTrack.isCompilation() && album.getAlbumArtist().getTitle() != null) {
+		if (representativeTrack.isCompilation() && album.getArtist().getTitle() != null) {
 			writeStringProperty(writer, "info", localStrings.getCompilation());
 		}
-		writeStringProperty(writer, "artist", album.getAlbumArtist().getTitle() == null ? getDefaultArtistTitle(ArtistType.AlbumArtist) : album.getAlbumArtist().getTitle());
+		writeStringProperty(writer, "artist", album.getArtist().getTitle() == null ? getDefaultArtistTitle(ArtistType.AlbumArtist) : album.getArtist().getTitle());
 //		writeStringProperty(writer, "albumPath", resourceLocator.getAlbumPath(album));
 		List<String> genreList = genreList(album);
 		if (genreList.size() > 0) {
@@ -438,10 +438,10 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 			}
 			for (Track item : items) {
 				writer.writeStartElement("trackCollectionItem");
-				writeStringProperty(writer, "title", item.getName());
-				String artist = item.getArtist();
+				writeStringProperty(writer, "title", item.getTitle());
+				String artist = item.getArtist().getTitle();
 				if (artist == null) {
-					artist = item.getAlbumArtist();
+					artist = item.getAlbum().getArtist().getTitle();
 				}
 				if (artist != null) {
 					writeStringProperty(writer, "artist", artist);

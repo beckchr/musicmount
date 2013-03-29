@@ -26,12 +26,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
-import org.musicmount.builder.model.Album;
-import org.musicmount.builder.model.Track;
 
 import de.odysseus.staxon.json.JsonXMLConfigBuilder;
 import de.odysseus.staxon.json.JsonXMLInputFactory;
@@ -39,20 +38,20 @@ import de.odysseus.staxon.json.JsonXMLOutputFactory;
 import de.odysseus.staxon.json.JsonXMLStreamConstants;
 import de.odysseus.staxon.json.JsonXMLStreamWriter;
 
-public class TrackStore {
-	static final Logger LOGGER = Logger.getLogger(TrackStore.class.getName());
+public class AssetStore {
+	static final Logger LOGGER = Logger.getLogger(AssetStore.class.getName());
 
-	static class TrackEntity {
+	static class AssetEntity {
 		final long albumId;
-		final Track track;
+		final Asset asset;
 		
-		public TrackEntity(long albumId, Track track) {
+		public AssetEntity(long albumId, Asset asset) {
 			this.albumId = albumId;
-			this.track = track;
+			this.asset = asset;
 		}
 	}
 	
-	final Map<File, TrackEntity> entities = new LinkedHashMap<File, TrackStore.TrackEntity>();
+	final Map<File, AssetEntity> entities = new LinkedHashMap<File, AssetStore.AssetEntity>();
 	final Set<Long> loadedAlbumIds = new HashSet<Long>();
 	final Set<Long> changedAlbumIds = new HashSet<Long>();
 	final Set<Long> createdAlbumIds = new HashSet<Long>();
@@ -61,7 +60,7 @@ public class TrackStore {
 	long albumIdSequence = 0;
 	long timestamp = System.currentTimeMillis();
 
-	public TrackStore(String apiVersion) {
+	public AssetStore(String apiVersion) {
 		this.apiVersion = apiVersion;
 	}
 	
@@ -86,7 +85,7 @@ public class TrackStore {
 		return Collections.unmodifiableSet(changedAlbumIds);
 	}
 	
-	public Map<File, TrackEntity> getEntities() {
+	public Map<File, AssetEntity> getEntities() {
 		return Collections.unmodifiableMap(entities);
 	}
 
@@ -98,19 +97,19 @@ public class TrackStore {
 	}
 	
 	/**
-	 * Add first track for a new album
-	 * @param track
+	 * Add first asset for a new album
+	 * @param asset
 	 * @param title
-	 * @return album
+	 * @return album id
 	 */
-	public Album createAlbum(Track track, String title) {
+	public long createAlbum(Asset asset) {
 		long albumId;
 		/*
-		 * if the track was loaded from the store, check if we
-		 * already created an album from the track's original album id.
+		 * if the asset was loaded from the store, check if we
+		 * already created an album from the asset's original album id.
 		 */
-		if (entities.containsKey(track.getAssetFile())) {
-			long oldAlbumId = entities.get(track.getAssetFile()).albumId;
+		if (entities.containsKey(asset.getFile())) {
+			long oldAlbumId = entities.get(asset.getFile()).albumId;
 			if (createdAlbumIds.contains(oldAlbumId)) { // album split
 				changedAlbumIds.add(oldAlbumId);
 				albumId = nextAlbumId();
@@ -118,23 +117,21 @@ public class TrackStore {
 			} else {
 				albumId = oldAlbumId;
 			}
-		} else { // never seen this track before -> create new album id
+		} else { // never seen this asset before -> create new album id
 			albumId = nextAlbumId();
 			changedAlbumIds.add(albumId);
 		}
-		entities.put(track.getAssetFile(), new TrackEntity(albumId, track));
-		Album album = new Album(albumId, title);
+		entities.put(asset.getFile(), new AssetEntity(albumId, asset));
 		createdAlbumIds.add(albumId);
-		return album;
+		return albumId;
 	}
 
 	/**
-	 * Add track to previously created album
-	 * @param track
+	 * Add asset to previously created album
+	 * @param asset
 	 * @param album
 	 */
-	public void addTrack(Track track, Album album) {
-		long albumId = album.getAlbumId();
+	public void addAsset(Asset asset, long albumId) {
 		/*
 		 * album must be created via createAlbum(...)
 		 */
@@ -142,36 +139,36 @@ public class TrackStore {
 			throw new IllegalArgumentException("Invalid album id: " + albumId);
 		}
 		/*
-		 * check if track is moving to a new album
+		 * check if asset is moving to a new album
 		 */
-		if (entities.containsKey(track.getAssetFile())) {
-			long oldAlbumId = entities.get(track.getAssetFile()).albumId;
+		if (entities.containsKey(asset.getFile())) {
+			long oldAlbumId = entities.get(asset.getFile()).albumId;
 			if (oldAlbumId != albumId) {
 				changedAlbumIds.add(albumId);
 				changedAlbumIds.add(oldAlbumId);
 			}
-		} else { // track not seen before
+		} else { // asset not seen before
 			changedAlbumIds.add(albumId);
 		}
-		entities.put(track.getAssetFile(), new TrackEntity(albumId, track));
+		entities.put(asset.getFile(), new AssetEntity(albumId, asset));
 	}
 
-	public Track getTrack(File assetFile) {
-		return entities.containsKey(assetFile) ? entities.get(assetFile).track : null;
+	public Asset getAsset(File assetFile) {
+		return entities.containsKey(assetFile) ? entities.get(assetFile).asset : null;
 	}
 	
 	/**
 	 * Answer <code>true</code> if the specified album has changed somehow, i.e.:
 	 * <ul>
-	 * <li>the album has tracks that are modified lately</li>
-	 * <li>tracks have been removed from the album</li>
-	 * <li>tracks have been added to the album</li>
+	 * <li>the album has assets that are modified lately</li>
+	 * <li>assets have been removed from the album</li>
+	 * <li>assets have been added to the album</li>
 	 * </ul>
 	 * @param album
 	 * @return <code>true</code> if the specified album has changed
 	 */
-	public boolean isAlbumChanged(Album album) {
-		return changedAlbumIds.contains(album.getAlbumId());
+	public boolean isAlbumChanged(long albumId) {
+		return changedAlbumIds.contains(albumId);
 	}
 
 	void writeNumberProperty(JsonXMLStreamWriter writer, String name, Number value) throws XMLStreamException {
@@ -199,32 +196,32 @@ public class TrackStore {
 	}
 
 	public void save(OutputStream output, AssetLocator assetLocator) throws IOException, XMLStreamException {
-		JsonXMLOutputFactory factory = new JsonXMLOutputFactory(new JsonXMLConfigBuilder().prettyPrint(false).virtualRoot("trackStore").build());
+		JsonXMLOutputFactory factory = new JsonXMLOutputFactory(new JsonXMLConfigBuilder().prettyPrint(false).virtualRoot("assetStore").build());
 		JsonXMLStreamWriter writer = factory.createXMLStreamWriter(output);
 		try {
 			writer.writeStartDocument();
-			writer.writeStartElement("trackStore");
+			writer.writeStartElement("assetStore");
 			writeStringProperty(writer, "apiVersion", apiVersion);
 			writeNumberProperty(writer, "timestamp", timestamp);
 			writer.writeProcessingInstruction(JsonXMLStreamConstants.MULTIPLE_PI_TARGET);
-			for (TrackEntity entity : entities.values()) {
-				String assetPath = assetLocator.getAssetPath(entity.track.getAssetFile());
+			for (AssetEntity entity : entities.values()) {
+				String assetPath = assetLocator.getAssetPath(entity.asset.getFile());
 				if (assetPath != null) {
-					writer.writeStartElement("track");
+					writer.writeStartElement("asset");
 					writeNumberProperty(writer, "albumId", entity.albumId);
-					writeStringProperty(writer, "album", entity.track.getAlbum());
-					writeStringProperty(writer, "albumArtist", entity.track.getAlbumArtist());
-					writeStringProperty(writer, "artist", entity.track.getArtist());
-					writeBooleanProperty(writer, "artworkAvailable", entity.track.isArtworkAvailable());
+					writeStringProperty(writer, "album", entity.asset.getAlbum());
+					writeStringProperty(writer, "albumArtist", entity.asset.getAlbumArtist());
+					writeStringProperty(writer, "artist", entity.asset.getArtist());
+					writeBooleanProperty(writer, "artworkAvailable", entity.asset.isArtworkAvailable());
 					writeStringProperty(writer, "assetPath", assetPath);
-					writeBooleanProperty(writer, "compilation", entity.track.isCompilation());
-					writeStringProperty(writer, "composer", entity.track.getComposer());
-					writeNumberProperty(writer, "discNumber", entity.track.getDiscNumber());
-					writeNumberProperty(writer, "duration", entity.track.getDuration());
-					writeStringProperty(writer, "genre", entity.track.getGenre());
-					writeStringProperty(writer, "name", entity.track.getName());
-					writeNumberProperty(writer, "trackNumber", entity.track.getTrackNumber());
-					writeNumberProperty(writer, "year", entity.track.getYear());
+					writeBooleanProperty(writer, "compilation", entity.asset.isCompilation());
+					writeStringProperty(writer, "composer", entity.asset.getComposer());
+					writeNumberProperty(writer, "discNumber", entity.asset.getDiscNumber());
+					writeNumberProperty(writer, "duration", entity.asset.getDuration());
+					writeStringProperty(writer, "genre", entity.asset.getGenre());
+					writeStringProperty(writer, "name", entity.asset.getName());
+					writeNumberProperty(writer, "trackNumber", entity.asset.getTrackNumber());
+					writeNumberProperty(writer, "year", entity.asset.getYear());
 					writer.writeEndElement();
 				}
 			}
@@ -235,8 +232,8 @@ public class TrackStore {
 		}
 	}
 
-	private TrackEntity readTrack(XMLStreamReader reader, AssetLocator assetLocator) throws XMLStreamException {
-		reader.require(XMLStreamConstants.START_ELEMENT, null, "track");
+	private AssetEntity readAsset(XMLStreamReader reader, AssetLocator assetLocator) throws XMLStreamException {
+		reader.require(XMLStreamConstants.START_ELEMENT, null, "asset");
 		reader.nextTag();
 
 		Long albumId = null;
@@ -298,43 +295,43 @@ public class TrackStore {
 				year = Integer.valueOf(reader.getElementText());
 				break;
 			default:
-				throw new XMLStreamException("unexpected track property: " + reader.getLocalName());
+				throw new XMLStreamException("unexpected asset property: " + reader.getLocalName());
 			}
 			reader.require(XMLStreamConstants.END_ELEMENT, null, null);
 			reader.nextTag();
 		}
-		reader.require(XMLStreamConstants.END_ELEMENT, null, "track");
+		reader.require(XMLStreamConstants.END_ELEMENT, null, "asset");
 
 		if (albumId != null && assetPath != null) {
 			File assetFile = assetLocator.getAssetFile(assetPath);
 			if (assetFile != null && assetFile.exists() && assetFile.lastModified() < timestamp) {
-				Track track = new Track(assetFile);
-				track.setAlbum(album);
-				track.setAlbumArtist(albumArtist);
-				track.setArtist(artist);
-				track.setArtworkAvailable(artworkAvailable);
-				track.setCompilation(compilation);
-				track.setComposer(composer);
-				track.setDiscNumber(discNumber);
-				track.setDuration(duration);
-				track.setGenre(genre);
-				track.setName(name);
-				track.setTrackNumber(trackNumber);
-				track.setYear(year);
-				return new TrackEntity(albumId, track);
+				Asset asset = new Asset(assetFile);
+				asset.setAlbum(album);
+				asset.setAlbumArtist(albumArtist);
+				asset.setArtist(artist);
+				asset.setArtworkAvailable(artworkAvailable);
+				asset.setCompilation(compilation);
+				asset.setComposer(composer);
+				asset.setDiscNumber(discNumber);
+				asset.setDuration(duration);
+				asset.setGenre(genre);
+				asset.setName(name);
+				asset.setTrackNumber(trackNumber);
+				asset.setYear(year);
+				return new AssetEntity(albumId, asset);
 			}
 		}
 		return null;
 	}
 	
 	public void load(InputStream input, AssetLocator assetLocator) throws IOException, XMLStreamException {
-		JsonXMLInputFactory factory = new JsonXMLInputFactory(new JsonXMLConfigBuilder().virtualRoot("trackStore").build());
+		XMLInputFactory factory = new JsonXMLInputFactory(new JsonXMLConfigBuilder().virtualRoot("assetStore").build());
 		XMLStreamReader reader = factory.createXMLStreamReader(input);
 		try {
 			if (reader.getEventType() == XMLStreamConstants.START_DOCUMENT) {
 				reader.nextTag();
 			}
-			reader.require(XMLStreamConstants.START_ELEMENT, null, "trackStore");
+			reader.require(XMLStreamConstants.START_ELEMENT, null, "assetStore");
 			reader.nextTag();
 			while (reader.getEventType() == XMLStreamConstants.START_ELEMENT) {
 				switch (reader.getLocalName()) {
@@ -347,20 +344,20 @@ public class TrackStore {
 				case "timestamp":
 					timestamp = Math.min(timestamp, Long.valueOf(reader.getElementText()));
 					break;
-				case "track":
-					TrackEntity entity = readTrack(reader, assetLocator);
+				case "asset":
+					AssetEntity entity = readAsset(reader, assetLocator);
 					if (entity != null) {
-						entities.put(entity.track.getAssetFile(), entity);
+						entities.put(entity.asset.getFile(), entity);
 						loadedAlbumIds.add(entity.albumId);
 					}
 					break;
 				default:
-					throw new XMLStreamException("unexpected trackStore property: " + reader.getLocalName());
+					throw new XMLStreamException("unexpected assetStore property: " + reader.getLocalName());
 				}
 				reader.require(XMLStreamConstants.END_ELEMENT, null, null);
 				reader.nextTag();
 			}
-			reader.require(XMLStreamConstants.END_ELEMENT, null, "trackStore");
+			reader.require(XMLStreamConstants.END_ELEMENT, null, "assetStore");
 		} finally {
 			reader.close();
 		}

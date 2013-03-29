@@ -24,7 +24,7 @@ public class Album extends Playlist implements Titled {
 	private final String title;
 	private final SortedMap<Integer, Disc> discs = new TreeMap<Integer, Disc>();
 	
-	private AlbumArtist albumArtist;
+	private AlbumArtist artist;
 	
 	public Album(long albumId, String title) {
 		this.albumId = albumId;
@@ -43,16 +43,12 @@ public class Album extends Playlist implements Titled {
 		return title;
 	}
 	
-	public String sortTitle() {
-		return title;
+	public AlbumArtist getArtist() {
+		return artist;
 	}
 	
-	public AlbumArtist getAlbumArtist() {
-		return albumArtist;
-	}
-	
-	public void setAlbumArtist(AlbumArtist albumArtist) {
-		this.albumArtist = albumArtist;
+	public void setArtist(AlbumArtist artist) {
+		this.artist = artist;
 	}
 	
 	public Track representativeTrack() {
@@ -64,5 +60,10 @@ public class Album extends Playlist implements Titled {
 			anyTrack = track;
 		}
 		return anyTrack;
+	}
+	
+	@Override
+	public String toString() {
+		return "Album(" + getTitle() + ")";
 	}
 }

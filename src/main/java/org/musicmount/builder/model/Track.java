@@ -17,111 +17,102 @@ package org.musicmount.builder.model;
 
 import java.io.File;
 
-public class Track {
-	private String name;
-	private String artist;
-	private String albumArtist;
-	private String album;
-	private String genre;
-	private String composer;
-	private Integer duration;
-	private Integer discNumber;
-	private Integer trackNumber;
-	private Integer year;
-	private boolean compilation;
-	private boolean artworkAvailable;
-
+public class Track implements Titled {
+	private final String title;
 	private final File assetFile;
+	private final boolean artworkAvailable;
+	private final boolean compilation;
+	private final String composer;
+	private final Integer discNumber;
+	private final Integer duration;
+	private final String genre;
+	private final Integer trackNumber;
+	private final Integer year;
 
-	public Track(File assetFile) {
+	private TrackArtist artist;
+	private Album album;
+
+	public Track(
+			String title,
+			File assetFile,
+			boolean artworkAvailable,
+			boolean compilation,
+			String composer,
+			Integer discNumber,
+			Integer duration,
+			String genre,
+			Integer trackNumber,
+			Integer year
+	) {
+		this.title = title;
 		this.assetFile = assetFile;
+		this.artworkAvailable = artworkAvailable;
+		this.compilation = compilation;
+		this.composer = composer;
+		this.discNumber = discNumber;
+		this.duration = duration;
+		this.genre = genre;
+		this.trackNumber = trackNumber;
+		this.year = year;
 	}
 	
 	public File getAssetFile() {
 		return assetFile;
 	}
 	
-	public String getName() {
-		return name;
-	}
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	public String getArtist() {
-		return artist;
-	}
-	public void setArtist(String artist) {
-		this.artist = artist;
-	}
-
-	public String getAlbumArtist() {
-		return albumArtist;
-	}
-	public void setAlbumArtist(String albumArtist) {
-		this.albumArtist = albumArtist;
-	}
-
-	public String getAlbum() {
-		return album;
-	}
-	public void setAlbum(String album) {
-		this.album = album;
+	@Override
+	public String getTitle() {
+		return title;
 	}
 
 	public String getGenre() {
 		return genre;
 	}
-	public void setGenre(String genre) {
-		this.genre = genre;
-	}
 
 	public String getComposer() {
 		return composer;
-	}	
-	public void setComposer(String info) {
-		this.composer = info;
 	}	
 
 	public Integer getDuration() {
 		return duration;
 	}
-	public void setDuration(Integer duration) {
-		this.duration = duration;
-	}
 
 	public Integer getDiscNumber() {
 		return discNumber;
-	}
-	public void setDiscNumber(Integer discNumber) {
-		this.discNumber = discNumber;
 	}
 
 	public Integer getTrackNumber() {
 		return trackNumber;
 	}
-	public void setTrackNumber(Integer trackNumber) {
-		this.trackNumber = trackNumber;
-	}
 
 	public Integer getYear() {
 		return year;
-	}
-	public void setYear(Integer year) {
-		this.year = year;
 	}
 
 	public boolean isCompilation() {
 		return compilation;
 	}
-	public void setCompilation(boolean compilation) {
-		this.compilation = compilation;
-	}
 	
 	public boolean isArtworkAvailable() {
 		return artworkAvailable;
 	}
-	public void setArtworkAvailable(boolean artworkAvailable) {
-		this.artworkAvailable = artworkAvailable;
+
+	public TrackArtist getArtist() {
+		return artist;
+	}
+	public void setArtist(TrackArtist artist) {
+		this.artist = artist;
+	}
+	
+	public Album getAlbum() {
+		return album;
+	}
+	public void setAlbum(Album album) {
+		this.album = album;
+	}
+	
+	@Override
+	public String toString() {
+		return "Track(" + getTitle() + ")";
 	}
 }

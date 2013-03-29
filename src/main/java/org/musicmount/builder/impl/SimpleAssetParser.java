@@ -28,7 +28,6 @@ import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
 import org.jaudiotagger.tag.datatype.Artwork;
 import org.jaudiotagger.tag.reference.GenreTypes;
-import org.musicmount.builder.model.Track;
 import org.musicmount.util.LoggingUtil;
 
 public class SimpleAssetParser implements AssetParser {
@@ -57,50 +56,50 @@ public class SimpleAssetParser implements AssetParser {
 		return false;
 	}
 	
-	public Track parse(File assetFile) throws Exception {
-		Track track = new Track(assetFile);
+	public Asset parse(File assetFile) throws Exception {
+		Asset asset = new Asset(assetFile);
 
 		AudioFile audioFile = AudioFileIO.read(assetFile);
 
 		int trackLength = audioFile.getAudioHeader().getTrackLength();
-		track.setDuration(trackLength > 0 ? trackLength : null);
+		asset.setDuration(trackLength > 0 ? trackLength : null);
 		
 		Tag tag = audioFile.getTag();
 
 		String artist = tag.getFirst(FieldKey.ARTIST);
 		if (artist != null && artist.trim().length() > 0) {
-			track.setArtist(artist.trim());
+			asset.setArtist(artist.trim());
 		}
 		
 		String albumArtist = tag.getFirst(FieldKey.ALBUM_ARTIST);
 		if (albumArtist != null && albumArtist.trim().length() > 0) {
-			track.setAlbumArtist(albumArtist.trim());
+			asset.setAlbumArtist(albumArtist.trim());
 		}
 
 		String album = tag.getFirst(FieldKey.ALBUM);
 		if (album != null && album.trim().length() > 0) {
-			track.setAlbum(album.trim());
+			asset.setAlbum(album.trim());
 		}
 
 		String title = tag.getFirst(FieldKey.TITLE);
 		if (title != null && title.trim().length() > 0) {
-			track.setName(title.trim());
+			asset.setName(title.trim());
 		}
 		
 		String composer = tag.getFirst(FieldKey.COMPOSER);
 		if (composer != null && composer.trim().length() > 0) {
-			track.setComposer(composer.trim());
+			asset.setComposer(composer.trim());
 		}
 		
 		String genre = tag.getFirst(FieldKey.GENRE);
 		if (genre != null && genre.trim().length() > 0) {
-			track.setGenre(genre.trim());
+			asset.setGenre(genre.trim());
 			boolean mp3 = audioFile.getFile().getName().endsWith(".mp3"); // replace MP3 genre id
-			if (mp3 && track.getGenre().matches("\\(\\d+\\).*")) { // e.g. "(13)" or "(13)Pop"
-				int id = Integer.valueOf(track.getGenre().substring(1, track.getGenre().indexOf(')')));
+			if (mp3 && asset.getGenre().matches("\\(\\d+\\).*")) { // e.g. "(13)" or "(13)Pop"
+				int id = Integer.valueOf(asset.getGenre().substring(1, asset.getGenre().indexOf(')')));
 				String mp3genre = GenreTypes.getInstanceOf().getValueForId(id);
 				if (mp3genre != null) {
-					track.setGenre(mp3genre);
+					asset.setGenre(mp3genre);
 				}
 			}
 		}
@@ -108,39 +107,39 @@ public class SimpleAssetParser implements AssetParser {
 		String year = tag.getFirst(FieldKey.YEAR);
 		if (year != null && year.trim().length() >= 4) {
 			try {
-				track.setYear(Integer.valueOf(year.trim().substring(0, 4)));
+				asset.setYear(Integer.valueOf(year.trim().substring(0, 4)));
 			} catch (NumberFormatException e) {
-				LOGGER.log(Level.FINE, "Could not parse year: " + year + ", (" + track.getAssetFile().getAbsolutePath() + ")", e);
+				LOGGER.log(Level.FINE, "Could not parse year: " + year + ", (" + asset.getFile().getAbsolutePath() + ")", e);
 			}
 		}
 		
 		String trackNumber = tag.getFirst(FieldKey.TRACK);
 		if (trackNumber != null && trackNumber.trim().length() > 0) {
 			try {
-				track.setTrackNumber(Integer.valueOf(trackNumber));			
+				asset.setTrackNumber(Integer.valueOf(trackNumber));			
 			} catch (NumberFormatException e) {
-				LOGGER.log(Level.FINE, "Could not parse track number: " + trackNumber + ", (" + track.getAssetFile().getAbsolutePath() + ")", e);
+				LOGGER.log(Level.FINE, "Could not parse asset number: " + trackNumber + ", (" + asset.getFile().getAbsolutePath() + ")", e);
 			}
 		}
 
 		String discNumber = tag.getFirst(FieldKey.DISC_NO);		
 		if (discNumber != null && discNumber.trim().length() > 0) {
 			try {
-				track.setDiscNumber(Integer.valueOf(discNumber));
+				asset.setDiscNumber(Integer.valueOf(discNumber));
 			} catch (NumberFormatException e) {
-				LOGGER.log(Level.FINE, "Could not parse disc number: " + discNumber + ", (" + track.getAssetFile().getAbsolutePath() + ")", e);
+				LOGGER.log(Level.FINE, "Could not parse disc number: " + discNumber + ", (" + asset.getFile().getAbsolutePath() + ")", e);
 			}
 		}
 		
 		String compilation = tag.getFirst(FieldKey.IS_COMPILATION);
 		if (compilation != null && (compilation.trim().equals("1") || compilation.trim().equalsIgnoreCase("yes") || compilation.trim().equalsIgnoreCase("true"))) {
-			track.setCompilation(true);
+			asset.setCompilation(true);
 		}
 		
 		Artwork artwork = tag.getFirstArtwork();
-		track.setArtworkAvailable(artwork != null);
+		asset.setArtworkAvailable(artwork != null);
 		
-		return track;
+		return asset;
 	}
 	
 	@Override

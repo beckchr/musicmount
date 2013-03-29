@@ -96,7 +96,7 @@ public class SimpleAssetLocator implements AssetLocator {
 		// avoid URI.toASCIIString() because it always does normalization -> may not be able to restore files
 		// avoid File.getCanonicalPath() because Java 7 (Mac) replaces non-ASCII with '?'
 		String assetPath = assetFile.getAbsoluteFile().toURI().toString();
-		if (assetPath.startsWith(basePrefix)) { // track lives below base folder?
+		if (assetPath.startsWith(basePrefix)) { // asset lives below base folder?
 			String pathSuffix = assetPath.substring(basePrefix.length());
 			return reencodeURIPath(pathPrefix + pathSuffix, normalizerForm);
 		}

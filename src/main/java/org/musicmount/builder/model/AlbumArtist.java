@@ -23,12 +23,7 @@ public class AlbumArtist extends Artist {
 	private final Map<String, Album> albums = new LinkedHashMap<String, Album>();
 
 	public AlbumArtist(long id, String title) {
-		super(id, title);
-	}
-	
-	@Override
-	public ArtistType getArtistType() {
-		return ArtistType.AlbumArtist;
+		super(id, title, ArtistType.AlbumArtist);
 	}
 	
 	@Override
@@ -43,5 +38,10 @@ public class AlbumArtist extends Artist {
 	@Override
 	public int albumsCount() {
 		return albums.size();
+	}
+	
+	@Override
+	public String toString() {
+		return "AlbumArtist(" + getTitle() + ")";
 	}
 }
