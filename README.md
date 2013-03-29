@@ -1,7 +1,7 @@
 # MusicMount Tool
 
 [_MusicMount.org_](http://musicmount.org) provides an API and tools to access
-your music on your mobile devices. The _MusicMount_ tool is used to build a
+your music from your mobile devices. The _MusicMount_ tool is used to build a
 static _MusicMount_ site, ready to be deployed to a web server.
 
 ## License
