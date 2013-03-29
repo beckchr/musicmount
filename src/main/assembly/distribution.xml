@@ -10,11 +10,12 @@
 		<fileSet>
 			<directory>dist</directory>
 			<outputDirectory>/</outputDirectory>
+			<filtered>true</filtered>			
 			<includes>
 				<include>**</include>
 			</includes>
 			<excludes>
-				<exclude>README.txt</exclude>
+				<exclude>LICENSE.txt</exclude>
 			</excludes>
 		</fileSet>
 	</fileSets>
@@ -27,11 +28,6 @@
 		<file>
 			<source>LICENSE.txt</source>
 			<outputDirectory>/</outputDirectory>
-		</file>
-		<file>
-			<source>dist/README.txt</source>
-			<outputDirectory>/</outputDirectory>
-			<filtered>true</filtered>
 		</file>
 		<!--
 		<file>

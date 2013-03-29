@@ -28,9 +28,6 @@
 
 @echo off
 
-@REM set %HOME% to equivalent of $HOME
-if "%HOME%" == "" (set "HOME=%HOMEDRIVE%%HOMEPATH%")
-
 set ERROR_CODE=0
 
 @REM set local scope for the variables with windows NT shell
@@ -38,24 +35,6 @@ if "%OS%"=="Windows_NT" @setlocal
 if "%OS%"=="WINNT" @setlocal
 
 @REM ==== START VALIDATION ====
-if not "%JAVA_HOME%" == "" goto OkJHome
-
-goto chkMHome
-
-:OkJHome
-if exist "%JAVA_HOME%\bin\java.exe" goto chkMHome
-
-echo.
-echo ERROR: JAVA_HOME is set to an invalid directory.
-echo JAVA_HOME = "%JAVA_HOME%"
-echo Please set the JAVA_HOME variable in your environment to match the
-echo location of your Java installation
-echo.
-goto error
-
-:chkMHome
-if not "%MUSICMOUNT_HOME%"=="" goto valMHome
-
 if "%OS%"=="Windows_NT" SET "MUSICMOUNT_HOME=%~dp0.."
 if "%OS%"=="WINNT" SET "MUSICMOUNT_HOME=%~dp0.."
 if not "%MUSICMOUNT_HOME%"=="" goto valMHome
@@ -89,50 +68,26 @@ goto error
 :init
 @REM Decide how to startup depending on the version of windows
 
-@REM -- Windows NT with Novell Login
-if "%OS%"=="WINNT" goto WinNTNovell
-
-@REM -- Win98ME
-if NOT "%OS%"=="Windows_NT" goto Win9xArg
-
-:WinNTNovell
-
 @REM -- 4NT shell
 if "%@eval[2+2]" == "4" goto 4NTArgs
 
 @REM -- Regular WinNT shell
-set MAVEN_CMD_LINE_ARGS=%*
+set MUSICMOUNT_CMD_LINE_ARGS=%*
 goto endInit
 
 @REM The 4NT Shell from jp software
 :4NTArgs
-set MAVEN_CMD_LINE_ARGS=%$
+set MUSICMOUNT_CMD_LINE_ARGS=%$
 goto endInit
-
-:Win9xArg
-@REM Slurp the command line arguments.  This loop allows for an unlimited number
-@REM of arguments (up to the command line limit, anyway).
-set MAVEN_CMD_LINE_ARGS=
-:Win9xApp
-if %1a==a goto endInit
-set MAVEN_CMD_LINE_ARGS=%MAVEN_CMD_LINE_ARGS% %1
-shift
-goto Win9xApp
 
 @REM Reaching here means variables are defined and arguments have been captured
 :endInit
 
-if not "%JAVA_HOME%" == "" goto JHomeSet
-
 SET JAVACMD=java
-goto runm2
-
-:JHomeSet
-SET JAVACMD="%JAVA_HOME%\bin\java.exe"
 
 @REM Start MUSICMOUNT
 :runm2
-%JAVACMD% %MUSICMOUNT_OPTS% "-Dmusicmount.home=%MUSICMOUNT_HOME%" -jar "${MUSICMOUNT_HOME}"/lib/musicmount-*.jar %MUSICMOUNT_CMD_LINE_ARGS%
+"%JAVACMD%" %MUSICMOUNT_OPTS% "-Dmusicmount.home=%MUSICMOUNT_HOME%" -jar "%MUSICMOUNT_HOME%"/lib\musicmount-${project.version}.jar %MUSICMOUNT_CMD_LINE_ARGS%
 if ERRORLEVEL 1 goto error
 goto end
 
@@ -142,19 +97,4 @@ if "%OS%"=="WINNT" @endlocal
 set ERROR_CODE=1
 
 :end
-@REM set local scope for the variables with windows NT shell
-if "%OS%"=="Windows_NT" goto endNT
-if "%OS%"=="WINNT" goto endNT
-
-@REM For old DOS remove the set variables from ENV - we assume they were not set
-@REM before we started - at least we don't leave any baggage around
-set MUSICMOUNT_JAVA_EXE=
-set MUSICMOUNT_CMD_LINE_ARGS=
-goto postExec
-
-:endNT
 @endlocal & set ERROR_CODE=%ERROR_CODE%
-
-:postExec
-
-cmd /C exit /B %ERROR_CODE%
