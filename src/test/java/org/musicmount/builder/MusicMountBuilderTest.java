@@ -43,6 +43,7 @@ public class MusicMountBuilderTest {
 		String input = new File(getClass().getResource("/sample-library").toURI()).getAbsolutePath();
 		String output = outputFolder.getRoot().getAbsolutePath();
 		MusicMountBuilder.main(new String[]{ "--pretty", "--full", input, output });
+		MusicMountBuilder.main(new String[]{ "--pretty", input, output }); // use asset store
 	}
 
 	@Test
