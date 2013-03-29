@@ -16,7 +16,7 @@
 package org.musicmount.builder.model;
 
 
-public abstract class Artist extends Playlist implements Titled {
+public abstract class Artist implements Titled {
 	private final long artistId;
 	private final String title;
 

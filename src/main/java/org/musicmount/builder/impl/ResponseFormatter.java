@@ -157,7 +157,23 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		});
 		return result;
 	}
-	
+
+	private List<String> genreList(Artist artist) {
+		Playlist playlist = new Playlist();
+		for (Album album : artist.albums()) {
+			if (artist.getArtistType() == ArtistType.TrackArtist) {
+				for (Track track : album.getTracks()) {
+					if (track.getArtist() == artist.getTitle() || track.getArtist() != null && track.getArtist().equals(artist.getTitle())) {
+						playlist.getTracks().add(track);
+					}
+				}
+			} else { // take all tracks into account
+				playlist.getTracks().addAll(album.getTracks());
+			}
+		}
+		return genreList(playlist);
+	}
+
 	private String getDefaultArtistTitle(ArtistType artistType) {
 		return artistType == ArtistType.AlbumArtist ? localStrings.getVariousArtists() : localStrings.getUnknownArtist();
 	}

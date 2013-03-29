@@ -25,7 +25,6 @@ import java.util.logging.Logger;
 
 import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.AlbumArtist;
-import org.musicmount.builder.model.Artist;
 import org.musicmount.builder.model.Disc;
 import org.musicmount.builder.model.Library;
 import org.musicmount.builder.model.Track;
@@ -50,15 +49,15 @@ public class LibraryParser {
 		return 0;
 	}
 	
-	private final AssetParser trackParser;
+	private final AssetParser assetParser;
 	
-	public LibraryParser(AssetParser trackParser) {
-		this.trackParser = trackParser;
+	public LibraryParser(AssetParser assetParser) {
+		this.assetParser = assetParser;
 	}
 	
 	FileFilter searchAudioFilter = new FileFilter() {
 		public boolean accept(File file) {
-			return file.isDirectory() || trackParser.isAssetFile(file);
+			return file.isDirectory() || assetParser.isAssetFile(file);
 		}
 	};
 
@@ -133,66 +132,6 @@ public class LibraryParser {
 				}
 			});
 		}
-
-		/**
-		 * sort album artist tracks by album, disc number, track number, title, artist, year, genre
-		 */
-		for (Artist artist : library.getAlbumArtists().values()) {
-			Collections.sort(artist.getTracks(), new Comparator<Track>() {
-				@Override
-				public int compare(Track o1, Track o2) {
-					int result = compareNullLast(o1.getDiscNumber(), o2.getDiscNumber());
-					if (result != 0) {
-						return result;
-					}
-					result = compareNullLast(o1.getTrackNumber(), o2.getTrackNumber());
-					if (result != 0) {
-						return result;
-					}
-					result = compareNullLast(o1.getName(), o2.getName());
-					if (result != 0) {
-						return result;
-					}
-					result = compareNullLast(o1.getArtist(), o2.getArtist());
-					if (result != 0) {
-						return result;
-					}
-					result = compareNullLast(o1.getYear(), o2.getYear());
-					if (result != 0) {
-						return result;
-					}
-					result = compareNullLast(o1.getGenre(), o2.getGenre());
-					if (result != 0) {
-						return result;
-					}
-					return 0;
-				}
-			});
-		}
-
-		/**
-		 * sort track artist tracks by title, year, genre
-		 */
-		for (Artist artist : library.getAlbumArtists().values()) {
-			Collections.sort(artist.getTracks(), new Comparator<Track>() {
-				@Override
-				public int compare(Track o1, Track o2) {
-					int result = compareNullLast(o1.getName(), o2.getName());
-					if (result != 0) {
-						return result;
-					}
-					result = compareNullLast(o1.getYear(), o2.getYear());
-					if (result != 0) {
-						return result;
-					}
-					result = compareNullLast(o1.getGenre(), o2.getGenre());
-					if (result != 0) {
-						return result;
-					}
-					return 0;
-				}
-			});
-		}
 	}
 
 	private String uniqueArtistName(Album album) {
@@ -236,10 +175,6 @@ public class LibraryParser {
 					library.getAlbumArtists().put(uniqueArtistName, albumArtist);
 				}
 				// move album from variousArtists to albumArtist
-				for (Track track : album.getTracks()) {
-					albumArtist.getTracks().add(track);
-					variousArtists.getTracks().remove(track);
-				}
 				albumArtist.getAlbums().put(album.getTitle(), album);
 				album.setAlbumArtist(albumArtist);
 				variousArtistsAlbumIterator.remove();
@@ -271,7 +206,7 @@ public class LibraryParser {
 				try {
 					track = trackStore.getTrack(file);
 					if (track == null) {
-						track = trackParser.parse(file);
+						track = assetParser.parse(file);
 					}
 				} catch (Exception e) {
 					LOGGER.log(Level.WARNING, "Could not parse audio file: " + file.getAbsolutePath(), e);
@@ -294,7 +229,6 @@ public class LibraryParser {
 					albumArtist = new AlbumArtist(library.getAlbumArtists().size(), albumArtistName);
 					library.getAlbumArtists().put(albumArtistName, albumArtist);
 				}
-				albumArtist.getTracks().add(track);
 				
 				/*
 				 * determine album
@@ -335,7 +269,6 @@ public class LibraryParser {
 					trackArtist = new TrackArtist(library.getTrackArtists().size(), track.getArtist());
 					library.getTrackArtists().put(track.getArtist(), trackArtist);
 				}
-				trackArtist.getTracks().add(track);
 				trackArtist.getAlbums().add(album);
 				
 				/*

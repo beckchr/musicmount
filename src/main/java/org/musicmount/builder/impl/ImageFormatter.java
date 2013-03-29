@@ -36,11 +36,11 @@ import org.musicmount.builder.model.Track;
 public class ImageFormatter {
 	static final Logger LOGGER = Logger.getLogger(ImageFormatter.class.getName());
 
-	private final AssetParser trackParser;
+	private final AssetParser assetParser;
 	private final boolean retina;
 	
-	public ImageFormatter(AssetParser trackParser, boolean retina) {
-		this.trackParser = trackParser;
+	public ImageFormatter(AssetParser assetParser, boolean retina) {
+		this.assetParser = assetParser;
 		this.retina = retina;
 	}
 	
@@ -136,7 +136,7 @@ public class ImageFormatter {
 			if (!targets.isEmpty()) {
 		    	BufferedImage image;
 		        try {
-		        	image = trackParser.extractArtwork(track.getAssetFile());
+		        	image = assetParser.extractArtwork(track.getAssetFile());
 		    		if (image.getTransparency() != Transparency.OPAQUE) {
 		    			BufferedImage tmpImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
 		    			Graphics2D graphics = tmpImage.createGraphics();
