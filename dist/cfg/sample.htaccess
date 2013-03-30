@@ -1,6 +1,6 @@
 # setup authentication
 #AuthType Basic
-#AuthName "Music Mount"
+#AuthName "Joe's Music"
 #AuthUserFile /path/to/.htpasswd
 #Require valid-user
 
