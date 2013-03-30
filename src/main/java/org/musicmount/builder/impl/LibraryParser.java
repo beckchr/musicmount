@@ -34,17 +34,16 @@ public class LibraryParser {
 	static final Logger LOGGER = Logger.getLogger(LibraryParser.class.getName());
 	
 	private final AssetParser assetParser;
+	private final FileFilter assetFilter = new FileFilter() {
+		public boolean accept(File file) {
+			return !file.getName().startsWith(".") && (file.isDirectory() || assetParser.isAssetFile(file));
+		}
+	};
 	
 	public LibraryParser(AssetParser assetParser) {
 		this.assetParser = assetParser;
 	}
 	
-	FileFilter searchAudioFilter = new FileFilter() {
-		public boolean accept(File file) {
-			return file.isDirectory() || assetParser.isAssetFile(file);
-		}
-	};
-
 	void sortTracks(Library library) {
 		/*
 		 * sort tracks by disc number, track number, title, artist
@@ -159,7 +158,7 @@ public class LibraryParser {
 	}
 
 	void parseLibrary(Library library, File directory, AssetStore assetStore) {
-		for (File file : directory.listFiles(searchAudioFilter)) {
+		for (File file : directory.listFiles(assetFilter)) {
 			if (file.isDirectory()) {
 				parseLibrary(library, file, assetStore);
 			} else {
