@@ -29,7 +29,7 @@ public class SimpleResourceLocatorTest {
 	@Test
 	public void testGetAlbumCollectionPath() {
 		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
-		Assert.assertEquals("albumArtists/10/01/index.json", resourceLocator.getAlbumCollectionPath(new AlbumArtist(0x1001, "foo")));
+		Assert.assertEquals("albumArtists/10/01-albums.json", resourceLocator.getAlbumCollectionPath(new AlbumArtist(0x1001, "foo")));
 	}
 
 	Album createAlbum(long albumId, AlbumArtist artist, boolean artworkAvailable) {
