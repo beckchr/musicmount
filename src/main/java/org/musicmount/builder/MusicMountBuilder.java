@@ -69,7 +69,7 @@ public class MusicMountBuilder {
 	/**
 	 * API version string
 	 */
-	public static final String API_VERSION = "0.8";	
+	public static final String API_VERSION = "1.0";	
 
 	/**
 	 * Name of asset store file.

@@ -191,7 +191,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 			}
 			writeStartArray(writer);
 			for (Artist item : section.getItems()) {
-				writer.writeStartElement("artistCollectionItem");
+				writer.writeStartElement("item");
 				writeStringProperty(writer, "title", item.getTitle() == null ? getDefaultArtistTitle(artistType) : item.getTitle());
 				String imagePath = resourceLocator.getArtistImagePath(item, imageType);
 				if (imagePath != null && resourceLocator.getFile(imagePath).exists()) {
@@ -221,7 +221,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 			}
 			writeStartArray(writer);
 			for (Album item : section.getItems()) {
-				writer.writeStartElement("albumCollectionItem");
+				writer.writeStartElement("item");
 				writeStringProperty(writer, "title", item.getTitle() == null ? getDefaultAlbumTitle() : item.getTitle());
 				String imagePath = resourceLocator.getAlbumImagePath(item, imageType);
 				if (imagePath != null && resourceLocator.getFile(imagePath).exists()) {
@@ -437,7 +437,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 				imagePath = null;
 			}
 			for (Track item : items) {
-				writer.writeStartElement("trackCollectionItem");
+				writer.writeStartElement("item");
 				writeStringProperty(writer, "title", item.getTitle());
 				String artist = item.getArtist().getTitle();
 				if (artist == null) {
