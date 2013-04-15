@@ -83,44 +83,44 @@ public class MusicMountBuilder {
 			ResourceLocator resourceLocator,
 			AssetLocator assetLocator) throws Exception {
 
-		LOGGER.info("Generating service index...");
+		LOGGER.finest("Generating service index...");
 		try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getServiceIndexPath()))) {
 			formatter.formatServiceIndex(resourceLocator, output);
 		}
 
-		LOGGER.info("Generating album artist index...");
+		LOGGER.finest("Generating album artist index...");
 		try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getArtistIndexPath(ArtistType.AlbumArtist)))) {
 			formatter.formatArtistIndex(library.getAlbumArtists().values(), ArtistType.AlbumArtist, output, resourceLocator);
 		}
 		for (Artist artist : library.getAlbumArtists().values()) {
 			if (LOGGER.isLoggable(Level.FINEST)) {
-				LOGGER.finest("Album artist: " + artist.getTitle());
+				LOGGER.finest("Gnenerating album collection for album artist: " + artist.getTitle());
 			}
 			try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getAlbumCollectionPath(artist)))) {
 				formatter.formatAlbumCollection(artist, output, resourceLocator);
 			}
 		}
 
-		LOGGER.info("Generating artist index...");
+		LOGGER.finest("Generating artist index...");
 		try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getArtistIndexPath(ArtistType.TrackArtist)))) {
 			formatter.formatArtistIndex(library.getTrackArtists().values(), ArtistType.TrackArtist, output, resourceLocator);
 		}
 		for (Artist artist : library.getTrackArtists().values()) {
 			if (LOGGER.isLoggable(Level.FINEST)) {
-				LOGGER.finest("Artist: " + artist.getTitle());
+				LOGGER.finest("Gnenerating album collection for artist: " + artist.getTitle());
 			}
 			try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getAlbumCollectionPath(artist)))) {
 				formatter.formatAlbumCollection(artist, output, resourceLocator);
 			}
 		}
 
-		LOGGER.info("Generating album index...");
+		LOGGER.finest("Generating album index...");
 		try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getAlbumIndexPath()))) {
 			formatter.formatAlbumIndex(library.getAlbums(), output, resourceLocator);
 		}
 		for (Album album : library.getAlbums()) {
 			if (LOGGER.isLoggable(Level.FINEST)) {
-				LOGGER.finest("Album: " + album.getTitle());
+				LOGGER.finest("Generating album: " + album.getTitle());
 			}
 			try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getAlbumPath(album)))) {
 				formatter.formatAlbum(album, output, resourceLocator, assetLocator);
@@ -275,6 +275,7 @@ public class MusicMountBuilder {
 			responseFormatter = new ResponseFormatter.JSON(API_VERSION, localStrings, optionNoDirectoryIndex, optionUnknownGenre, optionPretty);
 		}
 		AssetLocator responseAssetLocator = new SimpleAssetLocator(inputFolder, optionMusic, optionNormalize);
+		LOGGER.info("Generating JSON...");
 		generateResponseFiles(library, outputFolder, responseFormatter, resourceLocator, responseAssetLocator);
 
 		LOGGER.info("Saving Asset Store...");
