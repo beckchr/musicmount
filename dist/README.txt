@@ -18,6 +18,8 @@ Options:
        --full             full parse, don't use track store
        --unknownGenre     report missing genre as 'Unknown'
        --noVariousArtists exclude 'Various Artists' from album artist index
+       --noDirectoryIndex use 'path/index.ext' instead of 'path/'
+       --pretty           pretty-print JSON documents
 
 Test Site
 ---------

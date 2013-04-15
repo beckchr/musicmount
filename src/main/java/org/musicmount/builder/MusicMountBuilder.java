@@ -142,9 +142,9 @@ public class MusicMountBuilder {
 		System.err.println("       --full             full parse, don't use asset store");
 		System.err.println("       --unknownGenre     report missing genre as 'Unknown'");
 		System.err.println("       --noVariousArtists exclude 'Various Artists' from album artist index");
-//		System.err.println("       --pretty           pretty-print JSON documents");
+		System.err.println("       --noDirectoryIndex use 'path/index.ext' instead of 'path/'");
+		System.err.println("       --pretty           pretty-print JSON documents");
 //		System.err.println("       --normalize <form> normalize asset paths, one of NFC|NFD");
-//		System.err.println("       --noDirectoryIndex use 'path/index.ext' instead of 'path/'");
 //		System.err.println("       --noImages         do not generate images");
 //		System.err.println("       --xml              generate XML instead of JSON");
 		System.err.close();
