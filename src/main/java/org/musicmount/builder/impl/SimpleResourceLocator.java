@@ -87,7 +87,7 @@ public class SimpleResourceLocator implements ResourceLocator {
 
 	@Override
 	public String getAlbumPath(Album album) {
-		return String.format("albums/%s/index.%s", getIdPath(album.getAlbumId()), extension);
+		return String.format("albums/%s/album.%s", getIdPath(album.getAlbumId()), extension);
 	}
 
 	@Override

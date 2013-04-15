@@ -75,7 +75,7 @@ public class SimpleResourceLocatorTest {
 	@Test
 	public void testGetAlbumPath() {
 		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
-		Assert.assertEquals("albums/10/01/index.json", resourceLocator.getAlbumPath(new Album(0x1001, "foo")));
+		Assert.assertEquals("albums/10/01/album.json", resourceLocator.getAlbumPath(new Album(0x1001, "foo")));
 	}
 
 	@Test
@@ -128,7 +128,7 @@ public class SimpleResourceLocatorTest {
 	@Test
 	public void testHugeId() {
 		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
-		Assert.assertEquals("albums/10/01/index.json", resourceLocator.getAlbumPath(new Album(0x1001, "foo")));
+		Assert.assertEquals("albums/10/01/album.json", resourceLocator.getAlbumPath(new Album(0x1001, "foo")));
 	}
 
 
