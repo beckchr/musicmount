@@ -30,7 +30,4 @@ Launch MusicMount site in <mount_folder> with music from <music_folder>
 
 Options:
        --music <path>    music path prefix, default is 'music'
-       --name <name>     service name/realm (default 'Test')
-       --user <user>     login user id (default 'test')
-       --password <pass> login password (default 'testXXX', XXX random number)
-       --port <port>     launch HTTP server on specified port
+       --port <port>     launch HTTP server on specified port (default 8080)

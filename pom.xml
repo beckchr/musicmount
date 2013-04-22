@@ -49,15 +49,15 @@
 			<artifactId>imgscalr-lib</artifactId>
 			<version>4.2</version>
 		</dependency>
-		<dependency>
-			<groupId>org.eclipse.jetty.aggregate</groupId>
-			<artifactId>jetty-servlet</artifactId>
-			<version>8.1.9.v20130131</version>
+ 		<dependency>
+			<groupId>org.apache.tomcat.embed</groupId>
+			<artifactId>tomcat-embed-core</artifactId>
+			<version>7.0.39</version>
 		</dependency>
 		<dependency>
-		    <groupId>org.eclipse.jetty.orbit</groupId>
-		    <artifactId>javax.servlet</artifactId>
-		    <version>3.0.0.v201112011016</version>
+			<groupId>org.apache.tomcat.embed</groupId>
+			<artifactId>tomcat-embed-logging-juli</artifactId>
+			<version>7.0.39</version>
 		</dependency>
 
 		<dependency>
@@ -136,6 +136,12 @@
 										<exclude>META-INF/*.DSA</exclude>
 										<exclude>META-INF/*.RSA</exclude>
 									</excludes>
+								</filter>
+								<filter>
+									<artifact>org.apache.tomcat.embed:tomcat-embed-core</artifact>
+									<includes>
+										<include>org/apache/**</include>
+									</includes>
 								</filter>
 								<filter>
 									<artifact>de.odysseus.staxon:staxon</artifact>

@@ -16,89 +16,69 @@
 package org.musicmount.tester;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Random;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.eclipse.jetty.http.MimeTypes;
-import org.eclipse.jetty.security.ConstraintMapping;
-import org.eclipse.jetty.security.ConstraintSecurityHandler;
-import org.eclipse.jetty.security.HashLoginService;
-import org.eclipse.jetty.security.SecurityHandler;
-import org.eclipse.jetty.security.authentication.BasicAuthenticator;
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.RequestLog;
-import org.eclipse.jetty.server.Response;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.ContextHandlerCollection;
-import org.eclipse.jetty.server.handler.DefaultHandler;
-import org.eclipse.jetty.server.handler.HandlerCollection;
-import org.eclipse.jetty.server.handler.RequestLogHandler;
-import org.eclipse.jetty.servlet.DefaultServlet;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.util.component.AbstractLifeCycle;
-import org.eclipse.jetty.util.log.JavaUtilLog;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.security.Constraint;
-import org.eclipse.jetty.util.security.Credential;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.catalina.Context;
+import org.apache.catalina.Wrapper;
+import org.apache.catalina.deploy.FilterDef;
+import org.apache.catalina.deploy.FilterMap;
+import org.apache.catalina.servlets.DefaultServlet;
+import org.apache.catalina.startup.DigesterFactory;
+import org.apache.catalina.startup.Tomcat;
 import org.musicmount.util.LoggingUtil;
 
 public class MusicMountTester {
 	static final Logger LOGGER = Logger.getLogger(MusicMountTester.class.getName());
-	
-	static class ConsoleRequestLog extends AbstractLifeCycle implements RequestLog {
+
+	static final Filter AccessLogFilter = new Filter() {
 		final DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
 		final int methodAndURIFormatLength = 53; // -> line will be 80 chars wide
-		
+
 		@Override
-		public void log(Request request, Response response) {
+		public void init(FilterConfig filterConfig) throws ServletException {
+		}
+
+		@Override
+		public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+			HttpServletRequest httpRequest = (HttpServletRequest)request;
+			HttpServletResponse httpResponse = (HttpServletResponse)response;
+
+			long timestamp = System.currentTimeMillis();
+			
+			response.setCharacterEncoding("UTF-8");
+			chain.doFilter(request, response);
+			response.flushBuffer();
+			
 			StringBuilder builder = new StringBuilder();
-			builder.append(dateFormat.format(request.getTimeStamp()));
+			builder.append(dateFormat.format(new Date(timestamp)));
 			builder.append(" ");
-
-//	        String credentials = request.getHeader(HttpHeaders.AUTHORIZATION);
-//	        String user = null;
-//            if (credentials != null) {                 
-//                int space=credentials.indexOf(' ');
-//                if (space > 0) {
-//                    String method = credentials.substring(0,space);
-//                    if ("basic".equalsIgnoreCase(method)) {
-//                        credentials = credentials.substring(space+1);
-//                        try {
-//                            credentials = B64Code.decode(credentials, StringUtil.__ISO_8859_1);
-//                        } catch (UnsupportedEncodingException e) {
-//                        	  credentials = ";";
-//                        }
-//                        int i = credentials.indexOf(':');
-//                        if (i > 0) {
-//                            user = credentials.substring(0, i);
-//                        }
-//                    }
-//                }
-//            }
-//			builder.append(user == null ? " n/a " : user);
-//			builder.append(" ");
-
-			String uri = request.getUri().toString();
-	        int maxURILength = methodAndURIFormatLength - 1 - request.getMethod().length();
+			String uri = httpRequest.getRequestURI();
+	        int maxURILength = methodAndURIFormatLength - 1 - httpRequest.getMethod().length();
 	        if (uri.length() > maxURILength) {
 	        	uri = "..." +  uri.substring(uri.length() - maxURILength + 3);
 	        }
-	        String methodAndURI = String.format("%s %s", request.getMethod(), uri);
+	        String methodAndURI = String.format("%s %s", httpRequest.getMethod(), uri);
 	        builder.append(String.format(String.format("%%-%ds", methodAndURIFormatLength), methodAndURI));
-	        if (request.getAsyncContinuation().isInitial()) {
-	    		builder.append(String.format("%4d", response.getStatus()));
-	        } else {
-	            builder.append("n/a ");
-			}
-	        long responseLength = response.getContentCount();
-	        if (responseLength >= 0) {
+    		builder.append(String.format("%4d", httpResponse.getStatus()));
+	        String responseLengthString = httpResponse.getHeader("Content-Length");
+	        if (responseLengthString != null) {
+	        	long responseLength = Long.valueOf(responseLengthString);
 	        	if (responseLength < 1024) {
 	            	builder.append(String.format("%7dB", responseLength));
 	        	} else if (responseLength < 1024 * 1024) {
@@ -107,9 +87,9 @@ public class MusicMountTester {
 	            	builder.append(String.format("%6.1fMB", responseLength / 1024.0 / 1024.0));
 	        	}
 	        } else {
-	            builder.append(" n/a  ");
+	            builder.append("   n/a  ");
 	        }
-	        long time = System.currentTimeMillis() - request.getTimeStamp();
+	        long time = System.currentTimeMillis() - timestamp;
 	        if (time < 1000) {
 	            builder.append(String.format("%4dms", time));
 	        } else {
@@ -117,15 +97,35 @@ public class MusicMountTester {
 	        }
 			System.err.println(builder.toString());
 		}
-	}
+		
+		@Override
+		public void destroy() {
+		}
+	};
 	
+	static final Filter UTF8Filter = new Filter() {
+		@Override
+		public void init(FilterConfig filterConfig) throws ServletException {
+		}
+
+		@Override
+		public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+			response.setCharacterEncoding("UTF-8");
+			chain.doFilter(request, response);				
+		}
+
+		@Override
+		public void destroy() {
+		}
+	};
+		
 	/**
 	 * Configure logging
 	 */
 	static {
 		LoggingUtil.configure(MusicMountTester.class.getPackage().getName(), Level.FINE);
-		LoggingUtil.configure("org.eclipse.jetty", Level.INFO);
-		Log.setLog(new JavaUtilLog("org.eclipse.jetty")); // use java.util.logging
+		LoggingUtil.configure("org.apache", Level.INFO);
+		LoggingUtil.configure(DigesterFactory.class.getName(), Level.SEVERE); // get rid of warnings on missing jsp schema files		
 	}
 
 	static void exitWithError(String command, String error) {
@@ -138,74 +138,74 @@ public class MusicMountTester {
 		System.err.println();
 		System.err.println("Options:");
 		System.err.println("       --music <path>    music path prefix, default is 'music'");
-		System.err.println("       --name <name>     service name/realm (default 'Test')");
-		System.err.println("       --user <user>     login user id (default 'test')");
-		System.err.println("       --password <pass> login password (default 'testXXX', XXX random number)");
-		System.err.println("       --port <port>     launch HTTP server on specified port");
+		System.err.println("       --port <port>     launch HTTP server on specified port (default 8080)");
+//		System.err.println("       --name <name>     service name/realm (default 'Test')");
+//		System.err.println("       --user <user>     login user id (default 'test')");
+//		System.err.println("       --password <pass> login password (default 'testXXX', XXX random number)");
 		System.err.close();
 		System.exit(1);	
 	}
 	
-	public static void startServer(int port, File mountBase, File musicBase, String musicPath, String realm, String user, String password) throws Exception {
-        ServletContextHandler mountContext = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
-        mountContext.setContextPath("/");
-        mountContext.setSecurityHandler(user == null ? null : basicAuthentication(realm, user, password));
-        mountContext.setResourceBase(mountBase.getAbsolutePath());
-        mountContext.setWelcomeFiles(new String[] { "index.json" });
-        mountContext.setInitParameter("org.eclipse.jetty.servlet.Default.dirAllowed", "true");
-        MimeTypes mountTypes = new MimeTypes();
-        mountTypes.addMimeMapping("json", MimeTypes.TEXT_JSON_UTF_8);
-        mountContext.setMimeTypes(mountTypes);
-        mountContext.addServlet(new ServletHolder(new DefaultServlet()), "/*");
+	private static Context addContext(Tomcat tomcat, String contextPath, File baseDir) {
+        Context mountContext = tomcat.addContext(contextPath, baseDir.getAbsolutePath());
+        mountContext.addWelcomeFile("index.json");
+        mountContext.addMimeMapping("json", "text/json");
 
-        ServletContextHandler musicContext = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
-        musicContext.setContextPath(musicPath.startsWith("/") ? musicPath : "/" + musicPath);
-        musicContext.setSecurityHandler(user == null ? null : basicAuthentication(realm, user, password));
-        musicContext.setResourceBase(musicBase.getAbsolutePath());
-        mountContext.setInitParameter("org.eclipse.jetty.servlet.Default.dirAllowed", "false");
-        MimeTypes musicTypes = new MimeTypes();
-        musicTypes.addMimeMapping("m4a", "audio/mp4");
-        musicTypes.addMimeMapping("mp3", "audio/mpeg");
-        musicContext.setMimeTypes(musicTypes);
-        musicContext.addServlet(new ServletHolder(new DefaultServlet()), "/*");
+        Wrapper defaultServlet = mountContext.createWrapper();
+        defaultServlet.setName("default");
+        defaultServlet.setServlet(new DefaultServlet());
+        defaultServlet.addInitParameter("debug", "0");
+        defaultServlet.addInitParameter("listings", "false");
+        defaultServlet.setLoadOnStartup(1);
+        mountContext.addChild(defaultServlet);
+        mountContext.addServletMapping("/", "default");
 
-        ContextHandlerCollection contexts = new ContextHandlerCollection();
-        contexts.setHandlers(new Handler[] { mountContext, musicContext });
-        
-        RequestLogHandler requestLogHandler = new RequestLogHandler();
-        requestLogHandler.setRequestLog(new ConsoleRequestLog());   
-
-        HandlerCollection handlers = new HandlerCollection();
-        handlers.setHandlers(new Handler[]{contexts, new DefaultHandler(), requestLogHandler});
-        
-        Server server = new Server(port);
-        server.setHandler(handlers);
-        server.start();
-        server.join();
+        return mountContext;
 	}
+	
+	public static void startServer(int port, File mountBase, File musicBase, String musicPath) throws Exception {
+		Tomcat tomcat = new Tomcat();
+		File workDir = File.createTempFile("musicmount-test", "");
+		workDir.delete();
+		workDir.mkdir();
+        tomcat.setBaseDir(workDir.getAbsolutePath());
+        tomcat.setPort(port);
+        tomcat.getConnector().setURIEncoding("UTF-8");
+        
+        Context mountContext = addContext(tomcat, "/", mountBase);
+        mountContext.addWelcomeFile("index.json");
+        mountContext.addMimeMapping("json", "text/json");
 
-    private static final SecurityHandler basicAuthentication(String realm, String username, String password) {
-    	HashLoginService loginService = new HashLoginService();
-        loginService.setName(realm);
-        loginService.putUser(username, Credential.getCredential(password), new String[]{"user"});
+        FilterDef logFilterDef = new FilterDef();
+        logFilterDef.setFilterName("log-filter");
+        logFilterDef.setFilter(AccessLogFilter);
+        FilterMap logFilterMap = new FilterMap(); 
+        logFilterMap.setFilterName("log-filter"); 
+        logFilterMap.addURLPattern("*"); 
+
+        mountContext.addFilterDef(logFilterDef);
+        mountContext.addFilterMap(logFilterMap);
         
-        Constraint constraint = new Constraint();
-        constraint.setName(Constraint.__BASIC_AUTH);
-        constraint.setRoles(new String[]{"user"});
-        constraint.setAuthenticate(true);
-         
-        ConstraintMapping constraintMapping = new ConstraintMapping();
-        constraintMapping.setConstraint(constraint);
-        constraintMapping.setPathSpec("/*");
-        
-        ConstraintSecurityHandler constraintSecurityHandler = new ConstraintSecurityHandler();
-        constraintSecurityHandler.setAuthenticator(new BasicAuthenticator());
-        constraintSecurityHandler.setRealmName(realm);
-        constraintSecurityHandler.addConstraintMapping(constraintMapping);
-        constraintSecurityHandler.setLoginService(loginService);
-        
-        return constraintSecurityHandler;    	
-    }
+        FilterDef utf8FilterDef = new FilterDef();
+        utf8FilterDef.setFilterName("utf8-filter");
+        utf8FilterDef.setFilter(UTF8Filter);
+        FilterMap utf8FilterMap = new FilterMap(); 
+        utf8FilterMap.setFilterName("utf8-filter"); 
+        utf8FilterMap.addURLPattern("*"); 
+
+        mountContext.addFilterDef(utf8FilterDef);
+        mountContext.addFilterMap(utf8FilterMap); 
+
+        Context musicContext = addContext(tomcat, musicPath.startsWith("/") ? musicPath : "/" + musicPath, musicBase);
+        musicContext.addMimeMapping("m4a", "audio/mp4");
+        musicContext.addMimeMapping("mp3", "audio/mpeg");
+
+        musicContext.addFilterDef(logFilterDef);
+        musicContext.addFilterMap(logFilterMap);
+
+        tomcat.start();
+        tomcat.getServer().await(); 
+	}
     
 	/**
 	 * Launch HTTP Server
@@ -217,10 +217,10 @@ public class MusicMountTester {
 			exitWithError(command, "missing arguments");
 		}
 		String optionMusic = "music";
-		String optionName = "Test";
-		String optionUser = "test";
-		String optionPassword = String.format("test%03d", new Random().nextInt(1000));
 		int optionPort = 8080;
+//		String optionName = "Test";
+//		String optionUser = "test";
+//		String optionPassword = String.format("test%03d", new Random().nextInt(1000));
 
 		int optionsLength = args.length - 2;
 		for (int i = 0; i < optionsLength; i++) {
@@ -231,30 +231,30 @@ public class MusicMountTester {
 				}
 				optionMusic = args[i];
 				break;
-			case "--name":
-				if (++i == optionsLength) {
-					exitWithError(command, "invalid arguments");
-				}
-				optionName = args[i];
-				break;
-			case "--user":
-				if (++i == optionsLength) {
-					exitWithError(command, "invalid arguments");
-				}
-				optionUser = args[i];
-				break;
-			case "--password":
-				if (++i == optionsLength) {
-					exitWithError(command, "invalid arguments");
-				}
-				optionPassword = args[i];
-				break;
 			case "--port":
 				if (++i == optionsLength) {
 					exitWithError(command, "invalid arguments");
 				}
 				optionPort = Integer.parseInt(args[i]);
 				break;
+//			case "--name":
+//				if (++i == optionsLength) {
+//					exitWithError(command, "invalid arguments");
+//				}
+//				optionName = args[i];
+//				break;
+//			case "--user":
+//				if (++i == optionsLength) {
+//					exitWithError(command, "invalid arguments");
+//				}
+//				optionUser = args[i];
+//				break;
+//			case "--password":
+//				if (++i == optionsLength) {
+//					exitWithError(command, "invalid arguments");
+//				}
+//				optionPassword = args[i];
+//				break;
 			default:
 				if (args[i].startsWith("-")) {
 					exitWithError(command, "unknown option: " + args[i]);
@@ -285,14 +285,12 @@ public class MusicMountTester {
 		}
 
 		LOGGER.info(String.format("Starting Server..."));
-		LOGGER.info(String.format("Account Settings"));
-		LOGGER.info(String.format("----------------"));
-		LOGGER.info(String.format("Name: %s", optionName));
 		LOGGER.info(String.format("URL:  http://%s:%d", hostname, optionPort));
-		LOGGER.info(String.format("User: %s", optionUser));
-		LOGGER.info(String.format("Pass: %s", optionPassword));
+//		LOGGER.info(String.format("Name: %s", optionName));
+//		LOGGER.info(String.format("User: %s", optionUser));
+//		LOGGER.info(String.format("Pass: %s", optionPassword));
 		LOGGER.info("Press CTRL-C to exit...");
-		startServer(optionPort, mountFolder, musicFolder, optionMusic, optionName, optionUser, optionPassword);
+		startServer(optionPort, mountFolder, musicFolder, optionMusic);
 	}
 	
 	public static void main(String[] args) throws Exception {
