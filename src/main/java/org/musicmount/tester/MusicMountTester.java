@@ -19,9 +19,12 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.security.Principal;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,8 +39,15 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.catalina.Context;
 import org.apache.catalina.Wrapper;
+import org.apache.catalina.authenticator.BasicAuthenticator;
+import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.deploy.FilterDef;
 import org.apache.catalina.deploy.FilterMap;
+import org.apache.catalina.deploy.LoginConfig;
+import org.apache.catalina.deploy.SecurityCollection;
+import org.apache.catalina.deploy.SecurityConstraint;
+import org.apache.catalina.realm.GenericPrincipal;
+import org.apache.catalina.realm.RealmBase;
 import org.apache.catalina.servlets.DefaultServlet;
 import org.apache.catalina.startup.DigesterFactory;
 import org.apache.catalina.startup.Tomcat;
@@ -139,9 +149,8 @@ public class MusicMountTester {
 		System.err.println("Options:");
 		System.err.println("       --music <path>    music path prefix, default is 'music'");
 		System.err.println("       --port <port>     launch HTTP server on specified port (default 8080)");
-//		System.err.println("       --name <name>     service name/realm (default 'Test')");
-//		System.err.println("       --user <user>     login user id (default 'test')");
-//		System.err.println("       --password <pass> login password (default 'testXXX', XXX random number)");
+		System.err.println("       --user <user>     login user id (default 'test')");
+		System.err.println("       --password <pass> login password (default 'testXXX', XXX random number)");
 		System.err.close();
 		System.exit(1);	
 	}
@@ -163,7 +172,23 @@ public class MusicMountTester {
         return mountContext;
 	}
 	
-	public static void startServer(int port, File mountBase, File musicBase, String musicPath) throws Exception {
+	private static void addBasicAuth(StandardContext context) {
+        SecurityConstraint securityConstraint = new SecurityConstraint();
+        securityConstraint.addAuthRole("test");
+        SecurityCollection securityCollection = new SecurityCollection();
+        securityCollection.addMethod("GET");
+        securityCollection.addPattern("/*");
+        securityConstraint.addCollection(securityCollection);
+        
+        LoginConfig loginConfig = new LoginConfig();
+        loginConfig.setAuthMethod("BASIC");
+
+        context.addConstraint(securityConstraint);
+        context.setLoginConfig(loginConfig);
+        context.addValve(new BasicAuthenticator());
+	}
+	
+	public static void startServer(int port, File mountBase, File musicBase, String musicPath, final String user, final String password) throws Exception {
 		Tomcat tomcat = new Tomcat();
 		File workDir = File.createTempFile("musicmount-test", "");
 		workDir.delete();
@@ -203,6 +228,27 @@ public class MusicMountTester {
         musicContext.addFilterDef(logFilterDef);
         musicContext.addFilterMap(logFilterMap);
 
+        if (user != null && password != null) {
+            tomcat.getEngine().setRealm(new RealmBase() {
+    			@Override
+    			protected Principal getPrincipal(String username) {
+    				String password = getPassword(username);
+    				return password != null ? new GenericPrincipal(username, password, Arrays.asList("test")) : null;
+    			}
+    			@Override
+    			protected String getPassword(String username) {
+    				return user.equals(username) ? password : null;
+    			}
+    			@Override
+    			protected String getName() {
+    				return "Test Realm";
+    			}
+    		});
+            
+            addBasicAuth((StandardContext)mountContext);
+            addBasicAuth((StandardContext)musicContext);
+        }
+
         tomcat.start();
         tomcat.getServer().await(); 
 	}
@@ -218,9 +264,8 @@ public class MusicMountTester {
 		}
 		String optionMusic = "music";
 		int optionPort = 8080;
-//		String optionName = "Test";
-//		String optionUser = "test";
-//		String optionPassword = String.format("test%03d", new Random().nextInt(1000));
+		String optionUser = "test";
+		String optionPassword = String.format("test%03d", new Random().nextInt(1000));
 
 		int optionsLength = args.length - 2;
 		for (int i = 0; i < optionsLength; i++) {
@@ -237,24 +282,18 @@ public class MusicMountTester {
 				}
 				optionPort = Integer.parseInt(args[i]);
 				break;
-//			case "--name":
-//				if (++i == optionsLength) {
-//					exitWithError(command, "invalid arguments");
-//				}
-//				optionName = args[i];
-//				break;
-//			case "--user":
-//				if (++i == optionsLength) {
-//					exitWithError(command, "invalid arguments");
-//				}
-//				optionUser = args[i];
-//				break;
-//			case "--password":
-//				if (++i == optionsLength) {
-//					exitWithError(command, "invalid arguments");
-//				}
-//				optionPassword = args[i];
-//				break;
+			case "--user":
+				if (++i == optionsLength) {
+					exitWithError(command, "invalid arguments");
+				}
+				optionUser = args[i];
+				break;
+			case "--password":
+				if (++i == optionsLength) {
+					exitWithError(command, "invalid arguments");
+				}
+				optionPassword = args[i];
+				break;
 			default:
 				if (args[i].startsWith("-")) {
 					exitWithError(command, "unknown option: " + args[i]);
@@ -284,13 +323,15 @@ public class MusicMountTester {
 			LOGGER.log(Level.WARNING, "Could not determine local host name, showing loopback name", e);
 		}
 
+		LOGGER.info(String.format("Mount Settings"));
+		LOGGER.info(String.format("--------------"));
+		LOGGER.info(String.format("Site: http://%s:%d", hostname, optionPort));
+		LOGGER.info(String.format("User: %s", optionUser));
+		LOGGER.info(String.format("Pass: %s", optionPassword));
+		LOGGER.info(String.format("--------------"));
 		LOGGER.info(String.format("Starting Server..."));
-		LOGGER.info(String.format("URL:  http://%s:%d", hostname, optionPort));
-//		LOGGER.info(String.format("Name: %s", optionName));
-//		LOGGER.info(String.format("User: %s", optionUser));
-//		LOGGER.info(String.format("Pass: %s", optionPassword));
 		LOGGER.info("Press CTRL-C to exit...");
-		startServer(optionPort, mountFolder, musicFolder, optionMusic);
+		startServer(optionPort, mountFolder, musicFolder, optionMusic, optionUser, optionPassword);
 	}
 	
 	public static void main(String[] args) throws Exception {
