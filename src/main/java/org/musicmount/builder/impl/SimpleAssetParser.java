@@ -109,7 +109,7 @@ public class SimpleAssetParser implements AssetParser {
 			try {
 				asset.setYear(Integer.valueOf(year.trim().substring(0, 4)));
 			} catch (NumberFormatException e) {
-				LOGGER.log(Level.FINE, "Could not parse year: " + year + ", (" + asset.getFile().getAbsolutePath() + ")", e);
+				LOGGER.log(Level.WARNING, "Could not parse year: " + year + ", (" + asset.getFile().getAbsolutePath() + ")", e);
 			}
 		}
 		
@@ -118,7 +118,7 @@ public class SimpleAssetParser implements AssetParser {
 			try {
 				asset.setTrackNumber(Integer.valueOf(trackNumber));			
 			} catch (NumberFormatException e) {
-				LOGGER.log(Level.FINE, "Could not parse asset number: " + trackNumber + ", (" + asset.getFile().getAbsolutePath() + ")", e);
+				LOGGER.log(Level.WARNING, "Could not parse track number: " + trackNumber + ", (" + asset.getFile().getAbsolutePath() + ")", e);
 			}
 		}
 
@@ -127,7 +127,7 @@ public class SimpleAssetParser implements AssetParser {
 			try {
 				asset.setDiscNumber(Integer.valueOf(discNumber));
 			} catch (NumberFormatException e) {
-				LOGGER.log(Level.FINE, "Could not parse disc number: " + discNumber + ", (" + asset.getFile().getAbsolutePath() + ")", e);
+				LOGGER.log(Level.WARNING, "Could not parse disc number: " + discNumber + ", (" + asset.getFile().getAbsolutePath() + ")", e);
 			}
 		}
 		
