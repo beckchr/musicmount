@@ -18,20 +18,12 @@ package org.musicmount.builder.impl;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.util.logging.Level;
 
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.musicmount.builder.model.Library;
-import org.musicmount.util.LoggingUtil;
 
 public class AssetStoreTest {
-	@BeforeClass
-	public static void beforeClass() {
-		LoggingUtil.configure("org.jaudiotagger", Level.WARNING);
-	}
-
 	@Test
 	public void test() throws Exception {
 		File assetDir = new File(getClass().getResource("/sample-album/sample.mp3").toURI()).getParentFile();

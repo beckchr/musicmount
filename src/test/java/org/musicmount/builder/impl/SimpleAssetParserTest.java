@@ -16,7 +16,6 @@
 package org.musicmount.builder.impl;
 
 import java.io.File;
-import java.util.Arrays;
 
 import junit.framework.Assert;
 
@@ -25,7 +24,7 @@ import org.junit.Test;
 public class SimpleAssetParserTest {
 	@Test
 	public void testIsAssetFile() throws Exception {
-		SimpleAssetParser assetParser = new SimpleAssetParser(Arrays.asList(".m4a", ".mp3"));
+		SimpleAssetParser assetParser = new SimpleAssetParser();
 		Assert.assertTrue(assetParser.isAssetFile(new File("foo.mp3")));
 		Assert.assertTrue(assetParser.isAssetFile(new File("foo.m4a")));
 		Assert.assertFalse(assetParser.isAssetFile(new File("foo.txt")));
