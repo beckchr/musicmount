@@ -28,10 +28,11 @@ import com.mpatric.mp3agic.ID3v2;
 import com.mpatric.mp3agic.Mp3File;
 
 /**
- * MP3 asset parser. 
+ * MP3 asset parser.
  */
 public class MP3AssetParser implements AssetParser {
-	static final Logger LOGGER = Logger.getLogger(MP3AssetParser.class.getName());
+	static final Logger LOGGER = Logger.getLogger(MP3AssetParser.class
+			.getName());
 
 	@Override
 	public boolean isAssetFile(File file) {
@@ -42,16 +43,17 @@ public class MP3AssetParser implements AssetParser {
 	public Asset parse(File file) throws Exception {
 		Asset asset = new Asset(file);
 		Mp3File mp3file = new Mp3File(file.getAbsolutePath());
-		asset.setDuration(mp3file.getLengthInSeconds() > 0 ? (int)mp3file.getLengthInSeconds() : null);
-	    if (mp3file.hasId3v2Tag()) {
-	    	ID3v2 info = mp3file.getId3v2Tag();
+		asset.setDuration(mp3file.getLengthInSeconds() > 0 ? (int) mp3file.getLengthInSeconds() : null);
+		if (mp3file.hasId3v2Tag()) {
+			ID3v2 info = mp3file.getId3v2Tag();
 			asset.setAlbum(info.getAlbum());
 			asset.setAlbumArtist(info.getAlbumArtist());
 			asset.setArtist(info.getArtist());
 			asset.setArtworkAvailable(info.getAlbumImage() != null);
 			asset.setCompilation(info.isCompilation());
 			asset.setComposer(info.getComposer());
-			if (info.getPartOfSet() != null && info.getPartOfSet().trim().length() > 0) {
+			if (info.getPartOfSet() != null
+					&& info.getPartOfSet().trim().length() > 0) {
 				String string = info.getPartOfSet().trim();
 				int index = string.indexOf('/');
 				if (index > 0) {
@@ -60,7 +62,8 @@ public class MP3AssetParser implements AssetParser {
 				try {
 					asset.setDiscNumber(Integer.valueOf(string));
 				} catch (NumberFormatException e) {
-					LOGGER.warning("Could not parse disc number: " + info.getPartOfSet() + " (" + file + ")");
+					LOGGER.warning("Could not parse disc number: "
+							+ info.getPartOfSet() + " (" + file + ")");
 				}
 			}
 			asset.setGenre(info.getGenreDescription());
@@ -74,18 +77,20 @@ public class MP3AssetParser implements AssetParser {
 				try {
 					asset.setTrackNumber(Integer.valueOf(string));
 				} catch (NumberFormatException e) {
-					LOGGER.warning("Could not parse track number: " + info.getTrack() + " (" + file + ")");
+					LOGGER.warning("Could not parse track number: "
+							+ info.getTrack() + " (" + file + ")");
 				}
 			}
 			if (info.getYear() != null && info.getYear().trim().length() > 0) {
 				try {
 					asset.setYear(Integer.valueOf(info.getYear()));
 				} catch (NumberFormatException e) {
-					LOGGER.warning("Could not parse year: " + info.getYear() + " (" + file + ")");
+					LOGGER.warning("Could not parse year: " + info.getYear()
+							+ " (" + file + ")");
 				}
 			}
-	    } else if (mp3file.hasId3v1Tag()) {
-	    	ID3v1 info = mp3file.getId3v1Tag();
+		} else if (mp3file.hasId3v1Tag()) {
+			ID3v1 info = mp3file.getId3v1Tag();
 			asset.setAlbum(info.getAlbum());
 			asset.setAlbumArtist(null);
 			asset.setArtist(info.getArtist());
@@ -100,24 +105,25 @@ public class MP3AssetParser implements AssetParser {
 				try {
 					asset.setYear(Integer.valueOf(info.getYear()));
 				} catch (NumberFormatException e) {
-					LOGGER.warning("Could not parse year: " + info.getYear() + " (" + file + ")");
+					LOGGER.warning("Could not parse year: " + info.getYear()
+							+ " (" + file + ")");
 				}
 			}
-	    }
-	    return asset;
+		}
+		return asset;
 	}
 
 	@Override
 	public BufferedImage extractArtwork(File file) throws Exception {
 		Mp3File mp3file = new Mp3File(file.getAbsolutePath());
-	    if (mp3file.hasId3v2Tag()) {
-			byte[] imageData =  mp3file.getId3v2Tag().getAlbumImage();
+		if (mp3file.hasId3v2Tag()) {
+			byte[] imageData = mp3file.getId3v2Tag().getAlbumImage();
 			if (imageData != null) {
 				try (InputStream input = new ByteArrayInputStream(imageData)) {
 					return ImageIO.read(input);
 				}
 			}
-	    }
+		}
 		return null;
 	}
 }
