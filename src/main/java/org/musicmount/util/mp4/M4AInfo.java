@@ -22,6 +22,8 @@ import java.math.BigDecimal;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.mpatric.mp3agic.ID3v1Genres;
+
 /**
  * M4A info.
  * 
@@ -99,37 +101,6 @@ public class M4AInfo {
 
 	private static final String ASCII = "ISO8859_1";
 	private static final String UTF_8 = "UTF-8";
-	
-	public static final String[] GENRES = { "Blues", "Classic Rock", "Country",
-			"Dance", "Disco", "Funk", "Grunge", "Hip-Hop", "Jazz", "Metal",
-			"New Age", "Oldies", "Other", "Pop", "R&B", "Rap", "Reggae",
-			"Rock", "Techno", "Industrial", "Alternative", "Ska",
-			"Death Metal", "Pranks", "Soundtrack", "Euro-Techno", "Ambient",
-			"Trip-Hop", "Vocal", "Jazz+Funk", "Fusion", "Trance", "Classical",
-			"Instrumental", "Acid", "House", "Game", "Sound Clip", "Gospel",
-			"Noise", "Alt Rock", "Bass", "Soul", "Punk", "Space", "Meditative",
-			"Instrumental Pop", "Instrumental Rock", "Ethnic", "Gothic",
-			"Darkwave", "Techno-Industrial", "Electronic", "Pop-Folk",
-			"Eurodance", "Dream", "Southern Rock", "Comedy", "Cult", "Gangsta",
-			"Top 40", "Christian Rap", "Pop/Funk", "Jungle", "Native American",
-			"Cabaret", "New Wave", "Psychedelic", "Rave", "Showtunes",
-			"Trailer", "Lo-Fi", "Tribal", "Acid Punk", "Acid Jazz", "Polka",
-			"Retro", "Musical", "Rock & Roll", "Hard Rock", "Folk",
-			"Folk/Rock", "National Folk", "Swing", "Fast Fusion", "Bebob",
-			"Latin", "Revival", "Celtic", "Bluegrass", "Avantgarde",
-			"Gothic Rock", "Progressive Rock", "Psychedelic Rock",
-			"Symphonic Rock", "Slow Rock", "Big Band", "Chorus",
-			"Easy Listening", "Acoustic", "Humour", "Speech", "Chanson",
-			"Opera", "Chamber Music", "Sonata", "Symphony", "Booty Bass",
-			"Primus", "Porn Groove", "Satire/Parody", "Slow Jam", "Club",
-			"Tango", "Samba", "Folklore", "Ballad", "Power Ballad",
-			"Rhythmic Soul", "Freestyle", "Duet", "Punk Rock", "Drum Solo",
-			"Acapella", "Euro-House", "Dance Hall", "Goa", "Drum & Bass",
-			"Club-House", "Hardcore", "Terror", "Indie", "BritPop",
-			"Negerpunk", "Polsk Punk", "Beat", "Christian Gangsta",
-			"Heavy Metal", "Black Metal", "Crossover", "Contemporary Chr",
-			"Christian Rock", "Merengue", "Salsa", "Thrash Metal", "Anime",
-			"JPop", "Synthpop" };
 
 	private String brand;			// "M4A", ...
 	private String version;		// version info
@@ -351,7 +322,7 @@ public class M4AInfo {
 			if (genre == null || genre.trim().length() == 0) {
 				if (atom.getRemaining() == 2) { // id3v1 genre?
 					int index = atom.readShort() - 1;
-					genre = index >= 0 && index < GENRES.length ? GENRES[index] : null;
+					genre = index >= 0 && index < ID3v1Genres.GENRES.length ? ID3v1Genres.GENRES[index] : null;
 				} else {
 					genre = atom.readString(UTF_8);
 				}
