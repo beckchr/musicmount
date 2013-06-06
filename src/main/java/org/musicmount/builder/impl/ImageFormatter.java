@@ -21,8 +21,12 @@ import java.awt.Transparency;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -155,13 +159,39 @@ public class ImageFormatter {
 		}
 	}
 	
-	public void formatImages(Library library, ResourceLocator resourceLocator, AssetStore assetStore) {
-		int count = 0;
-		for (Album album : library.getAlbums()) {
-			formatAlbumImages(album, resourceLocator, assetStore.isAlbumChanged(album.getAlbumId()));
-			if (++count % 100 == 0) {
-				LOGGER.fine("Progress: #albums = " + count);
+	public void formatImages(Library library, final ResourceLocator resourceLocator, final AssetStore assetStore) {
+		int numberOfAlbumsPerTask = 100;
+		int numberOfAlbums = library.getAlbums().size();
+		int numberOfThreads = Math.min(1 + (numberOfAlbums - 1) / numberOfAlbumsPerTask, Runtime.getRuntime().availableProcessors());
+		if (numberOfThreads > 1) { // run on multiple threads
+			LOGGER.fine("Parallel: #threads = " + numberOfThreads);
+			ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
+			for (int start = 0; start < numberOfAlbums; start += numberOfAlbumsPerTask) {
+				final Collection<Album> albums = library.getAlbums().subList(start, Math.min(numberOfAlbums, start + numberOfAlbumsPerTask));
+				executor.execute(new Runnable() {
+					@Override
+					public void run() {
+						for (Album album : albums) {
+							formatAlbumImages(album, resourceLocator, assetStore.isAlbumChanged(album.getAlbumId()));
+						}
+						LOGGER.fine(String.format("Progress: #albums += %3d", albums.size()));
+					}
+				});
 			}
-		}
+			executor.shutdown();
+			try {
+				executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+			} catch (InterruptedException e) {
+				LOGGER.warning("Interrupted: " + e.getMessage());
+			}
+		} else { // run on current thread
+			int count = 0;
+			for (Album album : library.getAlbums()) {
+				formatAlbumImages(album, resourceLocator, assetStore.isAlbumChanged(album.getAlbumId()));
+				if (++count % 100 == 0) {
+					LOGGER.fine("Progress: #albums = " + count);
+				}
+			}
+		}		
 	}
 }
