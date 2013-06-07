@@ -17,3 +17,6 @@ AddType text/json .json
 
 # set JSON content charset
 AddCharset UTF-8 .json
+
+# enable JSON compression
+#AddOutputFilterByType DEFLATE text/json
