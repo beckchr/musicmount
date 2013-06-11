@@ -138,6 +138,9 @@ public class ImageFormatter {
 				}
 			}
 			if (!targets.isEmpty()) {
+				if (LOGGER.isLoggable(Level.FINER)) {
+					LOGGER.finer("Formatting images from assset: " + track.getAssetFile());
+				}
 		    	BufferedImage image;
 		        try {
 		        	image = assetParser.extractArtwork(track.getAssetFile());

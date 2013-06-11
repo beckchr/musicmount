@@ -52,13 +52,6 @@ import org.musicmount.util.LoggingUtil;
 public class MusicMountBuilder {
 	static final Logger LOGGER = Logger.getLogger(MusicMountBuilder.class.getName());
 
-	/**
-	 * Configure logging
-	 */
-	static {
-		LoggingUtil.configure(MusicMountBuilder.class.getPackage().getName(), Level.FINE);
-	}
-
     /**
      * prevent ImageIO from using file cache
      */
@@ -164,6 +157,7 @@ public class MusicMountBuilder {
 		boolean optionRetina = false;
 		boolean optionPretty = false;
 		boolean optionFull = false;
+		boolean optionDebug = false;
 		boolean optionNoImages = false;
 		boolean optionXML = false;
 		boolean optionUnknownGenre = false;
@@ -188,6 +182,9 @@ public class MusicMountBuilder {
 				break;
 			case "--full":
 				optionFull = true;
+				break;
+			case "--debug":
+				optionDebug = true;
 				break;
 			case "--unknownGenre":
 				optionUnknownGenre = true;
@@ -236,7 +233,12 @@ public class MusicMountBuilder {
 		if (!outputFolder.exists() && !outputFolder.mkdirs()) {
 			exitWithError(command, "cannot create output folder " + outputFolder);
 		}
-		
+
+		/**
+		 * Configure logging
+		 */
+		LoggingUtil.configure(MusicMountBuilder.class.getPackage().getName(), optionDebug ? Level.FINER : Level.FINE);
+
 		LocalStrings localStrings = new LocalStrings(Locale.ENGLISH);
 		File assetStoreFile = new File(outputFolder, ASSET_STORE);
 

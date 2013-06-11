@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.xml.stream.XMLInputFactory;
@@ -111,6 +112,9 @@ public class AssetStore {
 		if (entities.containsKey(asset.getFile())) {
 			long oldAlbumId = entities.get(asset.getFile()).albumId;
 			if (createdAlbumIds.contains(oldAlbumId)) { // album split
+				if (LOGGER.isLoggable(Level.FINER)) {
+					LOGGER.finer("Album split albumId for assset: " + asset.getFile());
+				}
 				changedAlbumIds.add(oldAlbumId);
 				albumId = nextAlbumId();
 				changedAlbumIds.add(albumId);
@@ -118,6 +122,9 @@ public class AssetStore {
 				albumId = oldAlbumId;
 			}
 		} else { // never seen this asset before -> create new album id
+			if (LOGGER.isLoggable(Level.FINER)) {
+				LOGGER.finer("Creating new albumId for assset: " + asset.getFile());
+			}
 			albumId = nextAlbumId();
 			changedAlbumIds.add(albumId);
 		}
@@ -232,7 +239,7 @@ public class AssetStore {
 		}
 	}
 
-	private AssetEntity readAsset(XMLStreamReader reader, AssetLocator assetLocator) throws XMLStreamException {
+	private AssetEntity readAsset(XMLStreamReader reader, AssetLocator assetLocator, long timestamp) throws XMLStreamException {
 		reader.require(XMLStreamConstants.START_ELEMENT, null, "asset");
 		reader.nextTag();
 
@@ -319,12 +326,23 @@ public class AssetStore {
 				asset.setTrackNumber(trackNumber);
 				asset.setYear(year);
 				return new AssetEntity(albumId, asset);
+			} else {
+				if (LOGGER.isLoggable(Level.FINER)) {
+					if (assetFile == null) {
+						LOGGER.finer("Asset unresolved: " + assetPath);
+					} else if (!assetFile.exists()) {
+						LOGGER.finer("Asset does not exist: " + assetFile);
+					} else {
+						LOGGER.finer("Asset has been modified: " + assetFile + " (" + assetFile.lastModified() + ")");
+					}
+				}
 			}
 		}
 		return null;
 	}
 	
 	public void load(InputStream input, AssetLocator assetLocator) throws IOException, XMLStreamException {
+		long timestamp = 0L;
 		XMLInputFactory factory = new JsonXMLInputFactory(new JsonXMLConfigBuilder().virtualRoot("assetStore").build());
 		XMLStreamReader reader = factory.createXMLStreamReader(input);
 		try {
@@ -342,10 +360,10 @@ public class AssetStore {
 					}
 					break;
 				case "timestamp":
-					timestamp = Math.min(timestamp, Long.valueOf(reader.getElementText()));
+					timestamp = Long.valueOf(reader.getElementText());
 					break;
 				case "asset":
-					AssetEntity entity = readAsset(reader, assetLocator);
+					AssetEntity entity = readAsset(reader, assetLocator, timestamp);
 					if (entity != null) {
 						entities.put(entity.asset.getFile(), entity);
 						loadedAlbumIds.add(entity.albumId);
