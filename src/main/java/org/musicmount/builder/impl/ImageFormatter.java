@@ -167,7 +167,9 @@ public class ImageFormatter {
 		int numberOfAlbums = library.getAlbums().size();
 		int numberOfThreads = Math.min(1 + (numberOfAlbums - 1) / numberOfAlbumsPerTask, Runtime.getRuntime().availableProcessors());
 		if (numberOfThreads > 1) { // run on multiple threads
-			LOGGER.fine("Parallel: #threads = " + numberOfThreads);
+			if (LOGGER.isLoggable(Level.FINE)) {
+				LOGGER.fine("Parallel: #threads = " + numberOfThreads);
+			}
 			ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
 			for (int start = 0; start < numberOfAlbums; start += numberOfAlbumsPerTask) {
 				final Collection<Album> albums = library.getAlbums().subList(start, Math.min(numberOfAlbums, start + numberOfAlbumsPerTask));
@@ -177,7 +179,9 @@ public class ImageFormatter {
 						for (Album album : albums) {
 							formatAlbumImages(album, resourceLocator, assetStore.isAlbumChanged(album.getAlbumId()));
 						}
-						LOGGER.fine(String.format("Progress: #albums += %3d", albums.size()));
+						if (LOGGER.isLoggable(Level.FINE)) {
+							LOGGER.fine(String.format("Progress: #albums += %3d", albums.size()));
+						}
 					}
 				});
 			}
@@ -191,7 +195,7 @@ public class ImageFormatter {
 			int count = 0;
 			for (Album album : library.getAlbums()) {
 				formatAlbumImages(album, resourceLocator, assetStore.isAlbumChanged(album.getAlbumId()));
-				if (++count % 100 == 0) {
+				if (++count % 100 == 0 && LOGGER.isLoggable(Level.FINE)) {
 					LOGGER.fine("Progress: #albums = " + count);
 				}
 			}

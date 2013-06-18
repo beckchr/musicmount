@@ -173,7 +173,7 @@ public class LibraryParser {
 					continue;
 				}
 				if (asset.getName() == null || asset.getAlbum() == null && asset.getArtist() == null) { // unusable
-					LOGGER.log(Level.INFO, "Will skip poorly tagged asset file: " + file.getAbsolutePath());
+					LOGGER.info("Will skip poorly tagged asset file: " + file.getAbsolutePath());
 					continue;
 				}
 				
@@ -200,7 +200,7 @@ public class LibraryParser {
 					album.setArtist(albumArtist);
 					albumArtist.getAlbums().put(asset.getAlbum(), album);
 					library.getAlbums().add(album);
-					if (library.getAlbums().size() % 100 == 0) {
+					if (library.getAlbums().size() % 100 == 0 && LOGGER.isLoggable(Level.FINE)) {
 						LOGGER.fine("Progress: #albums = " + library.getAlbums().size());
 					}
 				} else {
