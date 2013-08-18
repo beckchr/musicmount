@@ -210,10 +210,17 @@ public class LibraryParser {
 				/*
 				 * determine track artist
 				 */
-				TrackArtist trackArtist = library.getTrackArtists().get(asset.getArtist());
+				String trackArtistName = asset.getArtist();
+				if (trackArtistName == null && !asset.isCompilation()) {
+					if (albumArtistName != null) {
+						LOGGER.info("Will use album artist for missing artist in file: " + file.getAbsolutePath());
+						trackArtistName = albumArtistName;
+					}
+				}
+				TrackArtist trackArtist = library.getTrackArtists().get(trackArtistName);
 				if (trackArtist == null) {
-					trackArtist = new TrackArtist(library.getTrackArtists().size(), asset.getArtist());
-					library.getTrackArtists().put(asset.getArtist(), trackArtist);
+					trackArtist = new TrackArtist(library.getTrackArtists().size(), trackArtistName);
+					library.getTrackArtists().put(trackArtistName, trackArtist);
 				}
 				trackArtist.getAlbums().add(album);
 				
@@ -251,9 +258,9 @@ public class LibraryParser {
 				disc.getTracks().add(track);
 
 				/*
-				 * make sure the album artist also appears as asset artist???
+				 * make sure the album artist also appears as track artist???
 				 */
-//				if (albumArtistName != null && !albumArtistName.equals(asset.getArtist())) {
+//				if (albumArtistName != null && !albumArtistName.equals(trackArtistName)) {
 //					TrackArtist albumTrackArtist = library.getTrackArtists().get(albumArtistName);
 //					if (albumTrackArtist == null) {
 //						albumTrackArtist = new TrackArtist(library.getTrackArtists().size(), albumArtistName);

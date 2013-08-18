@@ -441,11 +441,9 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 				writeStringProperty(writer, "title", item.getTitle());
 				String artist = item.getArtist().getTitle();
 				if (artist == null) {
-					artist = item.getAlbum().getArtist().getTitle();
+					artist = localStrings.getUnknownArtist();
 				}
-				if (artist != null) {
-					writeStringProperty(writer, "artist", artist);
-				}
+				writeStringProperty(writer, "artist", artist);
 				if (imagePath != null) {
 					writeStringProperty(writer, "imagePath", imagePath);
 				}

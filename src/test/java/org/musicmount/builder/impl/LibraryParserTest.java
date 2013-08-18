@@ -107,10 +107,10 @@ public class LibraryParserTest {
 		Album variousArtistsAlbum = albumArtist4.getAlbums().get("Various Artists - Album");
 		Assert.assertTrue(variousArtistsAlbum.representativeTrack().isCompilation());
 		Assert.assertNotNull(variousArtistsAlbum);
-		Assert.assertEquals(2, variousArtistsAlbum.getTracks().size());
+		Assert.assertEquals(3, variousArtistsAlbum.getTracks().size());
 
 		/*
-		 * verify asset artists 
+		 * verify track artists 
 		 */
 		TrackArtist trackArtist1 = library.getTrackArtists().get("Album Artist");
 		Assert.assertNotNull(trackArtist1);
@@ -141,7 +141,7 @@ public class LibraryParserTest {
 		TrackArtist trackArtist6 = library.getTrackArtists().get(null);
 		Assert.assertNotNull(trackArtist6);
 		Assert.assertEquals(1, trackArtist6.albumsCount());
-		Assert.assertTrue(trackArtist6.getAlbums().contains(albumArtistAlbum));
+		Assert.assertTrue(trackArtist6.getAlbums().contains(variousArtistsAlbum));
 	}
 
 }
