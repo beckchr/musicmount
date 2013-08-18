@@ -42,14 +42,14 @@ public abstract class Artist implements Titled {
 		return title;
 	}
 
-	private Album latest(Album album1, Album album2) {
+	private Album earliest(Album album1, Album album2) {
 		if (album1 == null || album1.getTracks().get(0).getYear() == null) {
 			return album2 == null ? album1 : album2;
 		}
 		if (album2 == null || album2.getTracks().get(0).getYear() == null) {
 			return album1;
 		}
-		return album1.getTracks().get(0).getYear().intValue() > album2.getTracks().get(0).getYear().intValue() ? album1 : album2;
+		return album1.getTracks().get(0).getYear().intValue() < album2.getTracks().get(0).getYear().intValue() ? album1 : album2;
 	}
 	
 	public Album representativeAlbum() {
@@ -61,12 +61,12 @@ public abstract class Artist implements Titled {
 			Track representativeTrack = album.representativeTrack();
 			if (representativeTrack.isArtworkAvailable())  {
 				if (representativeTrack.isCompilation()) {
-					compilation = latest(album, compilation);
+					compilation = earliest(album, compilation);
 				} else {
-					regularAlbum = latest(album, regularAlbum);
+					regularAlbum = earliest(album, regularAlbum);
 				}
 			} else {
-				otherAlbum = latest(album, otherAlbum);
+				otherAlbum = earliest(album, otherAlbum);
 			}
 		}
 		return regularAlbum != null ? regularAlbum : (compilation != null ? compilation : otherAlbum);
