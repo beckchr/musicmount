@@ -84,23 +84,28 @@ public class MP3AssetParser implements AssetParser {
 					LOGGER.warning("Could not parse year: " + info.getYear() + " (" + file + ")");
 				}
 			}
-		} else if (mp3file.hasId3v1Tag()) {
+		}
+		if (mp3file.hasId3v1Tag()) {
 			ID3v1 info = mp3file.getId3v1Tag();
-			asset.setAlbum(info.getAlbum());
-			asset.setAlbumArtist(null);
-			asset.setArtist(info.getArtist());
-			asset.setArtworkAvailable(false);
-			asset.setCompilation(false);
-			asset.setComposer(null);
-			asset.setDiscNumber(null);
-			asset.setGenre(info.getGenreDescription());
-			asset.setName(info.getTitle());
-			asset.setTrackNumber(null);
-			if (info.getYear() != null && info.getYear().trim().length() > 0) {
-				try {
-					asset.setYear(Integer.valueOf(info.getYear()));
-				} catch (NumberFormatException e) {
-					LOGGER.warning("Could not parse year: " + info.getYear() + " (" + file + ")");
+			if (asset.getAlbum() == null) {
+				asset.setAlbum(info.getAlbum());
+			}
+			if (asset.getArtist() == null) {
+				asset.setArtist(info.getArtist());
+			}
+			if (asset.getGenre() == null) {
+				asset.setGenre(info.getGenreDescription());
+			}
+			if (asset.getName() == null) {
+				asset.setName(info.getTitle());
+			}
+			if (asset.getYear() == null) {
+				if (info.getYear() != null && info.getYear().trim().length() > 0) {
+					try {
+						asset.setYear(Integer.valueOf(info.getYear()));
+					} catch (NumberFormatException e) {
+						LOGGER.warning("Could not parse year: " + info.getYear() + " (" + file + ")");
+					}
 				}
 			}
 		}
