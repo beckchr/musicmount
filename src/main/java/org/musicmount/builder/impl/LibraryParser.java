@@ -32,7 +32,17 @@ import org.musicmount.builder.model.TrackArtist;
 
 public class LibraryParser {
 	static final Logger LOGGER = Logger.getLogger(LibraryParser.class.getName());
-	
+
+	private static String trimToNonEmptyStringOrNull(String s) {
+		if (s != null) {
+			s = s.trim();
+			if (s.isEmpty()) {
+				s = null;
+			}
+		}
+		return s;
+	}
+
 	private final AssetParser assetParser;
 	private final FileFilter assetFilter = new FileFilter() {
 		public boolean accept(File file) {
@@ -172,7 +182,22 @@ public class LibraryParser {
 					LOGGER.log(Level.WARNING, "Could not parse asset file: " + file.getAbsolutePath(), e);
 					continue;
 				}
-				if (asset.getName() == null || asset.getAlbum() == null && asset.getArtist() == null) { // unusable
+				
+				String trackName = trimToNonEmptyStringOrNull(asset.getName());
+				String albumName = trimToNonEmptyStringOrNull(asset.getAlbum());
+				String trackArtistName = trimToNonEmptyStringOrNull(asset.getArtist());
+				String albumArtistName = trimToNonEmptyStringOrNull(asset.getAlbumArtist());
+
+				if (!asset.isCompilation()) {
+					if (albumArtistName == null) {
+						albumArtistName = trackArtistName;
+					} else if (trackArtistName == null) {
+						LOGGER.info("Will use album artist for missing artist in file: " + file.getAbsolutePath());
+						trackArtistName = albumArtistName;
+					}
+				}
+
+				if (trackName == null || albumName == null && trackArtistName == null) { // unusable
 					LOGGER.info("Will skip poorly tagged asset file: " + file.getAbsolutePath());
 					continue;
 				}
@@ -180,10 +205,6 @@ public class LibraryParser {
 				/*
 				 * determine album artist
 				 */
-				String albumArtistName = asset.getAlbumArtist();
-				if (albumArtistName == null && !asset.isCompilation()) {
-					albumArtistName = asset.getArtist();
-				}
 				AlbumArtist albumArtist = library.getAlbumArtists().get(albumArtistName);
 				if (albumArtist == null) {
 					albumArtist = new AlbumArtist(library.getAlbumArtists().size(), albumArtistName);
@@ -193,12 +214,12 @@ public class LibraryParser {
 				/*
 				 * determine album
 				 */
-				Album album = albumArtist.getAlbums().get(asset.getAlbum());
+				Album album = albumArtist.getAlbums().get(albumName);
 				if (album == null) {
 					long albumId = assetStore.createAlbum(asset);
-					album = new Album(albumId, asset.getAlbum());
+					album = new Album(albumId, albumName);
 					album.setArtist(albumArtist);
-					albumArtist.getAlbums().put(asset.getAlbum(), album);
+					albumArtist.getAlbums().put(albumName, album);
 					library.getAlbums().add(album);
 					if (library.getAlbums().size() % 100 == 0 && LOGGER.isLoggable(Level.FINE)) {
 						LOGGER.fine("Progress: #albums = " + library.getAlbums().size());
@@ -210,13 +231,6 @@ public class LibraryParser {
 				/*
 				 * determine track artist
 				 */
-				String trackArtistName = asset.getArtist();
-				if (trackArtistName == null && !asset.isCompilation()) {
-					if (albumArtistName != null) {
-						LOGGER.info("Will use album artist for missing artist in file: " + file.getAbsolutePath());
-						trackArtistName = albumArtistName;
-					}
-				}
 				TrackArtist trackArtist = library.getTrackArtists().get(trackArtistName);
 				if (trackArtist == null) {
 					trackArtist = new TrackArtist(library.getTrackArtists().size(), trackArtistName);
@@ -228,14 +242,14 @@ public class LibraryParser {
 				 * create track
 				 */
 				Track track = new Track(
-						asset.getName(),
+						trackName,
 						asset.getFile(),
 						asset.isArtworkAvailable(),
 						asset.isCompilation(),
-						asset.getComposer(),
+						trimToNonEmptyStringOrNull(asset.getComposer()),
 						asset.getDiscNumber(),
 						asset.getDuration(),
-						asset.getGenre(),
+						trimToNonEmptyStringOrNull(asset.getGenre()),
 						asset.getTrackNumber(),
 						asset.getYear()
 				);
