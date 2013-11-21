@@ -334,18 +334,9 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 				regularAlbums.getItems().add(album);
 			}
 		}
-		
-		final Comparator<Album> titleComparator = new Comparator<Album>() {
-			@Override
-			public int compare(Album item1, Album item2) {
-				String title1 = item1.getTitle() == null ? getDefaultAlbumTitle() : item1.getTitle();
-				String title2 = item2.getTitle() == null ? getDefaultAlbumTitle() : item2.getTitle();
-				return title1.compareTo(title2);
-			}
-		};
-		
-		// sort regular albums by year and title
-		Collections.sort(regularAlbums.getItems(), new Comparator<Album>() {
+
+		// sort albums by year and title
+		final Comparator<Album> albumComparator = new Comparator<Album>() {
 			@Override
 			public int compare(Album item1, Album item2) {
 				Integer year1 = item1.getTracks().get(0).getYear();
@@ -360,12 +351,14 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 				if (result != 0) {
 					return result;
 				}
-				return titleComparator.compare(item1, item2);
+				String title1 = item1.getTitle() == null ? getDefaultAlbumTitle() : item1.getTitle();
+				String title2 = item2.getTitle() == null ? getDefaultAlbumTitle() : item2.getTitle();
+				return title1.compareTo(title2);
 			}
-		});
-
-		// sort compilations by title
-		Collections.sort(compilations.getItems(), titleComparator);
+		};
+		
+		Collections.sort(regularAlbums.getItems(), albumComparator);
+		Collections.sort(compilations.getItems(), albumComparator);
 
 		Collection<CollectionSection<Album>> sections = new ArrayList<CollectionSection<Album>>();
 		if (!regularAlbums.getItems().isEmpty()) {
