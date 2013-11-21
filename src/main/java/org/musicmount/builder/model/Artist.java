@@ -49,7 +49,18 @@ public abstract class Artist implements Titled {
 		if (album2 == null || album2.getTracks().get(0).getYear() == null) {
 			return album1;
 		}
-		return album1.getTracks().get(0).getYear().intValue() < album2.getTracks().get(0).getYear().intValue() ? album1 : album2;
+		int year1 = album1.getTracks().get(0).getYear().intValue();
+		int year2 = album2.getTracks().get(0).getYear().intValue();
+		if (year1 == year2) { // compare album titles
+			if (album1.getTitle() == null) {
+				return album2;
+			}
+			if (album2.getTitle() == null) {
+				return album1;
+			}
+			return album1.getTitle().compareTo(album2.getTitle()) < 0 ? album1 : album2;
+		}
+		return year1 < year2 ? album1 : album2;
 	}
 	
 	public Album representativeAlbum() {
