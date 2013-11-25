@@ -89,12 +89,4 @@ public class SimpleResourceLocator implements ResourceLocator {
 	public String getAlbumPath(Album album) {
 		return String.format("albums/%s/album.%s", getIdPath(album.getAlbumId()), extension);
 	}
-
-	@Override
-	public String getArtistImagePath(Artist artist, ImageType type) {
-		if (type != ImageType.Thumbnail || artist.getTitle() == null) {
-			return null;
-		}
-		return getAlbumImagePath(artist.representativeAlbum(), type);
-	}
 }

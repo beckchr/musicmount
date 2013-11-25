@@ -182,7 +182,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		return localStrings.getUnknownAlbum();
 	}
 
-	private void formatArtistSections(T writer, Iterable<CollectionSection<Artist>> sections, ResourceLocator resourceLocator, ImageType imageType, ArtistType artistType) throws Exception {
+	private void formatArtistSections(T writer, Iterable<CollectionSection<Artist>> sections, ResourceLocator resourceLocator, ImageType imageType, ArtistType artistType, Map<Artist, Album> representativeAlbums) throws Exception {
 		writeStartArray(writer);
 		for (CollectionSection<Artist> section : sections) {
 			writer.writeStartElement("section");
@@ -193,7 +193,8 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 			for (Artist item : section.getItems()) {
 				writer.writeStartElement("item");
 				writeStringProperty(writer, "title", item.getTitle() == null ? getDefaultArtistTitle(artistType) : item.getTitle());
-				String imagePath = resourceLocator.getArtistImagePath(item, imageType);
+				Album representativeAlbum = representativeAlbums != null ? representativeAlbums.get(item) : null;
+				String imagePath = representativeAlbum != null ? resourceLocator.getAlbumImagePath(representativeAlbum, imageType) : null;
 				if (imagePath != null && resourceLocator.getFile(imagePath).exists()) {
 					writeStringProperty(writer, "imagePath", imagePath);
 				}
@@ -249,6 +250,55 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		}
 	}
 
+	private Iterable<CollectionSection<Album>> createAlbumCollectionSections(Iterable<Album> albums) {
+		// split albums into sections with regular albums and compilations
+		CollectionSection<Album> regularAlbums = new CollectionSection<Album>(localStrings.getRegularAlbumSection());
+		CollectionSection<Album> compilations = new CollectionSection<Album>(localStrings.getCompilationAlbumSection());
+		for (Album album : albums) {
+			Track representativeTrack = album.representativeTrack();
+			if (representativeTrack.isCompilation()) {
+				compilations.getItems().add(album);
+			} else {
+				regularAlbums.getItems().add(album);
+			}
+		}
+
+		Collection<CollectionSection<Album>> sections = new ArrayList<CollectionSection<Album>>();
+
+		final Comparator<Album> titleComparator = new TitledComparator<Album>(localStrings, getDefaultAlbumTitle(), null);
+
+		if (!regularAlbums.getItems().isEmpty()) {
+			// sort regular albums by year and title
+			Collections.sort(regularAlbums.getItems(), new Comparator<Album>() {
+				@Override
+				public int compare(Album item1, Album item2) {
+					Integer year1 = item1.getTracks().get(0).getYear();
+					if (year1 == null) {
+						year1 = Integer.valueOf(Integer.MAX_VALUE);
+					}
+					Integer year2 = item2.getTracks().get(0).getYear();
+					if (year2 == null) {
+						year2 = Integer.valueOf(Integer.MAX_VALUE);
+					}
+					int result = year1.compareTo(year2);
+					if (result != 0) {
+						return result;
+					}
+					return titleComparator.compare(item1, item2);
+				}
+			});
+			sections.add(regularAlbums);
+		}
+		
+		if (!compilations.getItems().isEmpty()) {
+			// sort compilations with artist by title only
+			Collections.sort(compilations.getItems(), titleComparator);
+			sections.add(compilations);
+		}
+		
+		return sections;
+	}
+
 	public void formatServiceIndex(ResourceLocator resourceLocator, OutputStream output) throws Exception {
 		T writer = createStreamWriter(output);
 		writer.writeStartDocument();
@@ -273,20 +323,21 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		writer.close();
 	}
 
-	public void formatArtistIndex(Collection<? extends Artist> artists, ArtistType artistType, OutputStream output, ResourceLocator resourceLocator) throws Exception {
+	public void formatArtistIndex(Collection<? extends Artist> artists, ArtistType artistType, OutputStream output, ResourceLocator resourceLocator, Map<Artist, Album> representativeAlbums) throws Exception {
 		T writer = createStreamWriter(output);
 		writer.writeStartDocument();
 		writer.writeStartElement("response");
 		writeStringProperty(writer, "apiVersion", apiVersion);
 		writer.writeStartElement("artistCollection");
 		writeStringProperty(writer, "title", localStrings.getArtistIndexTitle(artistType));
-		CollectionSectionIndex<Artist> index = new CollectionSectionIndex<Artist>(localStrings, artists, getDefaultArtistTitle(artistType), new Comparator<Artist>() {
+		TitledComparator<Artist> comparator = new TitledComparator<Artist>(localStrings, getDefaultArtistTitle(artistType), new Comparator<Artist>() {
 			@Override
 			public int compare(Artist o1, Artist o2) { // sort equally titled artists descending by album count
 				return -Integer.valueOf(o1.albumsCount()).compareTo(Integer.valueOf(o2.albumsCount()));
 			}
 		});
-		formatArtistSections(writer, index.getSections(), resourceLocator, ImageType.Thumbnail, artistType);
+		Iterable<CollectionSection<Artist>> sections = CollectionSection.createIndex(artists, comparator);
+		formatArtistSections(writer, sections, resourceLocator, ImageType.Thumbnail, artistType, representativeAlbums);
 		writer.writeEndElement();
 		writer.writeEndElement();
 		writer.writeEndDocument();
@@ -300,7 +351,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		writeStringProperty(writer, "apiVersion", apiVersion);
 		writer.writeStartElement("albumCollection");
 		writeStringProperty(writer, "title", "Albums");
-		CollectionSectionIndex<Album> index = new CollectionSectionIndex<Album>(localStrings, albums, getDefaultAlbumTitle(), new Comparator<Album>() {
+		TitledComparator<Album> comparator = new TitledComparator<Album>(localStrings, getDefaultAlbumTitle(), new Comparator<Album>() {
 			@Override
 			public int compare(Album o1, Album o2) { // sort equally titled albums by album artist
 				String title1 = o1.getArtist().getTitle() == null ? getDefaultArtistTitle(ArtistType.AlbumArtist) : o1.getArtist().getTitle();
@@ -308,79 +359,48 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 				return title1.compareTo(title2);
 			}
 		});
-		formatAlbumSections(writer, index.getSections(), resourceLocator, ImageType.Thumbnail, true);
+		Iterable<CollectionSection<Album>> sections = CollectionSection.createIndex(albums, comparator);
+		formatAlbumSections(writer, sections, resourceLocator, ImageType.Thumbnail, true);
 		writer.writeEndElement();
 		writer.writeEndElement();
 		writer.writeEndDocument();
 		writer.close();
 	}
 
-	public void formatAlbumCollection(Artist artist, OutputStream output, ResourceLocator resourceLocator) throws Exception {
+	/**
+	 * 
+	 * @param artist
+	 * @param output
+	 * @param resourceLocator
+	 * @return representative album
+	 * @throws Exception
+	 */
+	public Album formatAlbumCollection(Artist artist, OutputStream output, ResourceLocator resourceLocator) throws Exception {
+		String title = artist.getTitle() == null ? getDefaultArtistTitle(artist.getArtistType()) : artist.getTitle();
+		Iterable<CollectionSection<Album>> sections = createAlbumCollectionSections(artist.albums());
+
 		T writer = createStreamWriter(output);
 		writer.writeStartDocument();
 		writer.writeStartElement("response");
 		writeStringProperty(writer, "apiVersion", apiVersion);
 		writer.writeStartElement("albumCollection");
-		writeStringProperty(writer, "title", artist.getTitle() == null ? getDefaultArtistTitle(artist.getArtistType()) : artist.getTitle());
+		writeStringProperty(writer, "title", title);
 
-		// split albums into sections with regular albums and compilations
-		CollectionSection<Album> regularAlbums = new CollectionSection<Album>(localStrings.getRegularAlbumSection());
-		CollectionSection<Album> compilations = new CollectionSection<Album>(localStrings.getCompilationAlbumSection());
-		for (Album album : artist.albums()) {
-			Track representativeTrack = album.representativeTrack();
-			if (representativeTrack.isCompilation()) {
-				compilations.getItems().add(album);
-			} else {
-				regularAlbums.getItems().add(album);
-			}
-		}
-
-		final Comparator<Album> titleComparator = new Comparator<Album>() {
-			@Override
-			public int compare(Album item1, Album item2) {
-				String title1 = item1.getTitle() == null ? getDefaultAlbumTitle() : item1.getTitle();
-				String title2 = item2.getTitle() == null ? getDefaultAlbumTitle() : item2.getTitle();
-				return title1.compareTo(title2);
-			}
-		};
-
-		final Comparator<Album> yearAndTitleComparator = new Comparator<Album>() {
-			@Override
-			public int compare(Album item1, Album item2) {
-				Integer year1 = item1.getTracks().get(0).getYear();
-				if (year1 == null) {
-					year1 = Integer.valueOf(Integer.MAX_VALUE);
-				}
-				Integer year2 = item2.getTracks().get(0).getYear();
-				if (year2 == null) {
-					year2 = Integer.valueOf(Integer.MAX_VALUE);
-				}
-				int result = year1.compareTo(year2);
-				if (result != 0) {
-					return result;
-				}
-				return titleComparator.compare(item1, item2);
-			}
-		};
-		
-		// sort regular albums by year and title
-		Collections.sort(regularAlbums.getItems(), yearAndTitleComparator);
-		
-		// sort compilations with artist by year and title, various/unknown artists by title only
-		Collections.sort(compilations.getItems(), artist.getTitle() != null ? yearAndTitleComparator : titleComparator);
-
-		Collection<CollectionSection<Album>> sections = new ArrayList<CollectionSection<Album>>();
-		if (!regularAlbums.getItems().isEmpty()) {
-			sections.add(regularAlbums);
-		}
-		if (!compilations.getItems().isEmpty()) {
-			sections.add(compilations);
-		}
 		formatAlbumSections(writer, sections, resourceLocator, ImageType.Tile, false);
 		writer.writeEndElement();
 		writer.writeEndElement();
 		writer.writeEndDocument();
 		writer.close();
+		
+		// answer first album with an associated artist
+		for (CollectionSection<Album> section : sections) {
+			for (Album album : section.getItems()) {
+				if (album.getArtist().getTitle() != null) {
+					return album;
+				}
+			}
+		}
+		return null; // no representative album for unknown/various artist
 	}
 
 	public void formatAlbum(Album album, OutputStream output, ResourceLocator resourceLocator, AssetLocator assetLocator) throws Exception {

@@ -15,11 +15,62 @@
  */
 package org.musicmount.builder.impl;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.musicmount.builder.model.Titled;
 
 public class CollectionSection<T extends Titled> implements Comparable<CollectionSection<T>> {
+	private static final Character NON_LETTER_SECTION_KEY = '#';
+	private static final Character UNTITLED_SECTION_KEY = '?';
+
+	/**
+	 * Partition items into index sections (capital letters plus '#').
+	 * @param items items to be indexed
+	 * @param comparator used to compare items
+	 */
+	public static <T extends Titled> Iterable<CollectionSection<T>> createIndex(Iterable<? extends T> items, TitledComparator<T> comparator) {
+		Map<Character, CollectionSection<T>> sectionMap = new HashMap<Character, CollectionSection<T>>();
+		for (T item : items) {
+			Character sectionKey = null;
+			if (item.getTitle() != null && item.getTitle().trim().length() > 0) {
+				char first = Normalizer.normalize(comparator.sortTitle(item), Normalizer.Form.NFD).charAt(0);
+				if (Character.isLetter(first) && first < 128) {
+					sectionKey = Character.toUpperCase(first);
+				} else {
+					sectionKey = NON_LETTER_SECTION_KEY;
+				}
+			} else { // untitled
+				sectionKey = UNTITLED_SECTION_KEY;
+			}
+			CollectionSection<T> section = sectionMap.get(sectionKey);
+			if (section == null) {
+				sectionMap.put(sectionKey, section = new CollectionSection<T>(sectionKey.toString()));
+			}
+			section.getItems().add(item);
+		}
+
+		List<CollectionSection<T>> sections = new ArrayList<CollectionSection<T>>();
+		for (Map.Entry<Character, CollectionSection<T>> entry : sectionMap.entrySet()) {
+			Collections.sort(entry.getValue().getItems(), comparator);
+			if (!entry.getKey().equals(NON_LETTER_SECTION_KEY) && !entry.getKey().equals(UNTITLED_SECTION_KEY)) { // append those later
+				sections.add(entry.getValue());
+			}
+		}
+		Collections.sort(sections);
+		if (sectionMap.containsKey(NON_LETTER_SECTION_KEY)) {
+			sections.add(sectionMap.get(NON_LETTER_SECTION_KEY));
+		}
+		if (sectionMap.containsKey(UNTITLED_SECTION_KEY)) {
+			sections.add(sectionMap.get(UNTITLED_SECTION_KEY));
+		}		
+		return sections;
+	}
+	
 	private final String title;
 	private final ArrayList<T> items = new ArrayList<T>();
 	

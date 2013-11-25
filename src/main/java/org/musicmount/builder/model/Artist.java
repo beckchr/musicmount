@@ -41,45 +41,4 @@ public abstract class Artist implements Titled {
 	public String getTitle() {
 		return title;
 	}
-
-	private Album earliest(Album album1, Album album2) {
-		if (album1 == null || album1.getTracks().get(0).getYear() == null) {
-			return album2 == null ? album1 : album2;
-		}
-		if (album2 == null || album2.getTracks().get(0).getYear() == null) {
-			return album1;
-		}
-		int year1 = album1.getTracks().get(0).getYear().intValue();
-		int year2 = album2.getTracks().get(0).getYear().intValue();
-		if (year1 == year2) { // compare album titles
-			if (album1.getTitle() == null) {
-				return album2;
-			}
-			if (album2.getTitle() == null) {
-				return album1;
-			}
-			return album1.getTitle().compareTo(album2.getTitle()) < 0 ? album1 : album2;
-		}
-		return year1 < year2 ? album1 : album2;
-	}
-	
-	public Album representativeAlbum() {
-		// pick album with artwork, prefer regular album, newer album
-		Album regularAlbum = null;
-		Album compilation = null;
-		Album otherAlbum = null;
-		for (Album album : albums()) {
-			Track representativeTrack = album.representativeTrack();
-			if (representativeTrack.isArtworkAvailable())  {
-				if (representativeTrack.isCompilation()) {
-					compilation = earliest(album, compilation);
-				} else {
-					regularAlbum = earliest(album, regularAlbum);
-				}
-			} else {
-				otherAlbum = earliest(album, otherAlbum);
-			}
-		}
-		return regularAlbum != null ? regularAlbum : (compilation != null ? compilation : otherAlbum);
-	}
 }

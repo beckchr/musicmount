@@ -79,33 +79,6 @@ public class SimpleResourceLocatorTest {
 	}
 
 	@Test
-	public void testGetArtistImagePath() {
-		AlbumArtist artist;
-
-		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
-		artist = createAlbum(0x1001, new AlbumArtist(0, "foo"), true).getArtist();
-		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Artwork));
-		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Tile));
-		Assert.assertEquals("albums/10/01/thumbnail.png", resourceLocator.getArtistImagePath(artist, ImageType.Thumbnail));
-
-		artist = createAlbum(0x1001, new AlbumArtist(0, null), true).getArtist(); // no album artist name -> no images
-		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Artwork));
-		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Tile));
-		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Thumbnail));
-
-		artist = createAlbum(0x1001, new AlbumArtist(0, null), false).getArtist(); // no artwork available
-		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Artwork));
-		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Tile));
-		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Thumbnail));
-		
-		resourceLocator = new SimpleResourceLocator(null, false, true); // noImages
-		artist = createAlbum(0x1001, new AlbumArtist(0, null), true).getArtist();
-		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Artwork));
-		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Tile));
-		Assert.assertNull(resourceLocator.getArtistImagePath(artist, ImageType.Thumbnail));
-	}
-
-	@Test
 	public void testGetArtistIndexPath() {
 		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
 		Assert.assertEquals("albumArtists/index.json", resourceLocator.getArtistIndexPath(ArtistType.AlbumArtist));

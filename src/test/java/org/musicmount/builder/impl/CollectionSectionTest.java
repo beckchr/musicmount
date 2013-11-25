@@ -27,7 +27,7 @@ import junit.framework.Assert;
 import org.junit.Test;
 import org.musicmount.builder.model.Titled;
 
-public class CollectionSectionIndexTest {
+public class CollectionSectionTest {
 	List<Titled> items(String... titles) {
 		ArrayList<Titled> items = new ArrayList<>();
 		for (final String title : titles) {
@@ -44,8 +44,8 @@ public class CollectionSectionIndexTest {
 	@Test
 	public void test() {
 		Iterable<Titled> items = items("Miles Davis", "David Bowie", "The Beatles", null, "2Pac",  "Bob Dylan");
-		CollectionSectionIndex<Titled> index = new CollectionSectionIndex<Titled>(new LocalStrings(Locale.ENGLISH), items, "Unknown", null);
-		Iterator<CollectionSection<Titled>> sections = index.getSections().iterator();
+		TitledComparator<Titled> comparator = new TitledComparator<>(new LocalStrings(Locale.ENGLISH), "Unknown", null);
+		Iterator<CollectionSection<Titled>> sections = CollectionSection.createIndex(items, comparator).iterator();
 		CollectionSection<Titled> section;
 		
 		Assert.assertTrue(sections.hasNext());
@@ -88,13 +88,13 @@ public class CollectionSectionIndexTest {
 			}
 		});
 		// pass secondary comparator which sorts ascending by hash code
-		CollectionSectionIndex<Titled> index = new CollectionSectionIndex<Titled>(new LocalStrings(Locale.ENGLISH), items, "Unknown", new Comparator<Titled>() {
+		TitledComparator<Titled> comparator = new TitledComparator<>(new LocalStrings(Locale.ENGLISH), "Unknown", new Comparator<Titled>() {
 			@Override
 			public int compare(Titled o1, Titled o2) {
 				return Integer.valueOf(o1.hashCode()).compareTo(o2.hashCode());
 			}
 		});
-		Iterator<CollectionSection<Titled>> sections = index.getSections().iterator();
+		Iterator<CollectionSection<Titled>> sections = CollectionSection.createIndex(items, comparator).iterator();
 		Assert.assertTrue(sections.hasNext());
 		CollectionSection<Titled> section = sections.next();
 		

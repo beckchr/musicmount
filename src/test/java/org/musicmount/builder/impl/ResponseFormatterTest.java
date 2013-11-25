@@ -70,10 +70,10 @@ public class ResponseFormatterTest {
 		responseFormatter.formatAlbumIndex(library.getAlbums(), output, resourceLocator);
 
 		output = new ByteArrayOutputStream();
-		responseFormatter.formatArtistIndex(library.getAlbumArtists().values(), ArtistType.AlbumArtist, output, resourceLocator);
+		responseFormatter.formatArtistIndex(library.getAlbumArtists().values(), ArtistType.AlbumArtist, output, resourceLocator, null);
 
 		output = new ByteArrayOutputStream();
-		responseFormatter.formatArtistIndex(library.getTrackArtists().values(), ArtistType.TrackArtist, output, resourceLocator);
+		responseFormatter.formatArtistIndex(library.getTrackArtists().values(), ArtistType.TrackArtist, output, resourceLocator, null);
 
 		output = new ByteArrayOutputStream();
 		responseFormatter.formatServiceIndex(resourceLocator, output);

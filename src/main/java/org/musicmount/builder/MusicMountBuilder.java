@@ -24,7 +24,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.Normalizer;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
@@ -86,31 +88,33 @@ public class MusicMountBuilder {
 		if (LOGGER.isLoggable(Level.FINER)) {
 			LOGGER.finer("Generating album artist index...");
 		}
-		try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getArtistIndexPath(ArtistType.AlbumArtist)))) {
-			formatter.formatArtistIndex(library.getAlbumArtists().values(), ArtistType.AlbumArtist, output, resourceLocator);
-		}
+		Map<Artist, Album> representativeAlbums = new HashMap<Artist, Album>();
 		for (Artist artist : library.getAlbumArtists().values()) {
 			if (LOGGER.isLoggable(Level.FINEST)) {
 				LOGGER.finest("Generating album collection for album artist: " + artist.getTitle());
 			}
 			try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getAlbumCollectionPath(artist)))) {
-				formatter.formatAlbumCollection(artist, output, resourceLocator);
+				representativeAlbums.put(artist, formatter.formatAlbumCollection(artist, output, resourceLocator));
 			}
+		}
+		try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getArtistIndexPath(ArtistType.AlbumArtist)))) {
+			formatter.formatArtistIndex(library.getAlbumArtists().values(), ArtistType.AlbumArtist, output, resourceLocator, representativeAlbums);
 		}
 
 		if (LOGGER.isLoggable(Level.FINER)) {
 			LOGGER.finer("Generating artist index...");
 		}
-		try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getArtistIndexPath(ArtistType.TrackArtist)))) {
-			formatter.formatArtistIndex(library.getTrackArtists().values(), ArtistType.TrackArtist, output, resourceLocator);
-		}
+		representativeAlbums.clear();
 		for (Artist artist : library.getTrackArtists().values()) {
 			if (LOGGER.isLoggable(Level.FINEST)) {
 				LOGGER.finest("Generating album collection for artist: " + artist.getTitle());
 			}
 			try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getAlbumCollectionPath(artist)))) {
-				formatter.formatAlbumCollection(artist, output, resourceLocator);
+				representativeAlbums.put(artist, formatter.formatAlbumCollection(artist, output, resourceLocator));
 			}
+		}
+		try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getArtistIndexPath(ArtistType.TrackArtist)))) {
+			formatter.formatArtistIndex(library.getTrackArtists().values(), ArtistType.TrackArtist, output, resourceLocator, representativeAlbums);
 		}
 
 		if (LOGGER.isLoggable(Level.FINER)) {
