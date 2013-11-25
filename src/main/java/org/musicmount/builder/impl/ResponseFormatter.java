@@ -109,6 +109,20 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		writer.writeCharacters(value);
 		writer.writeEndElement();
 	}
+	
+	void startResponse(T writer, String contentElement) throws XMLStreamException {
+		writer.writeStartDocument();
+		writer.writeStartElement("response");
+		writeStringProperty(writer, "apiVersion", apiVersion);
+		writer.writeStartElement(contentElement);
+	}
+
+	void endResponse(T writer) throws XMLStreamException {
+		writer.writeEndElement(); // <content element>
+		writer.writeEndElement(); // response
+		writer.writeEndDocument();
+		writer.close();
+	}
 
 	abstract void writeNumberProperty(T writer, String name, Number value) throws XMLStreamException;
 
@@ -301,10 +315,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 
 	public void formatServiceIndex(ResourceLocator resourceLocator, OutputStream output) throws Exception {
 		T writer = createStreamWriter(output);
-		writer.writeStartDocument();
-		writer.writeStartElement("response");
-		writeStringProperty(writer, "apiVersion", apiVersion);
-		writer.writeStartElement("serviceIndex");
+		startResponse(writer, "serviceIndex");
 		String albumArtistIndexPath = resourceLocator.getArtistIndexPath(ArtistType.AlbumArtist);
 		if (albumArtistIndexPath != null) {
 			writeStringProperty(writer, "albumArtistIndexPath", getDocumentPath(albumArtistIndexPath));
@@ -317,18 +328,12 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		if (albumIndexPath != null) {
 			writeStringProperty(writer, "albumIndexPath", getDocumentPath(albumIndexPath));
 		}
-		writer.writeEndElement();
-		writer.writeEndElement();
-		writer.writeEndDocument();
-		writer.close();
+		endResponse(writer);
 	}
 
 	public void formatArtistIndex(Collection<? extends Artist> artists, ArtistType artistType, OutputStream output, ResourceLocator resourceLocator, Map<Artist, Album> representativeAlbums) throws Exception {
 		T writer = createStreamWriter(output);
-		writer.writeStartDocument();
-		writer.writeStartElement("response");
-		writeStringProperty(writer, "apiVersion", apiVersion);
-		writer.writeStartElement("artistCollection");
+		startResponse(writer, "artistCollection");
 		writeStringProperty(writer, "title", localStrings.getArtistIndexTitle(artistType));
 		TitledComparator<Artist> comparator = new TitledComparator<Artist>(localStrings, getDefaultArtistTitle(artistType), new Comparator<Artist>() {
 			@Override
@@ -338,18 +343,12 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		});
 		Iterable<CollectionSection<Artist>> sections = CollectionSection.createIndex(artists, comparator);
 		formatArtistSections(writer, sections, resourceLocator, ImageType.Thumbnail, artistType, representativeAlbums);
-		writer.writeEndElement();
-		writer.writeEndElement();
-		writer.writeEndDocument();
-		writer.close();
+		endResponse(writer);
 	}
 	
 	public void formatAlbumIndex(Collection<Album> albums, OutputStream output, ResourceLocator resourceLocator) throws Exception {
 		T writer = createStreamWriter(output);
-		writer.writeStartDocument();
-		writer.writeStartElement("response");
-		writeStringProperty(writer, "apiVersion", apiVersion);
-		writer.writeStartElement("albumCollection");
+		startResponse(writer, "albumCollection");
 		writeStringProperty(writer, "title", "Albums");
 		TitledComparator<Album> comparator = new TitledComparator<Album>(localStrings, getDefaultAlbumTitle(), new Comparator<Album>() {
 			@Override
@@ -361,10 +360,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		});
 		Iterable<CollectionSection<Album>> sections = CollectionSection.createIndex(albums, comparator);
 		formatAlbumSections(writer, sections, resourceLocator, ImageType.Thumbnail, true);
-		writer.writeEndElement();
-		writer.writeEndElement();
-		writer.writeEndDocument();
-		writer.close();
+		endResponse(writer);
 	}
 
 	/**
@@ -380,17 +376,10 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		Iterable<CollectionSection<Album>> sections = createAlbumCollectionSections(artist.albums());
 
 		T writer = createStreamWriter(output);
-		writer.writeStartDocument();
-		writer.writeStartElement("response");
-		writeStringProperty(writer, "apiVersion", apiVersion);
-		writer.writeStartElement("albumCollection");
+		startResponse(writer, "albumCollection");
 		writeStringProperty(writer, "title", title);
-
 		formatAlbumSections(writer, sections, resourceLocator, ImageType.Tile, false);
-		writer.writeEndElement();
-		writer.writeEndElement();
-		writer.writeEndDocument();
-		writer.close();
+		endResponse(writer);
 		
 		// answer first album with an associated artist
 		for (CollectionSection<Album> section : sections) {
@@ -405,10 +394,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 
 	public void formatAlbum(Album album, OutputStream output, ResourceLocator resourceLocator, AssetLocator assetLocator) throws Exception {
 		T writer = createStreamWriter(output);
-		writer.writeStartDocument();
-		writer.writeStartElement("response");
-		writeStringProperty(writer, "apiVersion", apiVersion);
-		writer.writeStartElement("album");
+		startResponse(writer, "album");
 		Track representativeTrack = album.representativeTrack();
 		writeStringProperty(writer, "title", album.getTitle() == null ? getDefaultAlbumTitle() : album.getTitle());
 		if (representativeTrack.isCompilation() && album.getArtist().getTitle() != null) {
@@ -490,9 +476,6 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 			writer.writeEndElement(); // section
 		}
 		writer.writeEndElement(); // trackCollection
-		writer.writeEndElement(); // album
-		writer.writeEndElement(); // response
-		writer.writeEndDocument();
-		writer.close();
+		endResponse(writer);
 	}
 }
