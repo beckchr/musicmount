@@ -264,13 +264,12 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		}
 	}
 
-	private Iterable<CollectionSection<Album>> createAlbumCollectionSections(Iterable<Album> albums) {
+	private Iterable<CollectionSection<Album>> createAlbumCollectionSections(Artist artist) {
 		// split albums into sections with regular albums and compilations
 		CollectionSection<Album> regularAlbums = new CollectionSection<Album>(localStrings.getRegularAlbumSection());
 		CollectionSection<Album> compilations = new CollectionSection<Album>(localStrings.getCompilationAlbumSection());
-		for (Album album : albums) {
-			Track representativeTrack = album.representativeTrack();
-			if (representativeTrack.isCompilation()) {
+		for (Album album : artist.albums()) {
+			if (artist.getTitle() != null && album.representativeTrack().isCompilation()) {
 				compilations.getItems().add(album);
 			} else {
 				regularAlbums.getItems().add(album);
@@ -373,7 +372,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 	 */
 	public Album formatAlbumCollection(Artist artist, OutputStream output, ResourceLocator resourceLocator) throws Exception {
 		String title = artist.getTitle() == null ? getDefaultArtistTitle(artist.getArtistType()) : artist.getTitle();
-		Iterable<CollectionSection<Album>> sections = createAlbumCollectionSections(artist.albums());
+		Iterable<CollectionSection<Album>> sections = createAlbumCollectionSections(artist);
 
 		T writer = createStreamWriter(output);
 		startResponse(writer, "albumCollection");
