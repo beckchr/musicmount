@@ -44,11 +44,19 @@ public class AssetStore {
 
 	static class AssetEntity {
 		final long albumId;
+		final File file;
 		final Asset asset;
 		
-		public AssetEntity(long albumId, Asset asset) {
+		AssetEntity(long albumId, Asset asset) {
 			this.albumId = albumId;
+			this.file = asset.getFile();
 			this.asset = asset;
+		}
+
+		AssetEntity(long albumId, File file) {
+			this.albumId = albumId;
+			this.file = file;
+			this.asset = null;
 		}
 	}
 	
@@ -212,8 +220,8 @@ public class AssetStore {
 			writeNumberProperty(writer, "timestamp", timestamp);
 			writer.writeProcessingInstruction(JsonXMLStreamConstants.MULTIPLE_PI_TARGET);
 			for (AssetEntity entity : entities.values()) {
-				String assetPath = assetLocator.getAssetPath(entity.asset.getFile());
-				if (assetPath != null) {
+				String assetPath = assetLocator.getAssetPath(entity.file);
+				if (assetPath != null && entity.asset != null) {
 					writer.writeStartElement("asset");
 					writeNumberProperty(writer, "albumId", entity.albumId);
 					writeStringProperty(writer, "album", entity.asset.getAlbum());
@@ -311,29 +319,32 @@ public class AssetStore {
 
 		if (albumId != null && assetPath != null) {
 			File assetFile = assetLocator.getAssetFile(assetPath);
-			if (assetFile != null && assetFile.exists() && assetFile.lastModified() < timestamp) {
-				Asset asset = new Asset(assetFile);
-				asset.setAlbum(album);
-				asset.setAlbumArtist(albumArtist);
-				asset.setArtist(artist);
-				asset.setArtworkAvailable(artworkAvailable);
-				asset.setCompilation(compilation);
-				asset.setComposer(composer);
-				asset.setDiscNumber(discNumber);
-				asset.setDuration(duration);
-				asset.setGenre(genre);
-				asset.setName(name);
-				asset.setTrackNumber(trackNumber);
-				asset.setYear(year);
-				return new AssetEntity(albumId, asset);
+			if (assetFile != null && assetFile.exists()) {
+				if (assetFile.lastModified() < timestamp) {
+					Asset asset = new Asset(assetFile);
+					asset.setAlbum(album);
+					asset.setAlbumArtist(albumArtist);
+					asset.setArtist(artist);
+					asset.setArtworkAvailable(artworkAvailable);
+					asset.setCompilation(compilation);
+					asset.setComposer(composer);
+					asset.setDiscNumber(discNumber);
+					asset.setDuration(duration);
+					asset.setGenre(genre);
+					asset.setName(name);
+					asset.setTrackNumber(trackNumber);
+					asset.setYear(year);
+					return new AssetEntity(albumId, asset);
+				} else {
+					LOGGER.finer("Asset has been modified: " + assetFile + " (" + assetFile.lastModified() + ")");
+					return new AssetEntity(albumId, assetFile); // cannot reuse asset data, but album id
+				}
 			} else {
 				if (LOGGER.isLoggable(Level.FINER)) {
 					if (assetFile == null) {
 						LOGGER.finer("Asset unresolved: " + assetPath);
-					} else if (!assetFile.exists()) {
-						LOGGER.finer("Asset does not exist: " + assetFile);
 					} else {
-						LOGGER.finer("Asset has been modified: " + assetFile + " (" + assetFile.lastModified() + ")");
+						LOGGER.finer("Asset does not exist: " + assetFile);
 					}
 				}
 			}
@@ -365,7 +376,7 @@ public class AssetStore {
 				case "asset":
 					AssetEntity entity = readAsset(reader, assetLocator, timestamp);
 					if (entity != null) {
-						entities.put(entity.asset.getFile(), entity);
+						entities.put(entity.file, entity);
 						loadedAlbumIds.add(entity.albumId);
 					}
 					break;
