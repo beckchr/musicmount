@@ -265,14 +265,18 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 	}
 
 	private Iterable<CollectionSection<Album>> createAlbumCollectionSections(Artist artist) {
-		// split albums into sections with regular albums and compilations
+		// split albums into sections with regular albums and others (compilations/various/unknown)
 		CollectionSection<Album> regularAlbums = new CollectionSection<Album>(localStrings.getRegularAlbumSection());
-		CollectionSection<Album> compilations = new CollectionSection<Album>(localStrings.getCompilationAlbumSection());
+		CollectionSection<Album> otherAlbums = new CollectionSection<Album>(artist.getTitle() != null ?localStrings.getCompilationAlbumSection() : null);
 		for (Album album : artist.albums()) {
-			if (artist.getTitle() != null && album.representativeTrack().isCompilation()) {
-				compilations.getItems().add(album);
+			if (artist.getTitle() != null) {
+				if (album.representativeTrack().isCompilation()) {
+					otherAlbums.getItems().add(album);
+				} else {
+					regularAlbums.getItems().add(album);
+				}
 			} else {
-				regularAlbums.getItems().add(album);
+				otherAlbums.getItems().add(album);
 			}
 		}
 
@@ -303,10 +307,10 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 			sections.add(regularAlbums);
 		}
 		
-		if (!compilations.getItems().isEmpty()) {
-			// sort compilations with artist by title only
-			Collections.sort(compilations.getItems(), titleComparator);
-			sections.add(compilations);
+		if (!otherAlbums.getItems().isEmpty()) {
+			// sort other albums by title only
+			Collections.sort(otherAlbums.getItems(), titleComparator);
+			sections.add(otherAlbums);
 		}
 		
 		return sections;
