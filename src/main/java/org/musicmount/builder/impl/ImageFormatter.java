@@ -120,6 +120,9 @@ public class ImageFormatter {
 				writeImage(image, imageType, imageFile, retina);
 			} catch (IOException e) {
 				LOGGER.warning("Could not write image file: " + imageFile.getAbsolutePath());
+				if (imageFile.exists()) {
+					imageFile.delete();
+				}
 			}
 		}
 	}
