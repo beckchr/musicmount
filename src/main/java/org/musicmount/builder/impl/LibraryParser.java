@@ -250,6 +250,7 @@ public class LibraryParser {
 						asset.getDiscNumber(),
 						asset.getDuration(),
 						trimToNonEmptyStringOrNull(asset.getGenre()),
+						trimToNonEmptyStringOrNull(asset.getGrouping()),
 						asset.getTrackNumber(),
 						asset.getYear()
 				);

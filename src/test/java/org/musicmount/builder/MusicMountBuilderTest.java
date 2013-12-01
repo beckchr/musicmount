@@ -51,7 +51,7 @@ public class MusicMountBuilderTest {
 		File inputFolder = new File(getClass().getResource("/sample-library").toURI());
 		Library library = new LibraryParser(new SimpleAssetParser()).parse(inputFolder, new AssetStore(MusicMountBuilder.API_VERSION));
 		ResourceLocator resourceLocator = new SimpleResourceLocator(outputFolder.getRoot(), false, false);
-		ResponseFormatter<?> formatter = new ResponseFormatter.JSON(MusicMountBuilder.API_VERSION, new LocalStrings(), false, false, true);
+		ResponseFormatter<?> formatter = new ResponseFormatter.JSON(MusicMountBuilder.API_VERSION, new LocalStrings(), false, false, false, true);
 		AssetLocator assetLocator = new SimpleAssetLocator(inputFolder, "music", null);
 		MusicMountBuilder.generateResponseFiles(library, outputFolder.getRoot(), formatter, resourceLocator, assetLocator);
 	}

@@ -25,6 +25,10 @@ import javax.imageio.ImageIO;
 
 import com.mpatric.mp3agic.ID3v1;
 import com.mpatric.mp3agic.ID3v2;
+import com.mpatric.mp3agic.ID3v2Frame;
+import com.mpatric.mp3agic.ID3v2FrameSet;
+import com.mpatric.mp3agic.ID3v2TextFrameData;
+import com.mpatric.mp3agic.InvalidDataException;
 import com.mpatric.mp3agic.Mp3File;
 
 /**
@@ -36,6 +40,29 @@ public class MP3AssetParser implements AssetParser {
 	@Override
 	public boolean isAssetFile(File file) {
 		return file.getName().toLowerCase().endsWith(".mp3");
+	}
+
+	/*
+	 * answer first text for given id alternatives		
+	 */
+	private String extractText(ID3v2 info, String id, String obsoleteId) {
+		ID3v2FrameSet frameSet = info.getFrameSets().get(id);
+		if (frameSet == null && obsoleteId != null) {
+			frameSet = info.getFrameSets().get(obsoleteId);
+		}
+		if (frameSet != null) {
+			ID3v2Frame frame = (ID3v2Frame) frameSet.getFrames().get(0);
+			ID3v2TextFrameData frameData;
+			try {
+				frameData = new ID3v2TextFrameData(info.hasUnsynchronisation(), frame.getData());
+				if (frameData != null && frameData.getText() != null) {
+					return frameData.getText().toString();
+				}
+			} catch (InvalidDataException e) {
+				// do nothing
+			}
+		}
+		return null;
 	}
 
 	@Override
@@ -84,6 +111,7 @@ public class MP3AssetParser implements AssetParser {
 					LOGGER.warning("Could not parse year: " + info.getYear() + " (" + file + ")");
 				}
 			}
+			asset.setGrouping(extractText(info, "TIT1", "TT1")); // FIXME use info.getGrouping() once it's available
 		}
 		if (mp3file.hasId3v1Tag()) {
 			ID3v1 info = mp3file.getId3v1Tag();

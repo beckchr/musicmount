@@ -148,6 +148,7 @@ public class MusicMountBuilder {
 		System.err.println("       --unknownGenre     report missing genre as 'Unknown'");
 		System.err.println("       --noVariousArtists exclude 'Various Artists' from album artist index");
 		System.err.println("       --noDirectoryIndex use 'path/index.ext' instead of 'path/'");
+		System.err.println("       --grouping         use grouping tag to group album tracks");
 		System.err.println("       --pretty           pretty-print JSON documents");
 //		System.err.println("       --normalize <form> normalize asset paths, one of NFC|NFD");
 //		System.err.println("       --noImages         do not generate images");
@@ -172,6 +173,7 @@ public class MusicMountBuilder {
 		boolean optionDebug = false;
 		boolean optionNoImages = false;
 		boolean optionXML = false;
+		boolean optionGrouping = false;
 		boolean optionUnknownGenre = false;
 		boolean optionNoVariousArtists = false;
 		boolean optionNoDirectoryIndex = false;
@@ -212,6 +214,9 @@ public class MusicMountBuilder {
 				break;
 			case "--xml":
 				optionXML = true;
+				break;
+			case "--grouping":
+				optionGrouping = true;
 				break;
 			case "--normalize":
 				if (++i == optionsLength) {
@@ -284,9 +289,9 @@ public class MusicMountBuilder {
 
 		ResponseFormatter<?> responseFormatter;
 		if (optionXML) {
-			responseFormatter = new ResponseFormatter.XML(API_VERSION, localStrings, optionNoDirectoryIndex, optionUnknownGenre, optionPretty);
+			responseFormatter = new ResponseFormatter.XML(API_VERSION, localStrings, optionNoDirectoryIndex, optionUnknownGenre, optionGrouping, optionPretty);
 		} else {
-			responseFormatter = new ResponseFormatter.JSON(API_VERSION, localStrings, optionNoDirectoryIndex, optionUnknownGenre, optionPretty);
+			responseFormatter = new ResponseFormatter.JSON(API_VERSION, localStrings, optionNoDirectoryIndex, optionUnknownGenre, optionGrouping, optionPretty);
 		}
 		AssetLocator responseAssetLocator = new SimpleAssetLocator(inputFolder, optionMusic, optionNormalize);
 		LOGGER.info("Generating JSON...");

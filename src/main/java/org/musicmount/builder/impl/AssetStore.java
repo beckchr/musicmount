@@ -234,6 +234,7 @@ public class AssetStore {
 					writeNumberProperty(writer, "discNumber", entity.asset.getDiscNumber());
 					writeNumberProperty(writer, "duration", entity.asset.getDuration());
 					writeStringProperty(writer, "genre", entity.asset.getGenre());
+					writeStringProperty(writer, "grouping", entity.asset.getGrouping());
 					writeStringProperty(writer, "name", entity.asset.getName());
 					writeNumberProperty(writer, "trackNumber", entity.asset.getTrackNumber());
 					writeNumberProperty(writer, "year", entity.asset.getYear());
@@ -262,6 +263,7 @@ public class AssetStore {
 		Integer discNumber = null;
 		Integer duration = null;
 		String genre = null;
+		String grouping = null;
 		String name = null;
 		Integer trackNumber = null;
 		Integer year = null;
@@ -300,6 +302,9 @@ public class AssetStore {
 			case "genre":
 				genre = reader.getElementText();
 				break;
+			case "grouping":
+				grouping = reader.getElementText();
+				break;
 			case "name":
 				name = reader.getElementText();
 				break;
@@ -331,6 +336,7 @@ public class AssetStore {
 					asset.setDiscNumber(discNumber);
 					asset.setDuration(duration);
 					asset.setGenre(genre);
+					asset.setGrouping(grouping);
 					asset.setName(name);
 					asset.setTrackNumber(trackNumber);
 					asset.setYear(year);
