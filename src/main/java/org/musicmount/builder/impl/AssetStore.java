@@ -117,17 +117,20 @@ public class AssetStore {
 		 * if the asset was loaded from the store, check if we
 		 * already created an album from the asset's original album id.
 		 */
-		if (entities.containsKey(asset.getFile())) {
-			long oldAlbumId = entities.get(asset.getFile()).albumId;
-			if (createdAlbumIds.contains(oldAlbumId)) { // album split
+		AssetEntity entity = entities.get(asset.getFile());
+		if (entity != null) {
+			if (createdAlbumIds.contains(entity.albumId)) { // album split
 				if (LOGGER.isLoggable(Level.FINER)) {
 					LOGGER.finer("Album split albumId for assset: " + asset.getFile());
 				}
-				changedAlbumIds.add(oldAlbumId);
+				changedAlbumIds.add(entity.albumId);
 				albumId = nextAlbumId();
 				changedAlbumIds.add(albumId);
 			} else {
-				albumId = oldAlbumId;
+				if (asset != entity.asset) { // e.g. modified file (entity.asset == null)
+					changedAlbumIds.add(entity.albumId);
+				}
+				albumId = entity.albumId;
 			}
 		} else { // never seen this asset before -> create new album id
 			if (LOGGER.isLoggable(Level.FINER)) {
