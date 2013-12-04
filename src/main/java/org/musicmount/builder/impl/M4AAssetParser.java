@@ -56,6 +56,7 @@ public class M4AAssetParser implements AssetParser {
 		asset.setDiscNumber(info.getDisc() > 0 ? Integer.valueOf(info.getDisc()) : null);
 		asset.setDuration(info.getDuration() > 0 ? (int)((info.getDuration() + 500) / 1000) : null);
 		asset.setGenre(info.getGenre());
+		asset.setGrouping(info.getGrouping());
 		asset.setName(info.getTitle());
 		asset.setTrackNumber(info.getTrack() > 0 ? Integer.valueOf(info.getTrack()) : null);
 		asset.setYear(info.getYear() > 0 ? Integer.valueOf(info.getYear()) : null);

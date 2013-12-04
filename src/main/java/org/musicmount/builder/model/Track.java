@@ -26,6 +26,7 @@ public class Track implements Titled {
 	private final Integer discNumber;
 	private final Integer duration;
 	private final String genre;
+	private final String grouping;
 	private final Integer trackNumber;
 	private final Integer year;
 
@@ -41,6 +42,7 @@ public class Track implements Titled {
 			Integer discNumber,
 			Integer duration,
 			String genre,
+			String grouping,
 			Integer trackNumber,
 			Integer year
 	) {
@@ -52,6 +54,7 @@ public class Track implements Titled {
 		this.discNumber = discNumber;
 		this.duration = duration;
 		this.genre = genre;
+		this.grouping = grouping;
 		this.trackNumber = trackNumber;
 		this.year = year;
 	}
@@ -67,6 +70,10 @@ public class Track implements Titled {
 
 	public String getGenre() {
 		return genre;
+	}
+	
+	public String getGrouping() {
+		return grouping;
 	}
 
 	public String getComposer() {

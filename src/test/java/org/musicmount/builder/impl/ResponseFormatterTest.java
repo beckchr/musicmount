@@ -49,7 +49,7 @@ public class ResponseFormatterTest {
 	@Test
 	public void test() throws Exception {
 		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(outputFolder.getRoot(), false, false);
-		ResponseFormatter.JSON responseFormatter = new ResponseFormatter.JSON("test", new LocalStrings(), false, false, true);
+		ResponseFormatter.JSON responseFormatter = new ResponseFormatter.JSON("test", new LocalStrings(), false, false, false, true);
 
 		File inputFolder = new File(getClass().getResource("/sample-library").toURI());
 		Library library = new LibraryParser(new SimpleAssetParser()).parse(inputFolder, new AssetStore("test"));

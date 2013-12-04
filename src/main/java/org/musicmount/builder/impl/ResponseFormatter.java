@@ -45,8 +45,8 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 	public static class JSON extends ResponseFormatter<JsonXMLStreamWriter> {
 		private final JsonXMLOutputFactory factory;
 		
-		public JSON(String apiVersion, LocalStrings localStrings, boolean noDirectoryIndex, boolean includeUnknownGenre, boolean prettyPrint) {
-			super(apiVersion, localStrings, noDirectoryIndex ? null : "index.json", includeUnknownGenre);
+		public JSON(String apiVersion, LocalStrings localStrings, boolean noDirectoryIndex, boolean includeUnknownGenre, boolean useGrouping, boolean prettyPrint) {
+			super(apiVersion, localStrings, noDirectoryIndex ? null : "index.json", includeUnknownGenre, useGrouping);
 			factory = new JsonXMLOutputFactory(new JsonXMLConfigBuilder().prettyPrint(prettyPrint).virtualRoot("response").build());
 		}
 
@@ -69,8 +69,8 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		private final XMLOutputFactory factory;
 		private final boolean prettyPrint;
 		
-		public XML(String apiVersion, LocalStrings localStrings, boolean noDirectoryIndex, boolean includeUnknownGenre, boolean prettyPrint) {
-			super(apiVersion, localStrings, noDirectoryIndex ? null : "index.xml", includeUnknownGenre);
+		public XML(String apiVersion, LocalStrings localStrings, boolean noDirectoryIndex, boolean includeUnknownGenre, boolean useGrouping, boolean prettyPrint) {
+			super(apiVersion, localStrings, noDirectoryIndex ? null : "index.xml", includeUnknownGenre, useGrouping);
 			factory = XMLOutputFactory.newFactory();
 			this.prettyPrint = prettyPrint;
 		}
@@ -96,12 +96,14 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 	private final LocalStrings localStrings;
 	private final String directoryIndex;
 	private final boolean includeUnknownGenre;
+	private final boolean useGrouping;
 	
-	ResponseFormatter(String apiVersion, LocalStrings localStrings, String directoryIndex, boolean includeUnknownGenre) {
+	ResponseFormatter(String apiVersion, LocalStrings localStrings, String directoryIndex, boolean includeUnknownGenre, boolean useGrouping) {
 		this.apiVersion = apiVersion;
 		this.localStrings = localStrings;
 		this.directoryIndex = directoryIndex;
 		this.includeUnknownGenre = includeUnknownGenre;
+		this.useGrouping = useGrouping;
 	}
 	
 	void writeStringProperty(T writer, String name, String value) throws XMLStreamException {
@@ -196,6 +198,23 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		return localStrings.getUnknownAlbum();
 	}
 
+	private String trackTitle(Track track) {
+		if (useGrouping && track.getGrouping() != null && track.getTitle().startsWith(track.getGrouping())) {
+			String title = track.getTitle().substring(track.getGrouping().length());
+			if (title.length() > 0) {
+				if (Character.isAlphabetic(title.charAt(0)) || Character.isDigit(title.charAt(0))) {
+					return title;
+				}
+				for (int start = 1; start < title.length(); start++) {
+					if (Character.isAlphabetic(title.charAt(start)) || Character.isDigit(title.charAt(start))) {
+						return title.substring(start);
+					}
+				}
+			}
+		}
+		return track.getTitle();
+	}
+	
 	private void formatArtistSections(T writer, Iterable<CollectionSection<Artist>> sections, ResourceLocator resourceLocator, ImageType imageType, ArtistType artistType, Map<Artist, Album> representativeAlbums) throws Exception {
 		writeStartArray(writer);
 		for (CollectionSection<Artist> section : sections) {
@@ -415,9 +434,17 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		if (representativeTrack.getYear() != null) {
 			writeNumberProperty(writer, "year", representativeTrack.getYear());					
 		}
-		String imagePath = resourceLocator.getAlbumImagePath(album, ImageType.Artwork);
-		if (imagePath != null && resourceLocator.getFile(imagePath).exists()) {
-			writeStringProperty(writer, "imagePath", imagePath);
+		String albumImagePath = resourceLocator.getAlbumImagePath(album, ImageType.Artwork);
+		if (albumImagePath != null && resourceLocator.getFile(albumImagePath).exists()) {
+			writeStringProperty(writer, "imagePath", albumImagePath);
+		}
+
+		/*
+		 * format tracks
+		 */
+		String trackImagePath = resourceLocator.getAlbumImagePath(album, ImageType.Thumbnail);
+		if (trackImagePath != null && !resourceLocator.getFile(trackImagePath).exists()) {
+			trackImagePath = null;
 		}
 		writer.writeStartElement("trackCollection");
 		writeStringProperty(writer, "title", "Tracks");
@@ -443,23 +470,22 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 				}
 			});
 			writeStartArray(writer);
-			imagePath = resourceLocator.getAlbumImagePath(album, ImageType.Thumbnail);
-			if (imagePath != null && !resourceLocator.getFile(imagePath).exists()) {
-				imagePath = null;
-			}
 			for (Track item : items) {
 				writer.writeStartElement("item");
-				writeStringProperty(writer, "title", item.getTitle());
+				writeStringProperty(writer, "title", trackTitle(item));
 				String artist = item.getArtist().getTitle();
 				if (artist == null) {
 					artist = localStrings.getUnknownArtist();
 				}
 				writeStringProperty(writer, "artist", artist);
-				if (imagePath != null) {
-					writeStringProperty(writer, "imagePath", imagePath);
+				if (trackImagePath != null) {
+					writeStringProperty(writer, "imagePath", trackImagePath);
 				}
 				if (item.getGenre() != null) {
 					writeStringProperty(writer, "genre", item.getGenre());
+				}
+				if (item.getGrouping() != null && useGrouping) {
+					writeStringProperty(writer, "grouping", item.getGrouping());
 				}
 				if (item.getComposer() != null) {
 					writeStringProperty(writer, "composer", item.getComposer());

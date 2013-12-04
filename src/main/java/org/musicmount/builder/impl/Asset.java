@@ -25,6 +25,7 @@ public class Asset {
 	private String genre;
 	private String composer;
 	private Integer duration;
+	private String grouping;
 	private Integer discNumber;
 	private Integer trackNumber;
 	private Integer year;
@@ -88,6 +89,13 @@ public class Asset {
 	}
 	public void setDuration(Integer duration) {
 		this.duration = duration;
+	}
+	
+	public String getGrouping() {
+		return grouping;
+	}
+	public void setGrouping(String grouping) {
+		this.grouping = grouping;
 	}
 
 	public Integer getDiscNumber() {
