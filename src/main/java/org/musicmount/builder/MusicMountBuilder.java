@@ -78,15 +78,11 @@ public class MusicMountBuilder {
 			ResourceLocator resourceLocator,
 			AssetLocator assetLocator) throws Exception {
 
+		/*
+		 * album artists
+		 */
 		if (LOGGER.isLoggable(Level.FINER)) {
-			LOGGER.finer("Generating service index...");
-		}
-		try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getServiceIndexPath()))) {
-			formatter.formatServiceIndex(resourceLocator, output);
-		}
-
-		if (LOGGER.isLoggable(Level.FINER)) {
-			LOGGER.finer("Generating album artist index...");
+			LOGGER.finer("Generating album artists...");
 		}
 		Map<Artist, Album> representativeAlbums = new HashMap<Artist, Album>();
 		for (Artist artist : library.getAlbumArtists().values()) {
@@ -97,12 +93,18 @@ public class MusicMountBuilder {
 				representativeAlbums.put(artist, formatter.formatAlbumCollection(artist, output, resourceLocator));
 			}
 		}
+		if (LOGGER.isLoggable(Level.FINEST)) {
+			LOGGER.finest("Generating album artist index");
+		}
 		try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getArtistIndexPath(ArtistType.AlbumArtist)))) {
 			formatter.formatArtistIndex(library.getAlbumArtists().values(), ArtistType.AlbumArtist, output, resourceLocator, representativeAlbums);
 		}
 
+		/*
+		 * artists
+		 */
 		if (LOGGER.isLoggable(Level.FINER)) {
-			LOGGER.finer("Generating artist index...");
+			LOGGER.finer("Generating artists...");
 		}
 		representativeAlbums.clear();
 		for (Artist artist : library.getTrackArtists().values()) {
@@ -113,15 +115,18 @@ public class MusicMountBuilder {
 				representativeAlbums.put(artist, formatter.formatAlbumCollection(artist, output, resourceLocator));
 			}
 		}
+		if (LOGGER.isLoggable(Level.FINEST)) {
+			LOGGER.finest("Generating artist index");
+		}
 		try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getArtistIndexPath(ArtistType.TrackArtist)))) {
 			formatter.formatArtistIndex(library.getTrackArtists().values(), ArtistType.TrackArtist, output, resourceLocator, representativeAlbums);
 		}
 
+		/*
+		 * albums
+		 */
 		if (LOGGER.isLoggable(Level.FINER)) {
-			LOGGER.finer("Generating album index...");
-		}
-		try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getAlbumIndexPath()))) {
-			formatter.formatAlbumIndex(library.getAlbums(), output, resourceLocator);
+			LOGGER.finer("Generating albums...");
 		}
 		for (Album album : library.getAlbums()) {
 			if (LOGGER.isLoggable(Level.FINEST)) {
@@ -130,6 +135,22 @@ public class MusicMountBuilder {
 			try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getAlbumPath(album)))) {
 				formatter.formatAlbum(album, output, resourceLocator, assetLocator);
 			}
+		}
+		if (LOGGER.isLoggable(Level.FINEST)) {
+			LOGGER.finest("Generating album index");
+		}
+		try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getAlbumIndexPath()))) {
+			formatter.formatAlbumIndex(library.getAlbums(), output, resourceLocator);
+		}
+
+		/*
+		 * service index last
+		 */
+		if (LOGGER.isLoggable(Level.FINER)) {
+			LOGGER.finer("Generating service index...");
+		}
+		try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getServiceIndexPath()))) {
+			formatter.formatServiceIndex(resourceLocator, output);
 		}
 	}
 	
@@ -262,7 +283,7 @@ public class MusicMountBuilder {
 		AssetLocator assetStoreAssetLocator = new SimpleAssetLocator(inputFolder, optionMusic, null); // no normalization
 		AssetStore assetStore = new AssetStore(API_VERSION);
 		if (!optionFull && assetStoreFile.exists()) {
-			LOGGER.info("Loading Asset Store...");
+			LOGGER.info("Loading asset store...");
 			try (InputStream assetStoreInput = createInputStream(assetStoreFile)) {
 				assetStore.load(assetStoreInput, assetStoreAssetLocator);
 			} catch (Exception e) {
@@ -273,7 +294,7 @@ public class MusicMountBuilder {
 
 		AssetParser assetParser = new SimpleAssetParser();
 
-		LOGGER.info("Parsing Music Libary...");
+		LOGGER.info("Parsing music libary...");
 		Library library = new LibraryParser(assetParser).parse(inputFolder, assetStore);
 		if (optionNoVariousArtists) { // remove "various artists" album artist (hack)
 			library.getAlbumArtists().remove(null);
@@ -282,7 +303,7 @@ public class MusicMountBuilder {
 		ResourceLocator resourceLocator = new SimpleResourceLocator(outputFolder, optionXML, optionNoImages);
 
 		if (!optionNoImages) {
-			LOGGER.info("Generating Images...");
+			LOGGER.info("Generating images...");
 			ImageFormatter formatter = new ImageFormatter(assetParser, optionRetina);
 			formatter.formatImages(library, resourceLocator, assetStore);
 		}
@@ -297,7 +318,7 @@ public class MusicMountBuilder {
 		LOGGER.info("Generating JSON...");
 		generateResponseFiles(library, outputFolder, responseFormatter, resourceLocator, responseAssetLocator);
 
-		LOGGER.info("Saving Asset Store...");
+		LOGGER.info("Saving asset store...");
 		try (OutputStream assetStoreOutput = createOutputStream(assetStoreFile)) {
 			assetStore.save(assetStoreOutput, assetStoreAssetLocator);
 		} catch (Exception e) {
@@ -305,7 +326,7 @@ public class MusicMountBuilder {
 			assetStoreFile.deleteOnExit();
 		}
 
-		LOGGER.info(String.format("Done (%d Albums).", library.getAlbums().size()));
+		LOGGER.info(String.format("Done (%d albums).", library.getAlbums().size()));
 	}
 	
 	private static InputStream createInputStream(File file) throws IOException {

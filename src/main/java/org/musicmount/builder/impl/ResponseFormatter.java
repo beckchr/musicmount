@@ -16,10 +16,12 @@
 package org.musicmount.builder.impl;
 
 import java.io.OutputStream;
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,6 +99,8 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 	private final String directoryIndex;
 	private final boolean includeUnknownGenre;
 	private final boolean useGrouping;
+
+	private final String updateToken = DateFormat.getDateTimeInstance().format(new Date());
 	
 	ResponseFormatter(String apiVersion, LocalStrings localStrings, String directoryIndex, boolean includeUnknownGenre, boolean useGrouping) {
 		this.apiVersion = apiVersion;
@@ -116,6 +120,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		writer.writeStartDocument();
 		writer.writeStartElement("response");
 		writeStringProperty(writer, "apiVersion", apiVersion);
+		writeStringProperty(writer, "updateToken", updateToken);
 		writer.writeStartElement(contentElement);
 	}
 
