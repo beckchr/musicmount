@@ -3,7 +3,7 @@
 
 	<groupId>org.musicmount</groupId>
 	<artifactId>musicmount</artifactId>
-	<version>1.1.7-SNAPSHOT</version>
+	<version>1.2-SNAPSHOT</version>
 	<name>MusicMount Tool</name>
 
 	<url>http://www.musicmount.org/</url>
