@@ -457,7 +457,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		for (Disc disc : album.getDiscs().values()) {
 			writer.writeStartElement("section");
 			if (disc.getDiscNumber() == 0 || disc.getDiscNumber() == 1 && album.getDiscs().size() == 1) {
-				writeStringProperty(writer, "title", localStrings.getDisc());
+				writeStringProperty(writer, "title", localStrings.getTracks());
 			} else {
 				writeStringProperty(writer, "title", String.format("%s %d", localStrings.getDisc(), disc.getDiscNumber()));
 			}

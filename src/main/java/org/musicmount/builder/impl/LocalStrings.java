@@ -67,6 +67,10 @@ public class LocalStrings {
 		return bundle.getString("Disc");
 	}
 	
+	public String getTracks() {
+		return bundle.getString("Tracks");
+	}
+	
 	public String getArtistIndexTitle(ArtistType artistType) {
 		return bundle.getString(artistType == ArtistType.AlbumArtist ? "AlbumArtistIndexTitle" : "TrackArtistIndexTitle");
 	}
