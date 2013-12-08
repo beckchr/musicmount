@@ -16,10 +16,12 @@ Options:
        --music <path>     music path prefix, default is 'music'
        --retina           double image resolution
        --full             full parse, don't use track store
+       --grouping         use grouping tag to group album tracks
        --unknownGenre     report missing genre as 'Unknown'
        --noVariousArtists exclude 'Various Artists' from album artist index
        --noDirectoryIndex use 'path/index.ext' instead of 'path/'
        --pretty           pretty-print JSON documents
+       --verbose          more detailed console output
 
 Test Site
 ---------

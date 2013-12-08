@@ -166,11 +166,12 @@ public class MusicMountBuilder {
 		System.err.println("       --music <path>     music path prefix, default is 'music'");
 		System.err.println("       --retina           double image resolution");
 		System.err.println("       --full             full parse, don't use asset store");
+		System.err.println("       --grouping         use grouping tag to group album tracks");
 		System.err.println("       --unknownGenre     report missing genre as 'Unknown'");
 		System.err.println("       --noVariousArtists exclude 'Various Artists' from album artist index");
 		System.err.println("       --noDirectoryIndex use 'path/index.ext' instead of 'path/'");
-		System.err.println("       --grouping         use grouping tag to group album tracks");
 		System.err.println("       --pretty           pretty-print JSON documents");
+		System.err.println("       --verbose          more detailed console output");
 //		System.err.println("       --normalize <form> normalize asset paths, one of NFC|NFD");
 //		System.err.println("       --noImages         do not generate images");
 //		System.err.println("       --xml              generate XML instead of JSON");
@@ -191,7 +192,7 @@ public class MusicMountBuilder {
 		boolean optionRetina = false;
 		boolean optionPretty = false;
 		boolean optionFull = false;
-		boolean optionDebug = false;
+		boolean optionVerbose = false;
 		boolean optionNoImages = false;
 		boolean optionXML = false;
 		boolean optionGrouping = false;
@@ -218,8 +219,8 @@ public class MusicMountBuilder {
 			case "--full":
 				optionFull = true;
 				break;
-			case "--debug":
-				optionDebug = true;
+			case "--verbose":
+				optionVerbose = true;
 				break;
 			case "--unknownGenre":
 				optionUnknownGenre = true;
@@ -275,7 +276,7 @@ public class MusicMountBuilder {
 		/**
 		 * Configure logging
 		 */
-		LoggingUtil.configure(MusicMountBuilder.class.getPackage().getName(), optionDebug ? Level.FINER : Level.FINE);
+		LoggingUtil.configure(MusicMountBuilder.class.getPackage().getName(), optionVerbose ? Level.FINER : Level.FINE);
 
 		LocalStrings localStrings = new LocalStrings(Locale.ENGLISH);
 		File assetStoreFile = new File(outputFolder, ASSET_STORE);
