@@ -144,9 +144,25 @@ public class LibraryParser {
 					albumArtist = new AlbumArtist(library.getAlbumArtists().size(), uniqueTrackArtist.getTitle());
 					library.getAlbumArtists().put(uniqueTrackArtist.getTitle(), albumArtist);
 				}
-				// move album from variousArtists to albumArtist
-				albumArtist.getAlbums().put(album.getTitle(), album);
-				album.setArtist(albumArtist);
+				Album targetAlbum = albumArtist.getAlbums().get(album.getTitle());
+				if (targetAlbum != null) {
+					// merge album tracks into existing album
+					for (Disc sourceDisc : album.getDiscs().values()) {
+						Disc targetDisc = targetAlbum.getDiscs().get(sourceDisc.getDiscNumber());
+						if (targetDisc == null) {
+							targetAlbum.getDiscs().put(sourceDisc.getDiscNumber(), sourceDisc);
+						} else {
+							targetDisc.getTracks().addAll(sourceDisc.getTracks());
+						}
+					}
+					uniqueTrackArtist.getAlbums().remove(album);
+				} else {
+					// add whole album to albumArtist
+					albumArtist.getAlbums().put(album.getTitle(), album);
+					album.setArtist(albumArtist);
+				}
+
+				// remove album from variousArtists
 				variousArtistsAlbumIterator.remove();
 			}
 		}
@@ -188,13 +204,13 @@ public class LibraryParser {
 				String trackArtistName = trimToNonEmptyStringOrNull(asset.getArtist());
 				String albumArtistName = trimToNonEmptyStringOrNull(asset.getAlbumArtist());
 
-				if (!asset.isCompilation()) {
-					if (albumArtistName == null) {
-						albumArtistName = trackArtistName;
-					} else if (trackArtistName == null) {
-						LOGGER.info("Will use album artist for missing artist in file: " + file.getAbsolutePath());
-						trackArtistName = albumArtistName;
-					}
+				if (albumArtistName == null && !asset.isCompilation()) { // derive missing album artist for non-compilations
+					albumArtistName = trackArtistName;
+				}
+
+				if (trackArtistName == null && albumArtistName != null) { // derive missing artist from album artist
+					LOGGER.fine("Will use album-artist for missing artist in file: " + file.getAbsolutePath());
+					trackArtistName = albumArtistName;
 				}
 
 				if (trackName == null || albumName == null && trackArtistName == null) { // unusable
