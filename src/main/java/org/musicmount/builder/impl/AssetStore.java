@@ -68,6 +68,7 @@ public class AssetStore {
 	
 	long albumIdSequence = 0;
 	long timestamp = System.currentTimeMillis();
+	Boolean retina = null; // null means "unknown"
 
 	public AssetStore(String apiVersion) {
 		this.apiVersion = apiVersion;
@@ -92,6 +93,14 @@ public class AssetStore {
 	 */
 	Set<Long> getChangedAlbumIds() {
 		return Collections.unmodifiableSet(changedAlbumIds);
+	}
+	
+	public Boolean getRetina() {
+		return retina;
+	}
+	
+	public void setRetina(Boolean retina) {
+		this.retina = retina;
 	}
 	
 	public Map<File, AssetEntity> getEntities() {
@@ -221,6 +230,9 @@ public class AssetStore {
 			writer.writeStartElement("assetStore");
 			writeStringProperty(writer, "apiVersion", apiVersion);
 			writeNumberProperty(writer, "timestamp", timestamp);
+			if (retina != null) {
+				writeBooleanProperty(writer, "retina", retina);
+			}
 			writer.writeProcessingInstruction(JsonXMLStreamConstants.MULTIPLE_PI_TARGET);
 			for (AssetEntity entity : entities.values()) {
 				String assetPath = assetLocator.getAssetPath(entity.file);
@@ -388,6 +400,9 @@ public class AssetStore {
 						entities.put(entity.file, entity);
 						loadedAlbumIds.add(entity.albumId);
 					}
+					break;
+				case "retina":
+					retina = Boolean.valueOf(reader.getElementText());
 					break;
 				default:
 					throw new XMLStreamException("unexpected assetStore property: " + reader.getLocalName());

@@ -32,7 +32,8 @@ import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
 
-import org.imgscalr.Scalr;
+import net.coobird.thumbnailator.Thumbnails;
+
 import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.Library;
 import org.musicmount.builder.model.Track;
@@ -49,61 +50,16 @@ public class ImageFormatter {
 	}
 	
 	private void writeImage(BufferedImage image, ImageType type, File targetFile, boolean retina) throws IOException {
-		Scalr.Method method = type == ImageType.Artwork ? Scalr.Method.QUALITY : Scalr.Method.ULTRA_QUALITY;
-		int w = image.getWidth();
-		int h = image.getHeight();
-		int a = type.getMaxSize().width;
+		double scaleFactor = type.getScaleFactor(image.getWidth(), image.getHeight());
 		if (retina) {
-			a += a;
+			scaleFactor = scaleFactor + scaleFactor;
 		}
-		int b = type.getMaxSize().height;
-		if (retina) {
-			b += b;
-		}
-		double fx = (double)a / (double)w;
-		double fy = (double)b / (double)h;
 		BufferedImage scaledImage = null;
-		switch (type) {
-		case Artwork: // scale to width type.size.width, crop to height type.size.height
-			w = a;
-			h = (int)Math.round(fx * h);
-			scaledImage = Scalr.resize(image, method, Scalr.Mode.FIT_EXACT, w, h);
-			if (h > b) {
-				BufferedImage tmpImage = scaledImage;
-				scaledImage = Scalr.crop(tmpImage, w, h = b);
-				tmpImage.flush();
-			}
-			break;
-		case Tile: // scale to bounding box
-			double f = Math.min(fx, fy);
-			w = (int)Math.round(f * w);
-			h = (int)Math.round(f * h);
-			scaledImage = Scalr.resize(image, method, Scalr.Mode.FIT_EXACT, w, h);
-			break;
-		case Thumbnail: // scale and crop
-			if (fy / fx < 1.0) { // (imageAspect / targetAspect < 1)  image is too tall -> scale to width, crop height
-				h = (int)Math.round(fx * h);
-				scaledImage = Scalr.resize(image, method, Scalr.Mode.FIT_EXACT, w = a, h);
-				if (h > b) {
-					int y = h < 1.8 * b ? (h - b) / 2 : 0; // select center or top part
-					BufferedImage tmpImage = scaledImage;
-					scaledImage = Scalr.crop(tmpImage, 0, y, w, h = b);
-					tmpImage.flush();
-				}
-			} else { // image is to wide -> scale to height, crop width
-				w = (int)Math.round(fy * w);
-				scaledImage = Scalr.resize(image, method, Scalr.Mode.FIT_EXACT, w, h = b);
-				if (w > a) {
-					int x = w < 1.8 * a ? (w - a) / 2 : 0; // select center or left part
-					BufferedImage tmpImage = scaledImage;
-					scaledImage = Scalr.crop(tmpImage, x, 0, w = a, h);
-					tmpImage.flush();
-				}
-			}
-			break;
+		if (scaleFactor < 1.0) { // scale down only
+			scaledImage = Thumbnails.of(image).scale(scaleFactor).asBufferedImage();
 		}
 		try {
-	        ImageIO.write(scaledImage, type.getFileType(), targetFile);
+	        ImageIO.write(scaledImage != null ? scaledImage : image, type.getFileType(), targetFile);
 		} finally {
 			if (scaledImage != null) {
 				scaledImage.flush();
@@ -166,6 +122,12 @@ public class ImageFormatter {
 	}
 	
 	public void formatImages(Library library, final ResourceLocator resourceLocator, final AssetStore assetStore) {
+		final boolean retinaChange = !Boolean.valueOf(retina).equals(assetStore.getRetina());
+		if (retinaChange) {
+			LOGGER.fine(String.format("Retina state %s...", assetStore.getRetina() == null ? "unknown" : "changed"));
+		}
+		assetStore.setRetina(null);
+
 		int numberOfAlbumsPerTask = 100;
 		int numberOfAlbums = library.getAlbums().size();
 		int numberOfThreads = Math.min(1 + (numberOfAlbums - 1) / numberOfAlbumsPerTask, Runtime.getRuntime().availableProcessors());
@@ -180,7 +142,7 @@ public class ImageFormatter {
 					@Override
 					public void run() {
 						for (Album album : albums) {
-							formatAlbumImages(album, resourceLocator, assetStore.isAlbumChanged(album.getAlbumId()));
+							formatAlbumImages(album, resourceLocator, retinaChange || assetStore.isAlbumChanged(album.getAlbumId()));
 						}
 						if (LOGGER.isLoggable(Level.FINE)) {
 							LOGGER.fine(String.format("Progress: #albums += %3d", albums.size()));
@@ -197,11 +159,13 @@ public class ImageFormatter {
 		} else { // run on current thread
 			int count = 0;
 			for (Album album : library.getAlbums()) {
-				formatAlbumImages(album, resourceLocator, assetStore.isAlbumChanged(album.getAlbumId()));
+				formatAlbumImages(album, resourceLocator, retinaChange || assetStore.isAlbumChanged(album.getAlbumId()));
 				if (++count % 100 == 0 && LOGGER.isLoggable(Level.FINE)) {
 					LOGGER.fine("Progress: #albums = " + count);
 				}
 			}
-		}		
+		}
+
+		assetStore.setRetina(retina);
 	}
 }

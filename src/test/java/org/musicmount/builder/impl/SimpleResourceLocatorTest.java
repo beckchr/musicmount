@@ -50,9 +50,9 @@ public class SimpleResourceLocatorTest {
 		
 		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
 		album = createAlbum(0x1001, null, true);
-		Assert.assertEquals("albums/10/01/artwork.jpg", resourceLocator.getAlbumImagePath(album, ImageType.Artwork));
-		Assert.assertEquals("albums/10/01/tile.jpg", resourceLocator.getAlbumImagePath(album, ImageType.Tile));
-		Assert.assertEquals("albums/10/01/thumbnail.png", resourceLocator.getAlbumImagePath(album, ImageType.Thumbnail));
+		Assert.assertEquals("albums/10/01/" + ImageType.Artwork.getFileName(), resourceLocator.getAlbumImagePath(album, ImageType.Artwork));
+		Assert.assertEquals("albums/10/01/" + ImageType.Tile.getFileName(), resourceLocator.getAlbumImagePath(album, ImageType.Tile));
+		Assert.assertEquals("albums/10/01/" + ImageType.Thumbnail.getFileName(), resourceLocator.getAlbumImagePath(album, ImageType.Thumbnail));
 
 		album = createAlbum(0x1001, null, false); // no artwork available
 		Assert.assertNull(resourceLocator.getAlbumImagePath(album, ImageType.Artwork));

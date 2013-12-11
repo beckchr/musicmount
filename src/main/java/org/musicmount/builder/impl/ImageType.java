@@ -15,30 +15,32 @@
  */
 package org.musicmount.builder.impl;
 
-import java.awt.Dimension;
 
 public enum ImageType {
-	Thumbnail(32, 32, "PNG", "thumbnail.png"),	// for best results: width and height are exact
-//	Icon(64, 64, "PNG", "icon.png"),			// for best results: width and height are exact
-	Tile(192, 128, "JPG", "tile.jpg"),			// for best results: width or height is exact
-	Artwork(256, 560, "JPG", "artwork.jpg");	// for best results: width is exact, height is maximum
+	Thumbnail(64, 64, false, "JPG", "thumbnail.jpg"),
+	Tile(192, 128, true, "JPG", "tile.jpg"),
+	Artwork(256, 512, true, "JPG", "artwork.jpg");
 
-	private final int maxWidth;
-	private final int maxHeight;
+	private final int targetWidth;
+	private final int targetHeight;
+	private final boolean fitToTarget;
 	private final String fileType;
 	private final String fileName;
 	
-	private ImageType(int maxWidth, int maxHeight, String fileType, String fileName) {
-		this.maxWidth = maxWidth;
-		this.maxHeight = maxHeight;
+	private ImageType(int targetWidth, int targetHeight, boolean fitToTarget, String fileType, String fileName) {
+		this.targetWidth = targetWidth;
+		this.targetHeight = targetHeight;
+		this.fitToTarget = fitToTarget;
 		this.fileType = fileType;
 		this.fileName = fileName;
 	}
 	
-	public Dimension getMaxSize() {
-		return new Dimension(maxWidth, maxHeight);
+	public double getScaleFactor(int sourceWidth, int sourceHeight) {
+		double scaleX = (double)targetWidth / (double)sourceWidth;
+		double scaleY = (double)targetHeight / (double)sourceHeight;
+		return fitToTarget ? Math.min(scaleX, scaleY) : Math.max(scaleX, scaleY);
 	}
-
+	
 	public String getFileType() {
 		return fileType;
 	}

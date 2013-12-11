@@ -32,7 +32,7 @@ public class ImageFormatterTest {
     public TemporaryFolder outputFolder = new TemporaryFolder();
 
     @Test
-	public void testBasic() throws Exception {
+	public void test() throws Exception {
 		File input = new File(getClass().getResource("/sample-album").toURI()); // has a square image
 		AssetParser assetParser = new SimpleAssetParser();
 		Library library = new LibraryParser(assetParser).parse(input, new AssetStore("test"));
@@ -41,57 +41,24 @@ public class ImageFormatterTest {
 		ImageFormatter imageFormatter = new ImageFormatter(assetParser, false);
 		imageFormatter.formatImages(library, resourceLocator, new AssetStore("test"));
 		
-		String artworkPath = resourceLocator.getAlbumImagePath(library.getAlbums().get(0), ImageType.Artwork);
-		File artworkFile = resourceLocator.getFile(artworkPath);
-		Assert.assertTrue(artworkFile.exists());
-		BufferedImage artworkImage = ImageIO.read(artworkFile);
-		Assert.assertEquals(ImageType.Artwork.getMaxSize().width, artworkImage.getWidth());
-		Assert.assertEquals(ImageType.Artwork.getMaxSize().width, artworkImage.getHeight());
-		
-		String tilePath = resourceLocator.getAlbumImagePath(library.getAlbums().get(0), ImageType.Tile);
-		File tileFile = resourceLocator.getFile(tilePath);
-		Assert.assertTrue(tileFile.exists());
-		BufferedImage tileImage = ImageIO.read(tileFile);
-		Assert.assertEquals(ImageType.Tile.getMaxSize().height, tileImage.getWidth());
-		Assert.assertEquals(ImageType.Tile.getMaxSize().height, tileImage.getHeight());
-		
-		String thumbnailPath = resourceLocator.getAlbumImagePath(library.getAlbums().get(0), ImageType.Thumbnail);
-		File thumbnailFile = resourceLocator.getFile(thumbnailPath);
-		Assert.assertTrue(thumbnailFile.exists());
-		BufferedImage thumbnailImage = ImageIO.read(thumbnailFile);
-		Assert.assertEquals(ImageType.Thumbnail.getMaxSize().width, thumbnailImage.getWidth());
-		Assert.assertEquals(ImageType.Thumbnail.getMaxSize().height, thumbnailImage.getHeight());
-	}
+		BufferedImage originalImage = assetParser.extractArtwork(library.getAlbums().iterator().next().representativeTrack().getAssetFile());
 
-    @Test
-	public void testRetina() throws Exception {
-		File input = new File(getClass().getResource("/sample-album").toURI()); // has a square image
-		AssetParser assetParser = new SimpleAssetParser();
-		Library library = new LibraryParser(assetParser).parse(input, new AssetStore("test"));
-		File output = outputFolder.getRoot();
-		ResourceLocator resourceLocator = new SimpleResourceLocator(output, false, false);
-		ImageFormatter imageFormatter = new ImageFormatter(assetParser, true); // retina
-		imageFormatter.formatImages(library, resourceLocator, new AssetStore("test"));
-		
-		String artworkPath = resourceLocator.getAlbumImagePath(library.getAlbums().get(0), ImageType.Artwork);
-		File artworkFile = resourceLocator.getFile(artworkPath);
-		Assert.assertTrue(artworkFile.exists());
-		BufferedImage artworkImage = ImageIO.read(artworkFile);
-		Assert.assertEquals(2 * ImageType.Artwork.getMaxSize().width, artworkImage.getWidth());
-		Assert.assertEquals(2 * ImageType.Artwork.getMaxSize().width, artworkImage.getHeight());
-		
-		String tilePath = resourceLocator.getAlbumImagePath(library.getAlbums().get(0), ImageType.Tile);
-		File tileFile = resourceLocator.getFile(tilePath);
-		Assert.assertTrue(tileFile.exists());
-		BufferedImage tileImage = ImageIO.read(tileFile);
-		Assert.assertEquals(2 * ImageType.Tile.getMaxSize().height, tileImage.getWidth());
-		Assert.assertEquals(2 * ImageType.Tile.getMaxSize().height, tileImage.getHeight());
-		
-		String thumbnailPath = resourceLocator.getAlbumImagePath(library.getAlbums().get(0), ImageType.Thumbnail);
-		File thumbnailFile = resourceLocator.getFile(thumbnailPath);
-		Assert.assertTrue(thumbnailFile.exists());
-		BufferedImage thumbnailImage = ImageIO.read(thumbnailFile);
-		Assert.assertEquals(2 * ImageType.Thumbnail.getMaxSize().width, thumbnailImage.getWidth());
-		Assert.assertEquals(2 * ImageType.Thumbnail.getMaxSize().height, thumbnailImage.getHeight());
+		/*
+		 * verify dimensions of written images
+		 */
+		for (ImageType imageType : ImageType.values()) {
+			double scaleFactor = imageType.getScaleFactor(originalImage.getWidth(), originalImage.getHeight());
+			String imagePath = resourceLocator.getAlbumImagePath(library.getAlbums().get(0), imageType);
+			File imageFile = resourceLocator.getFile(imagePath);
+			Assert.assertTrue(imageFile.exists());
+			BufferedImage image = ImageIO.read(imageFile);
+			if (scaleFactor < 1.0) {
+				Assert.assertEquals(Math.round(originalImage.getWidth() * scaleFactor), image.getWidth());
+				Assert.assertEquals(Math.round(originalImage.getHeight() * scaleFactor), image.getHeight());
+			} else { // should not have scaled up 
+				Assert.assertEquals(originalImage.getWidth(), image.getWidth());
+				Assert.assertEquals(originalImage.getHeight(), image.getHeight());
+			}
+		}
 	}
 }
