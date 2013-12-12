@@ -79,7 +79,7 @@ public class SimpleResourceLocator implements ResourceLocator {
 
 	@Override
 	public String getAlbumImagePath(Album album, ImageType type) {
-		if (noImages || !album.representativeTrack().isArtworkAvailable()) {
+		if (noImages || album.artworkAssetFile() == null) {
 			return null;
 		}
 		return String.format("albums/%s/%s", getIdPath(album.getAlbumId()), type.getFileName());

@@ -220,6 +220,16 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		return track.getTitle();
 	}
 	
+	public Integer albumYear(Album album, Integer defaultValue) {
+		Integer maximumYear = null;
+		for (Track track : album.getTracks()) {
+			if (maximumYear == null || track.getYear() != null && maximumYear.compareTo(track.getYear()) < 0) {
+				maximumYear = track.getYear();
+			}
+		}
+		return maximumYear != null ? maximumYear : defaultValue;
+	}
+	
 	private void formatArtistSections(T writer, Iterable<CollectionSection<Artist>> sections, ResourceLocator resourceLocator, ImageType imageType, ArtistType artistType, Map<Artist, Album> representativeAlbums) throws Exception {
 		writeStartArray(writer);
 		for (CollectionSection<Artist> section : sections) {
@@ -266,8 +276,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 				if (imagePath != null && resourceLocator.getFile(imagePath).exists()) {
 					writeStringProperty(writer, "imagePath", imagePath);
 				}
-				Track representativeTrack = item.representativeTrack();
-				if (writeCompilationInfo && representativeTrack.isCompilation() && item.getArtist().getTitle() != null) {
+				if (writeCompilationInfo && item.isCompilation() && item.getArtist().getTitle() != null) {
 					writeStringProperty(writer, "info", localStrings.getCompilation());
 				}
 				writeStringProperty(writer, "artist", item.getArtist().getTitle() == null ? getDefaultArtistTitle(ArtistType.AlbumArtist) : item.getArtist().getTitle());
@@ -279,8 +288,9 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 						writeStringProperty(writer, "genre", genre);
 					}
 				}
-				if (representativeTrack.getYear() != null) {
-					writeNumberProperty(writer, "year", representativeTrack.getYear());					
+				Integer year = albumYear(item, null);
+				if (year != null) {
+					writeNumberProperty(writer, "year", year);					
 				}
 				writer.writeEndElement();
 			}
@@ -294,7 +304,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		CollectionSection<Album> otherAlbums = new CollectionSection<Album>(artist.getTitle() != null ?localStrings.getCompilationAlbumSection() : null);
 		for (Album album : artist.albums()) {
 			if (artist.getTitle() != null) {
-				if (album.representativeTrack().isCompilation()) {
+				if (album.isCompilation()) {
 					otherAlbums.getItems().add(album);
 				} else {
 					regularAlbums.getItems().add(album);
@@ -313,15 +323,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 			Collections.sort(regularAlbums.getItems(), new Comparator<Album>() {
 				@Override
 				public int compare(Album item1, Album item2) {
-					Integer year1 = item1.getTracks().get(0).getYear();
-					if (year1 == null) {
-						year1 = Integer.valueOf(Integer.MAX_VALUE);
-					}
-					Integer year2 = item2.getTracks().get(0).getYear();
-					if (year2 == null) {
-						year2 = Integer.valueOf(Integer.MAX_VALUE);
-					}
-					int result = year1.compareTo(year2);
+					int result = albumYear(item1, Integer.MAX_VALUE).compareTo(albumYear(item2, Integer.MAX_VALUE));
 					if (result != 0) {
 						return result;
 					}
@@ -422,9 +424,8 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 	public void formatAlbum(Album album, OutputStream output, ResourceLocator resourceLocator, AssetLocator assetLocator) throws Exception {
 		T writer = createStreamWriter(output);
 		startResponse(writer, "album");
-		Track representativeTrack = album.representativeTrack();
 		writeStringProperty(writer, "title", album.getTitle() == null ? getDefaultAlbumTitle() : album.getTitle());
-		if (representativeTrack.isCompilation() && album.getArtist().getTitle() != null) {
+		if (album.isCompilation() && album.getArtist().getTitle() != null) {
 			writeStringProperty(writer, "info", localStrings.getCompilation());
 		}
 		writeStringProperty(writer, "artist", album.getArtist().getTitle() == null ? getDefaultArtistTitle(ArtistType.AlbumArtist) : album.getArtist().getTitle());
@@ -436,8 +437,9 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 				writeStringProperty(writer, "genre", genre);
 			}
 		}
-		if (representativeTrack.getYear() != null) {
-			writeNumberProperty(writer, "year", representativeTrack.getYear());					
+		Integer year = albumYear(album, null);
+		if (year != null) {
+			writeNumberProperty(writer, "year", year);					
 		}
 		String albumImagePath = resourceLocator.getAlbumImagePath(album, ImageType.Artwork);
 		if (albumImagePath != null && resourceLocator.getFile(albumImagePath).exists()) {

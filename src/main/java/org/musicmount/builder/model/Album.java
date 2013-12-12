@@ -15,6 +15,7 @@
  */
 package org.musicmount.builder.model;
 
+import java.io.File;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -51,15 +52,17 @@ public class Album extends Playlist implements Titled {
 		this.artist = artist;
 	}
 	
-	public Track representativeTrack() {
-		Track anyTrack = null;
+	public boolean isCompilation() {
+		return getTracks().get(0).isCompilation();
+	}
+
+	public File artworkAssetFile() {
 		for (Track track : getTracks()) {
 			if (track.isArtworkAvailable()) {
-				return track;
+				return track.getAssetFile();
 			}
-			anyTrack = track;
 		}
-		return anyTrack;
+		return null;
 	}
 	
 	@Override

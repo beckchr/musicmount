@@ -41,7 +41,7 @@ public class ImageFormatterTest {
 		ImageFormatter imageFormatter = new ImageFormatter(assetParser, false);
 		imageFormatter.formatImages(library, resourceLocator, new AssetStore("test"));
 		
-		BufferedImage originalImage = assetParser.extractArtwork(library.getAlbums().iterator().next().representativeTrack().getAssetFile());
+		BufferedImage originalImage = assetParser.extractArtwork(library.getAlbums().iterator().next().artworkAssetFile());
 
 		/*
 		 * verify dimensions of written images

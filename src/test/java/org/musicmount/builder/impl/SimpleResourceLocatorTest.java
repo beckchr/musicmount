@@ -33,7 +33,7 @@ public class SimpleResourceLocatorTest {
 	}
 
 	Album createAlbum(long albumId, AlbumArtist artist, boolean artworkAvailable) {
-		Track track = new Track(null, null, artworkAvailable, false, null, null, null, null, null, null, null);
+		Track track = new Track(null, new File(String.format("%d.mp3", albumId)), artworkAvailable, false, null, null, null, null, null, null, null);
 		Album album = new Album(albumId, null);
 		album.getTracks().add(track);
 		track.setAlbum(album);

@@ -36,7 +36,6 @@ import net.coobird.thumbnailator.Thumbnails;
 
 import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.Library;
-import org.musicmount.builder.model.Track;
 
 public class ImageFormatter {
 	static final Logger LOGGER = Logger.getLogger(ImageFormatter.class.getName());
@@ -84,8 +83,8 @@ public class ImageFormatter {
 	}
 
 	private void formatAlbumImages(Album album, ResourceLocator resourceLocator, boolean overwrite) {
-		Track track = album.representativeTrack();
-		if (track.isArtworkAvailable()) {
+		File artworkAssetFile = album.artworkAssetFile();
+		if (artworkAssetFile != null) {
 			Map<ImageType, File> targets = new HashMap<ImageType, File>();
 			for (ImageType type : ImageType.values()) {
 				String imagePath = resourceLocator.getAlbumImagePath(album, type);
@@ -98,11 +97,11 @@ public class ImageFormatter {
 			}
 			if (!targets.isEmpty()) {
 				if (LOGGER.isLoggable(Level.FINER)) {
-					LOGGER.finer("Formatting images from assset: " + track.getAssetFile());
+					LOGGER.finer("Formatting images from assset: " + artworkAssetFile);
 				}
 		    	BufferedImage image;
 		        try {
-		        	image = assetParser.extractArtwork(track.getAssetFile());
+		        	image = assetParser.extractArtwork(artworkAssetFile);
 		    		if (image.getTransparency() != Transparency.OPAQUE) {
 		    			BufferedImage tmpImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
 		    			Graphics2D graphics = tmpImage.createGraphics();
@@ -112,7 +111,7 @@ public class ImageFormatter {
 		    			image = tmpImage;
 		    		}
 		        } catch(Exception e) {
-		        	LOGGER.log(Level.WARNING, "Could not extract artwork from " + track.getAssetFile(), e);
+		        	LOGGER.log(Level.WARNING, "Could not extract image from " + artworkAssetFile, e);
 		        	return;
 		        }
 		        formatImages(image, targets);
