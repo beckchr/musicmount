@@ -287,19 +287,6 @@ public class LibraryParser {
 					album.getDiscs().put(discKey, disc);
 				}
 				disc.getTracks().add(track);
-
-				/*
-				 * make sure the album artist also appears as track artist???
-				 */
-//				if (albumArtistName != null && !albumArtistName.equals(trackArtistName)) {
-//					TrackArtist albumTrackArtist = library.getTrackArtists().get(albumArtistName);
-//					if (albumTrackArtist == null) {
-//						albumTrackArtist = new TrackArtist(library.getTrackArtists().size(), albumArtistName);
-//						library.getTrackArtists().put(albumArtistName, albumTrackArtist);
-//					}
-//					albumTrackArtist.getAlbums().add(album);
-//				}
-
 			}
 		}
 	}
