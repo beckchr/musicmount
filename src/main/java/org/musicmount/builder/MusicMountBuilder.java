@@ -288,7 +288,7 @@ public class MusicMountBuilder {
 			try (InputStream assetStoreInput = createInputStream(assetStoreFile)) {
 				assetStore.load(assetStoreInput, assetStoreAssetLocator);
 			} catch (Exception e) {
-				LOGGER.warning("Failed to load asset store...");
+				LOGGER.log(Level.WARNING, "Failed to load asset store", e);
 				assetStore = new AssetStore(API_VERSION);
 			}
 		}
@@ -323,7 +323,7 @@ public class MusicMountBuilder {
 		try (OutputStream assetStoreOutput = createOutputStream(assetStoreFile)) {
 			assetStore.save(assetStoreOutput, assetStoreAssetLocator);
 		} catch (Exception e) {
-			LOGGER.warning("Failed to save asset store...");
+			LOGGER.log(Level.WARNING, "Failed to save asset store", e);
 			assetStoreFile.deleteOnExit();
 		}
 
