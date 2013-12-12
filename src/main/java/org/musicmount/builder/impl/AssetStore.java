@@ -32,7 +32,6 @@ import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
-
 import de.odysseus.staxon.json.JsonXMLConfigBuilder;
 import de.odysseus.staxon.json.JsonXMLInputFactory;
 import de.odysseus.staxon.json.JsonXMLOutputFactory;
@@ -64,14 +63,15 @@ public class AssetStore {
 	final Set<Long> loadedAlbumIds = new HashSet<Long>();
 	final Set<Long> changedAlbumIds = new HashSet<Long>();
 	final Set<Long> createdAlbumIds = new HashSet<Long>();
-	final String apiVersion;
+
+	final String version;
 	
 	long albumIdSequence = 0;
 	long timestamp = System.currentTimeMillis();
 	Boolean retina = null; // null means "unknown"
 
 	public AssetStore(String apiVersion) {
-		this.apiVersion = apiVersion;
+		this.version = apiVersion + "-1";
 	}
 	
 	/*
@@ -228,7 +228,7 @@ public class AssetStore {
 		try {
 			writer.writeStartDocument();
 			writer.writeStartElement("assetStore");
-			writeStringProperty(writer, "apiVersion", apiVersion);
+			writeStringProperty(writer, "version", version);
 			writeNumberProperty(writer, "timestamp", timestamp);
 			if (retina != null) {
 				writeBooleanProperty(writer, "retina", retina);
@@ -385,10 +385,11 @@ public class AssetStore {
 			reader.nextTag();
 			while (reader.getEventType() == XMLStreamConstants.START_ELEMENT) {
 				switch (reader.getLocalName()) {
-				case "apiVersion":
+				case "version":
+				case "apiVersion": // FIXME renamed apiVersion to version, remove someday
 					String version = reader.getElementText();
-					if (!apiVersion.equals(version)) {
-						return;
+					if (!this.version.equals(version)) {
+						throw new IOException("incompatible store version");
 					}
 					break;
 				case "timestamp":
@@ -405,7 +406,7 @@ public class AssetStore {
 					retina = Boolean.valueOf(reader.getElementText());
 					break;
 				default:
-					throw new XMLStreamException("unexpected assetStore property: " + reader.getLocalName());
+					throw new XMLStreamException("unexpected store property: " + reader.getLocalName());
 				}
 				reader.require(XMLStreamConstants.END_ELEMENT, null, null);
 				reader.nextTag();
@@ -414,6 +415,5 @@ public class AssetStore {
 		} finally {
 			reader.close();
 		}
-		
 	}
 }
