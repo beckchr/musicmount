@@ -137,7 +137,7 @@ public class LibraryParser {
 		while (variousArtistsAlbumIterator.hasNext()) {
 			Album album = variousArtistsAlbumIterator.next();
 			TrackArtist uniqueTrackArtist = uniqueTrackArtist(album);
-			if (uniqueTrackArtist != null) {
+			if (uniqueTrackArtist != null && uniqueTrackArtist.getTitle() != null) {
 				// get album artist
 				AlbumArtist albumArtist = library.getAlbumArtists().get(uniqueTrackArtist.getTitle());
 				if (albumArtist == null) {
