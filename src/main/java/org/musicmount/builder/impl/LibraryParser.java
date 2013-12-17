@@ -15,8 +15,6 @@
  */
 package org.musicmount.builder.impl;
 
-import java.io.File;
-import java.io.FileFilter;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -43,17 +41,6 @@ public class LibraryParser {
 		return s;
 	}
 
-	private final AssetParser assetParser;
-	private final FileFilter assetFilter = new FileFilter() {
-		public boolean accept(File file) {
-			return !file.getName().startsWith(".") && (file.isDirectory() || assetParser.isAssetFile(file));
-		}
-	};
-	
-	public LibraryParser(AssetParser assetParser) {
-		this.assetParser = assetParser;
-	}
-	
 	void sortTracks(Library library) {
 		/*
 		 * sort tracks by disc number, track number, title, artist
@@ -116,7 +103,7 @@ public class LibraryParser {
 		return artist;
 	}
 
-	public final Library parse(File assetBaseDir, AssetStore assetStore) {
+	public final Library parse(Iterable<Asset> assets) {
 		Library library = new Library();
 		
 		// add "various artists" with id 0
@@ -125,8 +112,10 @@ public class LibraryParser {
 		// add "unknown artist" with id 0
 		library.getTrackArtists().put(null, new TrackArtist(0, null));
 
-		// parse tracks into library
-		parseLibrary(library, assetBaseDir.getAbsoluteFile(), assetStore);
+		// parse assets into library
+		for (Asset asset : assets) {
+			parse(library, asset);
+		}
 
 		/*
 		 * distribute compilations without album artist into "various artists" and
@@ -183,111 +172,90 @@ public class LibraryParser {
 		return library;
 	}
 
-	void parseLibrary(Library library, File directory, AssetStore assetStore) {
-		for (File file : directory.listFiles(assetFilter)) {
-			if (file.isDirectory()) {
-				parseLibrary(library, file, assetStore);
-			} else {
-				Asset asset = null;
-				try {
-					asset = assetStore.getAsset(file);
-					if (asset == null) {
-						asset = assetParser.parse(file);
-					}
-				} catch (Exception e) {
-					LOGGER.log(Level.WARNING, "Could not parse asset file: " + file.getAbsolutePath(), e);
-					continue;
-				}
-				
-				String trackName = trimToNonEmptyStringOrNull(asset.getName());
-				String albumName = trimToNonEmptyStringOrNull(asset.getAlbum());
-				String trackArtistName = trimToNonEmptyStringOrNull(asset.getArtist());
-				String albumArtistName = trimToNonEmptyStringOrNull(asset.getAlbumArtist());
+	void parse(Library library, Asset asset) {
+		String trackName = trimToNonEmptyStringOrNull(asset.getName());
+		String albumName = trimToNonEmptyStringOrNull(asset.getAlbum());
+		String trackArtistName = trimToNonEmptyStringOrNull(asset.getArtist());
+		String albumArtistName = trimToNonEmptyStringOrNull(asset.getAlbumArtist());
 
-				if (albumArtistName == null && !asset.isCompilation()) { // derive missing album artist for non-compilations
-					albumArtistName = trackArtistName;
-				}
-
-				if (trackArtistName == null && albumArtistName != null) { // derive missing artist from album artist
-					LOGGER.fine("Will use album-artist for missing artist in file: " + file.getAbsolutePath());
-					trackArtistName = albumArtistName;
-				}
-
-				if (trackName == null || albumName == null && trackArtistName == null) { // unusable
-					LOGGER.info("Will skip poorly tagged asset file: " + file.getAbsolutePath());
-					continue;
-				}
-				
-				/*
-				 * determine album artist
-				 */
-				AlbumArtist albumArtist = library.getAlbumArtists().get(albumArtistName);
-				if (albumArtist == null) {
-					albumArtist = new AlbumArtist(library.getAlbumArtists().size(), albumArtistName);
-					library.getAlbumArtists().put(albumArtistName, albumArtist);
-				}
-				
-				/*
-				 * determine album
-				 */
-				Album album = albumArtist.getAlbums().get(albumName);
-				if (album == null) {
-					long albumId = assetStore.createAlbum(asset);
-					album = new Album(albumId, albumName);
-					album.setArtist(albumArtist);
-					albumArtist.getAlbums().put(albumName, album);
-					library.getAlbums().add(album);
-					if (library.getAlbums().size() % 100 == 0 && LOGGER.isLoggable(Level.FINE)) {
-						LOGGER.fine("Progress: #albums = " + library.getAlbums().size());
-					}
-				} else {
-					assetStore.addAsset(asset, album.getAlbumId());
-				}
-				
-				/*
-				 * determine track artist
-				 */
-				TrackArtist trackArtist = library.getTrackArtists().get(trackArtistName);
-				if (trackArtist == null) {
-					trackArtist = new TrackArtist(library.getTrackArtists().size(), trackArtistName);
-					library.getTrackArtists().put(trackArtistName, trackArtist);
-				}
-				trackArtist.getAlbums().add(album);
-				
-				/*
-				 * create track
-				 */
-				Track track = new Track(
-						trackName,
-						asset.getFile(),
-						asset.isArtworkAvailable(),
-						asset.isCompilation(),
-						trimToNonEmptyStringOrNull(asset.getComposer()),
-						asset.getDiscNumber(),
-						asset.getDuration(),
-						trimToNonEmptyStringOrNull(asset.getGenre()),
-						trimToNonEmptyStringOrNull(asset.getGrouping()),
-						asset.getTrackNumber(),
-						asset.getYear()
-				);
-				album.getTracks().add(track);
-				track.setAlbum(album);
-				track.setArtist(trackArtist);
-
-				/*
-				 * determine disc
-				 */
-				Integer discKey = track.getDiscNumber();
-				if (discKey == null) {
-					discKey = Integer.valueOf(0);
-				}
-				Disc disc = album.getDiscs().get(discKey);
-				if (disc == null) {
-					disc = new Disc(discKey.intValue());
-					album.getDiscs().put(discKey, disc);
-				}
-				disc.getTracks().add(track);
-			}
+		if (albumArtistName == null && !asset.isCompilation()) { // derive missing album artist for non-compilations
+			albumArtistName = trackArtistName;
 		}
+
+		if (trackArtistName == null && albumArtistName != null) { // derive missing artist from album artist
+			if (LOGGER.isLoggable(Level.FINE)) {
+				LOGGER.fine("Will use album-artist for missing artist in file: " + asset.getFile().getAbsolutePath());
+			}
+			trackArtistName = albumArtistName;
+		}
+
+		if (trackName == null || albumName == null && trackArtistName == null) { // unusable
+			LOGGER.info("Will skip poorly tagged asset file: " + asset.getFile().getAbsolutePath());
+			return;
+		}
+		
+		/*
+		 * determine album artist
+		 */
+		AlbumArtist albumArtist = library.getAlbumArtists().get(albumArtistName);
+		if (albumArtist == null) {
+			albumArtist = new AlbumArtist(library.getAlbumArtists().size(), albumArtistName);
+			library.getAlbumArtists().put(albumArtistName, albumArtist);
+		}
+		
+		/*
+		 * determine album
+		 */
+		Album album = albumArtist.getAlbums().get(albumName);
+		if (album == null) {
+			album = new Album(albumName);
+			album.setArtist(albumArtist);
+			albumArtist.getAlbums().put(albumName, album);
+			library.getAlbums().add(album);
+		}
+		
+		/*
+		 * determine track artist
+		 */
+		TrackArtist trackArtist = library.getTrackArtists().get(trackArtistName);
+		if (trackArtist == null) {
+			trackArtist = new TrackArtist(library.getTrackArtists().size(), trackArtistName);
+			library.getTrackArtists().put(trackArtistName, trackArtist);
+		}
+		trackArtist.getAlbums().add(album);
+		
+		/*
+		 * create track
+		 */
+		Track track = new Track(
+				trackName,
+				asset.getFile(),
+				asset.isArtworkAvailable(),
+				asset.isCompilation(),
+				trimToNonEmptyStringOrNull(asset.getComposer()),
+				asset.getDiscNumber(),
+				asset.getDuration(),
+				trimToNonEmptyStringOrNull(asset.getGenre()),
+				trimToNonEmptyStringOrNull(asset.getGrouping()),
+				asset.getTrackNumber(),
+				asset.getYear()
+		);
+		album.getTracks().add(track);
+		track.setAlbum(album);
+		track.setArtist(trackArtist);
+
+		/*
+		 * determine disc
+		 */
+		Integer discKey = track.getDiscNumber();
+		if (discKey == null) {
+			discKey = Integer.valueOf(0);
+		}
+		Disc disc = album.getDiscs().get(discKey);
+		if (disc == null) {
+			disc = new Disc(discKey.intValue());
+			album.getDiscs().put(discKey, disc);
+		}
+		disc.getTracks().add(track);
 	}
 }

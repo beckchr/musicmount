@@ -28,7 +28,9 @@ public class LibraryParserTest {
 	@Test
 	public void testSampleAlbum() throws Exception {
 		File inputFolder = new File(getClass().getResource("/sample-album").toURI());
-		Library library = new LibraryParser(new SimpleAssetParser()).parse(inputFolder, new AssetStore("test"));
+		AssetStore assetStore = new AssetStore("test");
+		assetStore.update(inputFolder, new SimpleAssetParser());
+		Library library = new LibraryParser().parse(assetStore.assets());
 		
 		// aif and wav samples are skipped; expect one album with three tracks (m4a-aac, m4a-alac and mp3)
 		
@@ -68,7 +70,9 @@ public class LibraryParserTest {
 	@Test
 	public void testSampleLibrary() throws Exception {
 		File inputFolder = new File(getClass().getResource("/sample-library").toURI());
-		Library library = new LibraryParser(new SimpleAssetParser()).parse(inputFolder, new AssetStore("test"));
+		AssetStore assetStore = new AssetStore("test");
+		assetStore.update(inputFolder, new SimpleAssetParser());
+		Library library = new LibraryParser().parse(assetStore.assets());
 
 		Assert.assertEquals(4, library.getAlbumArtists().size());
 		Assert.assertEquals(6, library.getTrackArtists().size());

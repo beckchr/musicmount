@@ -21,14 +21,13 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 public class Album extends Playlist implements Titled {
-	private final long albumId;
 	private final String title;
 	private final SortedMap<Integer, Disc> discs = new TreeMap<Integer, Disc>();
 	
 	private AlbumArtist artist;
+	private long albumId;
 	
-	public Album(long albumId, String title) {
-		this.albumId = albumId;
+	public Album(String title) {
 		this.title = title;
 	}
 	
@@ -38,6 +37,10 @@ public class Album extends Playlist implements Titled {
 	
 	public long getAlbumId() {
 		return albumId;
+	}
+	
+	public void setAlbumId(long albumId) {
+		this.albumId = albumId;
 	}
 	
 	public String getTitle() {

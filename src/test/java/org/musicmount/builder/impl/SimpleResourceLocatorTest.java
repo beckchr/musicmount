@@ -34,7 +34,8 @@ public class SimpleResourceLocatorTest {
 
 	Album createAlbum(long albumId, AlbumArtist artist, boolean artworkAvailable) {
 		Track track = new Track(null, new File(String.format("%d.mp3", albumId)), artworkAvailable, false, null, null, null, null, null, null, null);
-		Album album = new Album(albumId, null);
+		Album album = new Album(null);
+		album.setAlbumId(albumId);
 		album.getTracks().add(track);
 		track.setAlbum(album);
 		if (artist != null) {
@@ -75,7 +76,9 @@ public class SimpleResourceLocatorTest {
 	@Test
 	public void testGetAlbumPath() {
 		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
-		Assert.assertEquals("albums/10/01/album.json", resourceLocator.getAlbumPath(new Album(0x1001, "foo")));
+		Album album = new Album("foo");
+		album.setAlbumId(0x1001);
+		Assert.assertEquals("albums/10/01/album.json", resourceLocator.getAlbumPath(album));
 	}
 
 	@Test
@@ -101,7 +104,9 @@ public class SimpleResourceLocatorTest {
 	@Test
 	public void testHugeId() {
 		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
-		Assert.assertEquals("albums/10/01/album.json", resourceLocator.getAlbumPath(new Album(0x1001, "foo")));
+		Album album = new Album("foo");
+		album.setAlbumId(0x1001);
+		Assert.assertEquals("albums/10/01/album.json", resourceLocator.getAlbumPath(album));
 	}
 
 

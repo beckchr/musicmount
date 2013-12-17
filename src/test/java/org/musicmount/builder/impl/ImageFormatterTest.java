@@ -34,12 +34,14 @@ public class ImageFormatterTest {
     @Test
 	public void test() throws Exception {
 		File input = new File(getClass().getResource("/sample-album").toURI()); // has a square image
+		AssetStore assetStore = new AssetStore("test");
 		AssetParser assetParser = new SimpleAssetParser();
-		Library library = new LibraryParser(assetParser).parse(input, new AssetStore("test"));
+		assetStore.update(input, assetParser);
+		Library library = new LibraryParser().parse(assetStore.assets());
 		File output = outputFolder.getRoot();
 		ResourceLocator resourceLocator = new SimpleResourceLocator(output, false, false);
 		ImageFormatter imageFormatter = new ImageFormatter(assetParser, false);
-		imageFormatter.formatImages(library, resourceLocator, new AssetStore("test"));
+		imageFormatter.formatImages(library, resourceLocator, library.getAlbums());
 		
 		BufferedImage originalImage = assetParser.extractArtwork(library.getAlbums().iterator().next().artworkAssetFile());
 

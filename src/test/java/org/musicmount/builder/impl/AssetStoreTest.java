@@ -18,9 +18,11 @@ package org.musicmount.builder.impl;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.Library;
 
 public class AssetStoreTest {
@@ -29,16 +31,16 @@ public class AssetStoreTest {
 		File assetDir = new File(getClass().getResource("/sample-album/sample.mp3").toURI()).getParentFile();
 		AssetLocator assetLocator = new SimpleAssetLocator(assetDir, null, null);
 		AssetStore assetStore = new AssetStore("test");
-		Library library = new LibraryParser(new SimpleAssetParser()).parse(assetDir, assetStore);
+		assetStore.update(assetDir, new SimpleAssetParser());
+		Library library = new LibraryParser().parse(assetStore.assets());
 
 		Assert.assertEquals(1, library.getAlbumArtists().size());
 		Assert.assertEquals(1, library.getTrackArtists().size());
 		Assert.assertEquals(1, library.getAlbums().size());
 
+		Set<Album> changedAlbums = assetStore.sync(library.getAlbums());
+		Assert.assertEquals(1, changedAlbums.size());
 		Assert.assertEquals(3, assetStore.getEntities().size());
-		Assert.assertEquals(0, assetStore.getLoadedAlbumIds().size());
-		Assert.assertEquals(1, assetStore.getCreatedAlbumIds().size());
-		Assert.assertEquals(1, assetStore.getChangedAlbumIds().size());
 
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		assetStore.save(output, assetLocator);
@@ -50,20 +52,16 @@ public class AssetStoreTest {
 		input.close();
 		
 		Assert.assertEquals(3, assetStore.getEntities().size());
-		Assert.assertEquals(1, assetStore.getLoadedAlbumIds().size());
-		Assert.assertEquals(0, assetStore.getCreatedAlbumIds().size());
-		Assert.assertEquals(0, assetStore.getChangedAlbumIds().size());
+		assetStore.update(assetDir, new SimpleAssetParser());
 
-		library = new LibraryParser(new SimpleAssetParser()).parse(assetDir, assetStore);
-
+		library = new LibraryParser().parse(assetStore.assets());
 		Assert.assertEquals(1, library.getAlbumArtists().size());
 		Assert.assertEquals(1, library.getTrackArtists().size());
 		Assert.assertEquals(1, library.getAlbums().size());
 
 		Assert.assertEquals(3, assetStore.getEntities().size());
-		Assert.assertEquals(1, assetStore.getLoadedAlbumIds().size());
-		Assert.assertEquals(1, assetStore.getCreatedAlbumIds().size());
-		Assert.assertEquals(0, assetStore.getChangedAlbumIds().size());
+		changedAlbums = assetStore.sync(library.getAlbums());
+		Assert.assertEquals(0, changedAlbums.size());
 
 		Asset asset = assetStore.getAsset(new File(getClass().getResource("/sample-album/sample.mp3").toURI()));
 		Assert.assertEquals("Sample Album", asset.getAlbum());

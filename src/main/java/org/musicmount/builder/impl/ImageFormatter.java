@@ -120,13 +120,7 @@ public class ImageFormatter {
 		}
 	}
 	
-	public void formatImages(Library library, final ResourceLocator resourceLocator, final AssetStore assetStore) {
-		final boolean retinaChange = !Boolean.valueOf(retina).equals(assetStore.getRetina());
-		if (retinaChange) {
-			LOGGER.fine(String.format("Retina state %s...", assetStore.getRetina() == null ? "unknown" : "changed"));
-		}
-		assetStore.setRetina(null);
-
+	public void formatImages(Library library, final ResourceLocator resourceLocator, final Collection<Album> overwriteAlbums) {
 		int numberOfAlbumsPerTask = 100;
 		int numberOfAlbums = library.getAlbums().size();
 		int numberOfThreads = Math.min(1 + (numberOfAlbums - 1) / numberOfAlbumsPerTask, Runtime.getRuntime().availableProcessors());
@@ -141,7 +135,7 @@ public class ImageFormatter {
 					@Override
 					public void run() {
 						for (Album album : albums) {
-							formatAlbumImages(album, resourceLocator, retinaChange || assetStore.isAlbumChanged(album.getAlbumId()));
+							formatAlbumImages(album, resourceLocator, overwriteAlbums.contains(album));
 						}
 						if (LOGGER.isLoggable(Level.FINE)) {
 							LOGGER.fine(String.format("Progress: #albums += %3d", albums.size()));
@@ -158,13 +152,11 @@ public class ImageFormatter {
 		} else { // run on current thread
 			int count = 0;
 			for (Album album : library.getAlbums()) {
-				formatAlbumImages(album, resourceLocator, retinaChange || assetStore.isAlbumChanged(album.getAlbumId()));
+				formatAlbumImages(album, resourceLocator, overwriteAlbums.contains(album));
 				if (++count % 100 == 0 && LOGGER.isLoggable(Level.FINE)) {
 					LOGGER.fine("Progress: #albums = " + count);
 				}
 			}
 		}
-
-		assetStore.setRetina(retina);
 	}
 }

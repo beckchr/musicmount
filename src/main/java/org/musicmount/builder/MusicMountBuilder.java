@@ -25,8 +25,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.Normalizer;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
@@ -35,16 +37,16 @@ import java.util.zip.GZIPOutputStream;
 import javax.imageio.ImageIO;
 
 import org.musicmount.builder.impl.AssetLocator;
+import org.musicmount.builder.impl.AssetParser;
+import org.musicmount.builder.impl.AssetStore;
 import org.musicmount.builder.impl.ImageFormatter;
 import org.musicmount.builder.impl.LibraryParser;
 import org.musicmount.builder.impl.LocalStrings;
 import org.musicmount.builder.impl.ResourceLocator;
 import org.musicmount.builder.impl.ResponseFormatter;
 import org.musicmount.builder.impl.SimpleAssetLocator;
-import org.musicmount.builder.impl.SimpleResourceLocator;
-import org.musicmount.builder.impl.AssetParser;
 import org.musicmount.builder.impl.SimpleAssetParser;
-import org.musicmount.builder.impl.AssetStore;
+import org.musicmount.builder.impl.SimpleResourceLocator;
 import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.Artist;
 import org.musicmount.builder.model.ArtistType;
@@ -281,12 +283,14 @@ public class MusicMountBuilder {
 		LocalStrings localStrings = new LocalStrings(Locale.ENGLISH);
 		File assetStoreFile = new File(outputFolder, ASSET_STORE);
 
-		AssetLocator assetStoreAssetLocator = new SimpleAssetLocator(inputFolder, optionMusic, null); // no normalization
+		AssetLocator assetStoreAssetLocator = new SimpleAssetLocator(inputFolder, null, null); // no prefix, no normalization
 		AssetStore assetStore = new AssetStore(API_VERSION);
+		boolean assetStoreLoaded = false;
 		if (!optionFull && assetStoreFile.exists()) {
 			LOGGER.info("Loading asset store...");
 			try (InputStream assetStoreInput = createInputStream(assetStoreFile)) {
 				assetStore.load(assetStoreInput, assetStoreAssetLocator);
+				assetStoreLoaded = true;
 			} catch (Exception e) {
 				LOGGER.log(Level.WARNING, "Failed to load asset store", e);
 				assetStore = new AssetStore(API_VERSION);
@@ -295,18 +299,32 @@ public class MusicMountBuilder {
 
 		AssetParser assetParser = new SimpleAssetParser();
 
-		LOGGER.info("Parsing music libary...");
-		Library library = new LibraryParser(assetParser).parse(inputFolder, assetStore);
+		LOGGER.info("Updating asset store...");
+		assetStore.update(inputFolder, assetParser);
+
+		LOGGER.info("Building music libary...");
+		Library library = new LibraryParser().parse(assetStore.assets());
 		if (optionNoVariousArtists) { // remove "various artists" album artist (hack)
 			library.getAlbumArtists().remove(null);
+		}
+		Set<Album> changedAlbums = assetStore.sync(library.getAlbums());
+		if (LOGGER.isLoggable(Level.FINE) && assetStoreLoaded) {
+			LOGGER.fine(String.format("Number of albums changed: %d", changedAlbums.size()));
 		}
 
 		ResourceLocator resourceLocator = new SimpleResourceLocator(outputFolder, optionXML, optionNoImages);
 
-		if (!optionNoImages) {
+		if (optionNoImages) {
+			assetStore.setRetina(null);
+		} else {
 			LOGGER.info("Generating images...");
 			ImageFormatter formatter = new ImageFormatter(assetParser, optionRetina);
-			formatter.formatImages(library, resourceLocator, assetStore);
+			final boolean retinaChange = !Boolean.valueOf(optionRetina).equals(assetStore.getRetina());
+			if (LOGGER.isLoggable(Level.FINE) && retinaChange) {
+				LOGGER.fine(String.format("Retina state %s", assetStore.getRetina() == null ? "unknown" : "changed"));
+			}
+			formatter.formatImages(library, resourceLocator, retinaChange ? new HashSet<>(library.getAlbums()) : changedAlbums);
+			assetStore.setRetina(optionRetina);
 		}
 
 		ResponseFormatter<?> responseFormatter;
