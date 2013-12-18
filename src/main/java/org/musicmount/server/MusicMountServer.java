@@ -13,18 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.musicmount.tester;
+package org.musicmount.server;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.Principal;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Date;
-import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -53,59 +49,44 @@ import org.apache.catalina.startup.DigesterFactory;
 import org.apache.catalina.startup.Tomcat;
 import org.musicmount.util.LoggingUtil;
 
-public class MusicMountTester {
-	static final Logger LOGGER = Logger.getLogger(MusicMountTester.class.getName());
+public class MusicMountServer {
+	static final Logger LOGGER = Logger.getLogger(MusicMountServer.class.getName());
 
 	static final Filter AccessLogFilter = new Filter() {
-		final DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
-		final int methodAndURIFormatLength = 53; // -> line will be 80 chars wide
-
 		@Override
 		public void init(FilterConfig filterConfig) throws ServletException {
 		}
 
 		@Override
 		public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-			HttpServletRequest httpRequest = (HttpServletRequest)request;
-			HttpServletResponse httpResponse = (HttpServletResponse)response;
-
 			long timestamp = System.currentTimeMillis();
-			
-			response.setCharacterEncoding("UTF-8");
 			chain.doFilter(request, response);
-			response.flushBuffer();
-			
-			StringBuilder builder = new StringBuilder();
-			builder.append(dateFormat.format(new Date(timestamp)));
-			builder.append(" ");
-			String uri = httpRequest.getRequestURI();
-	        int maxURILength = methodAndURIFormatLength - 1 - httpRequest.getMethod().length();
-	        if (uri.length() > maxURILength) {
-	        	uri = "..." +  uri.substring(uri.length() - maxURILength + 3);
+	        if (LOGGER.isLoggable(Level.FINER)) {
+				response.flushBuffer();
+
+				HttpServletRequest httpRequest = (HttpServletRequest)request;
+				HttpServletResponse httpResponse = (HttpServletResponse)response;
+
+				StringBuilder builder = new StringBuilder();
+				String uri = httpRequest.getRequestURI();
+				final int methodAndURIFormatLength = 42;
+		        int maxURILength = methodAndURIFormatLength - 1 - httpRequest.getMethod().length();
+		        if (uri.length() > maxURILength) {
+		        	uri = "..." +  uri.substring(uri.length() - maxURILength + 3);
+		        }
+		        String methodAndURI = String.format("%s %s", httpRequest.getMethod(), uri);
+		        builder.append(String.format(String.format("%%-%ds", methodAndURIFormatLength), methodAndURI));
+	    		builder.append(String.format("%4d", httpResponse.getStatus()));
+		        String contentLengthHeader = httpResponse.getHeader("Content-Length");
+		        if (contentLengthHeader != null) {
+		        	builder.append(String.format("%,11dB", Long.valueOf(contentLengthHeader)));
+		        } else {
+		            builder.append("            ");
+		        }
+		        long time = System.currentTimeMillis() - timestamp;
+		        builder.append(String.format("%5.2fs", time / 1000.0));
+				LOGGER.finer(builder.toString());
 	        }
-	        String methodAndURI = String.format("%s %s", httpRequest.getMethod(), uri);
-	        builder.append(String.format(String.format("%%-%ds", methodAndURIFormatLength), methodAndURI));
-    		builder.append(String.format("%4d", httpResponse.getStatus()));
-	        String responseLengthString = httpResponse.getHeader("Content-Length");
-	        if (responseLengthString != null) {
-	        	long responseLength = Long.valueOf(responseLengthString);
-	        	if (responseLength < 1024) {
-	            	builder.append(String.format("%7dB", responseLength));
-	        	} else if (responseLength < 1024 * 1024) {
-	            	builder.append(String.format("%6.1fkB", responseLength / 1024.0));
-	        	} else {
-	            	builder.append(String.format("%6.1fMB", responseLength / 1024.0 / 1024.0));
-	        	}
-	        } else {
-	            builder.append("   n/a  ");
-	        }
-	        long time = System.currentTimeMillis() - timestamp;
-	        if (time < 1000) {
-	            builder.append(String.format("%4dms", time));
-	        } else {
-	            builder.append(String.format("%5.1fs", time / 1000.0));
-	        }
-			System.err.println(builder.toString());
 		}
 		
 		@Override
@@ -129,15 +110,6 @@ public class MusicMountTester {
 		}
 	};
 		
-	/**
-	 * Configure logging
-	 */
-	static {
-		LoggingUtil.configure(MusicMountTester.class.getPackage().getName(), Level.FINE);
-		LoggingUtil.configure("org.apache", Level.INFO);
-		LoggingUtil.configure(DigesterFactory.class.getName(), Level.SEVERE); // get rid of warnings on missing jsp schema files		
-	}
-
 	static void exitWithError(String command, String error) {
 		System.err.println();
 		System.err.println("*** " + (error == null ? "internal error" : error));
@@ -149,8 +121,9 @@ public class MusicMountTester {
 		System.err.println("Options:");
 		System.err.println("       --music <path>    music path prefix, default is 'music'");
 		System.err.println("       --port <port>     launch HTTP server on specified port (default 8080)");
-		System.err.println("       --user <user>     login user id (default 'test')");
-		System.err.println("       --password <pass> login password (default 'testXXX', XXX random number)");
+		System.err.println("       --user <user>     login user");
+		System.err.println("       --password <pass> login password");
+		System.err.println("       --verbose         more detailed console output");
 		System.err.close();
 		System.exit(1);	
 	}
@@ -187,30 +160,41 @@ public class MusicMountTester {
         context.setLoginConfig(loginConfig);
         context.addValve(new BasicAuthenticator());
 	}
-	
+
+	private static boolean deleteRecursive(File parent) {
+	    if (parent.isDirectory()) {
+	    	for (File child : parent.listFiles()) {
+	    		deleteRecursive(child);
+	    	}
+	    }
+	    return parent.delete();
+	}
+
 	public static void startServer(int port, File mountBase, File musicBase, String musicPath, final String user, final String password) throws Exception {
 		Tomcat tomcat = new Tomcat();
-		File workDir = File.createTempFile("musicmount-test", "");
+		final File workDir = File.createTempFile("musicmount-", null);
 		workDir.delete();
 		workDir.mkdir();
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+			@Override
+			public void run() {
+				if (!deleteRecursive(workDir)) {
+					LOGGER.fine("Could not delete temporary directory: " + workDir);
+				}
+			}
+		}));
         tomcat.setBaseDir(workDir.getAbsolutePath());
         tomcat.setPort(port);
         tomcat.getConnector().setURIEncoding("UTF-8");
         
+        Context musicContext = addContext(tomcat, musicPath.startsWith("/") ? musicPath : "/" + musicPath, musicBase);
+        musicContext.addMimeMapping("m4a", "audio/mp4");
+        musicContext.addMimeMapping("mp3", "audio/mpeg");
+
         Context mountContext = addContext(tomcat, "/", mountBase);
         mountContext.addWelcomeFile("index.json");
         mountContext.addMimeMapping("json", "text/json");
 
-        FilterDef logFilterDef = new FilterDef();
-        logFilterDef.setFilterName("log-filter");
-        logFilterDef.setFilter(AccessLogFilter);
-        FilterMap logFilterMap = new FilterMap(); 
-        logFilterMap.setFilterName("log-filter"); 
-        logFilterMap.addURLPattern("*"); 
-
-        mountContext.addFilterDef(logFilterDef);
-        mountContext.addFilterMap(logFilterMap);
-        
         FilterDef utf8FilterDef = new FilterDef();
         utf8FilterDef.setFilterName("utf8-filter");
         utf8FilterDef.setFilter(UTF8Filter);
@@ -221,19 +205,27 @@ public class MusicMountTester {
         mountContext.addFilterDef(utf8FilterDef);
         mountContext.addFilterMap(utf8FilterMap); 
 
-        Context musicContext = addContext(tomcat, musicPath.startsWith("/") ? musicPath : "/" + musicPath, musicBase);
-        musicContext.addMimeMapping("m4a", "audio/mp4");
-        musicContext.addMimeMapping("mp3", "audio/mpeg");
-
-        musicContext.addFilterDef(logFilterDef);
-        musicContext.addFilterMap(logFilterMap);
+        if (LOGGER.isLoggable(Level.FINER)) {
+        	FilterDef logFilterDef = new FilterDef();
+        	logFilterDef.setFilterName("log-filter");
+        	logFilterDef.setFilter(AccessLogFilter);
+        	FilterMap logFilterMap = new FilterMap(); 
+        	logFilterMap.setFilterName("log-filter"); 
+        	logFilterMap.addURLPattern("*"); 
+        	
+        	mountContext.addFilterDef(logFilterDef);
+        	mountContext.addFilterMap(logFilterMap);
+        	
+        	musicContext.addFilterDef(logFilterDef);
+        	musicContext.addFilterMap(logFilterMap);
+        }
 
         if (user != null && password != null) {
             tomcat.getEngine().setRealm(new RealmBase() {
     			@Override
     			protected Principal getPrincipal(String username) {
     				String password = getPassword(username);
-    				return password != null ? new GenericPrincipal(username, password, Arrays.asList("test")) : null;
+    				return password != null ? new GenericPrincipal(username, password, Arrays.asList("user")) : null;
     			}
     			@Override
     			protected String getPassword(String username) {
@@ -241,7 +233,7 @@ public class MusicMountTester {
     			}
     			@Override
     			protected String getName() {
-    				return "Test Realm";
+    				return "MusicMount";
     			}
     		});
             
@@ -264,8 +256,9 @@ public class MusicMountTester {
 		}
 		String optionMusic = "music";
 		int optionPort = 8080;
-		String optionUser = "test";
-		String optionPassword = String.format("test%03d", new Random().nextInt(1000));
+		String optionUser = null;
+		String optionPassword = null;
+		boolean optionVerbose = false;
 
 		int optionsLength = args.length - 2;
 		for (int i = 0; i < optionsLength; i++) {
@@ -294,6 +287,9 @@ public class MusicMountTester {
 				}
 				optionPassword = args[i];
 				break;
+			case "--verbose":
+				optionVerbose = true;
+				break;
 			default:
 				if (args[i].startsWith("-")) {
 					exitWithError(command, "unknown option: " + args[i]);
@@ -316,6 +312,17 @@ public class MusicMountTester {
 		if (!mountFolder.exists() || mountFolder.isFile()) {
 			exitWithError(command, "output folder doesn't exist" + mountFolder);
 		}		
+		if ((optionUser == null) != (optionPassword == null)) {
+			exitWithError(command, String.format("either both or none of user/password must be given: %s/%s", optionUser, optionPassword));
+		}
+
+		/**
+		 * Configure logging
+		 */
+		LoggingUtil.configure(MusicMountServer.class.getPackage().getName(), optionVerbose ? Level.FINER : Level.FINE);
+		LoggingUtil.configure("org.apache", Level.INFO);
+		LoggingUtil.configure(DigesterFactory.class.getName(), Level.SEVERE); // get rid of warnings on missing jsp schema files		
+		
 		String hostname = InetAddress.getLoopbackAddress().getHostName();
 		try {
 			hostname = InetAddress.getLocalHost().getHostName();
@@ -326,8 +333,10 @@ public class MusicMountTester {
 		LOGGER.info(String.format("Mount Settings"));
 		LOGGER.info(String.format("--------------"));
 		LOGGER.info(String.format("Site: http://%s:%d", hostname, optionPort));
-		LOGGER.info(String.format("User: %s", optionUser));
-		LOGGER.info(String.format("Pass: %s", optionPassword));
+		if (optionUser != null) {
+			LOGGER.info(String.format("User: %s", optionUser));
+			LOGGER.info(String.format("Pass: %s", optionPassword));
+		}
 		LOGGER.info(String.format("--------------"));
 		LOGGER.info(String.format("Starting Server..."));
 		LOGGER.info("Press CTRL-C to exit...");
@@ -335,6 +344,6 @@ public class MusicMountTester {
 	}
 	
 	public static void main(String[] args) throws Exception {
-		execute(MusicMountTester.class.getSimpleName(), args);
+		execute(MusicMountServer.class.getSimpleName(), args);
 	}
 }

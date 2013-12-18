@@ -19,7 +19,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.musicmount.builder.MusicMountBuilder;
-import org.musicmount.tester.MusicMountTester;
+import org.musicmount.server.MusicMountServer;
 import org.musicmount.util.LoggingUtil;
 
 public class MusicMount {
@@ -42,7 +42,7 @@ public class MusicMount {
 		System.err.println();
 		System.err.println("Commands:");
 		System.err.println("       build      generate MusicMount site");
-		System.err.println("       test       launch MusicMount test server");
+		System.err.println("       serve      launch MusicMount server");
 		System.err.close();
 		System.exit(1);	
 	}
@@ -65,7 +65,9 @@ public class MusicMount {
 			MusicMountBuilder.execute(executeCommand, executeArgs);
 			break;
 		case "test":
-			MusicMountTester.execute(executeCommand, executeArgs);
+			LOGGER.warning("Command 'test' is deprecated. Use 'serve' instead");
+		case "serve":
+			MusicMountServer.execute(executeCommand, executeArgs);
 			break;
 		default:
 			exitWithError("unknown command: " + command);

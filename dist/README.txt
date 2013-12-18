@@ -26,7 +26,7 @@ Options:
 Test Site
 ---------
 
-Usage: java -jar musicmount-${project.version}.jar test [options] <music_folder> <mount_folder>
+Usage: java -jar musicmount-${project.version}.jar serve [options] <music_folder> <mount_folder>
 
 Launch MusicMount site in <mount_folder> with music from <music_folder>
 
@@ -35,3 +35,4 @@ Options:
        --port <port>     launch HTTP server on specified port (default 8080)
        --user <user>     login user id (default 'test')
        --password <pass> login password (default 'testXXX', XXX random number)
+       --verbose         more detailed console output
