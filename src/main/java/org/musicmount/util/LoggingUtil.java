@@ -50,6 +50,11 @@ public class LoggingUtil {
 
 	    Logger logger = Logger.getLogger(loggerName);
 	    logger.setLevel(level);
+	    for (Handler hdlr : logger.getHandlers()) {
+	    	if (hdlr instanceof ConsoleHandler) {
+	    		logger.removeHandler(hdlr);
+	    	}
+	    }
 	    logger.addHandler(handler);
 	    logger.setUseParentHandlers(false);
 	}
