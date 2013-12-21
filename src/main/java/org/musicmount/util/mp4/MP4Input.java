@@ -15,28 +15,28 @@
  */
 package org.musicmount.util.mp4;
 
-import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+
+import org.musicmount.util.PositionInputStream;
 
 /**
  * Input box.
  */
-public final class MP4Input extends FilterInputStream implements MP4Box {
-    private long position;
-    private MP4Atom child;
-    
-    public MP4Input (InputStream delegate) throws IOException {
-        super(delegate);
-    }
+public final class MP4Input extends PositionInputStream implements MP4Box {
+	private MP4Atom child;
+
+	public MP4Input(InputStream delegate) throws IOException {
+		super(delegate);
+	}
 
 	public MP4Box getParent() {
 		return null;
 	}
 
-    public String getType() {
-    	return "";
-    }
+	public String getType() {
+		return "";
+	}
 
 	public MP4Atom nextChild() throws IOException {
 		if (child != null) {
@@ -50,10 +50,12 @@ public final class MP4Input extends FilterInputStream implements MP4Box {
 		if (atom.getType().matches(expectedTypeExpression)) {
 			return atom;
 		}
-		throw new IOException ("atom type mismatch, expected " + expectedTypeExpression + ", got " + atom.getType());
+		throw new IOException("atom type mismatch, expected "
+				+ expectedTypeExpression + ", got " + atom.getType());
 	}
 
-	public MP4Atom nextChildUpTo(String expectedTypeExpression) throws IOException {
+	public MP4Atom nextChildUpTo(String expectedTypeExpression)
+			throws IOException {
 		while (true) {
 			MP4Atom atom = nextChild();
 			if (atom.getType().matches(expectedTypeExpression)) {
@@ -62,46 +64,17 @@ public final class MP4Input extends FilterInputStream implements MP4Box {
 		}
 	}
 
-    public int read() throws IOException {
-        int data = super.read();
-        if (data >= 0) {
-        	position++;
-        }
-        return data;
-    }
+	@Override
+	public boolean markSupported() {
+		return false;
+	}
+	
+	@Override
+	public synchronized void reset() throws IOException {
+		throw new IOException("mark/reset not supported");
+	}
 
-    public int read(byte[] b, int off, int len) throws IOException {
-    	long p = position;
-        int read = super.read(b, off, len);
-        position = p + read;
-        return read;
-    }
-  
-    @Override
-    public int read(byte[] b) throws IOException {
-    	long p = position;
-        int read = super.read(b);
-        position = p + read;
-        return read;
-    }
-    
-    public long skip(long n) throws IOException {
-    	long p = position;
-        long skipped = super.skip(n);
-        position = p + skipped;
-        return skipped;
-    }
-    
-    @Override
-    public synchronized void reset() throws IOException {
-    	throw new IOException("mark/reset not supported");
-    }
-    
-    public long getPosition() {
-        return position;
-    }
-    
-    public String toString() {
-    	return "mp4[pos=" + position + "]";
-    }
+	public String toString() {
+		return "mp4[pos=" + getPosition() + "]";
+	}
 }
