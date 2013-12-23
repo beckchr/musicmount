@@ -16,11 +16,13 @@
 package org.musicmount.builder;
 
 import java.io.File;
+import java.nio.file.Files;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.musicmount.builder.impl.AssetLocator;
+import org.musicmount.builder.impl.AssetStore;
 import org.musicmount.builder.impl.LibraryParser;
 import org.musicmount.builder.impl.LocalStrings;
 import org.musicmount.builder.impl.ResourceLocator;
@@ -28,7 +30,6 @@ import org.musicmount.builder.impl.ResponseFormatter;
 import org.musicmount.builder.impl.SimpleAssetLocator;
 import org.musicmount.builder.impl.SimpleAssetParser;
 import org.musicmount.builder.impl.SimpleResourceLocator;
-import org.musicmount.builder.impl.AssetStore;
 import org.musicmount.builder.model.Library;
 
 /*
@@ -40,10 +41,16 @@ public class MusicMountBuilderTest {
 
 	@Test
 	public void testMain() throws Exception {
-		String input = new File(getClass().getResource("/sample-library").toURI()).getAbsolutePath();
+		File input = new File(getClass().getResource("/sample-library").toURI());
 		String output = outputFolder.getRoot().getAbsolutePath();
-		MusicMountBuilder.main(new String[]{ "--pretty", "--full", input, output });
-		MusicMountBuilder.main(new String[]{ "--pretty", input, output }); // use asset store
+		MusicMountBuilder.main(new String[]{ "--pretty", "--full", input.getAbsolutePath(), output });
+		MusicMountBuilder.main(new String[]{ "--pretty", input.getAbsolutePath(), output }); // use asset store
+
+		Files.createSymbolicLink(new File(output, "myMusic").toPath(), input.toPath());
+		MusicMountBuilder.main(new String[]{ "--music", "myMusic", output }); // again, with existing link
+
+		Files.createSymbolicLink(new File(output, "music").toPath(), input.toPath());
+		MusicMountBuilder.main(new String[]{ output }); // again, with existing (default) link
 	}
 
 	@Test

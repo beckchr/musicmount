@@ -114,16 +114,19 @@ public class MusicMountServer {
 		System.err.println();
 		System.err.println("*** " + (error == null ? "internal error" : error));
 		System.err.println();
-		System.err.println(String.format("Usage: %s [options] <music_folder> <mount_folder>", command));
+		System.err.println(String.format("Usage: %s [options] [<music_folder>] <mount_folder>", command));
 		System.err.println();
 		System.err.println("Launch MusicMount site in <mount_folder> with music from <music_folder>");
 		System.err.println();
+		System.err.println("         <music_folder>   input folder, default is <mount_folder>/<value of --music option>");
+		System.err.println("         <mount_folder>   output folder to contain the generated site");
+		System.err.println();
 		System.err.println("Options:");
-		System.err.println("       --music <path>    music path prefix, default is 'music'");
-		System.err.println("       --port <port>     launch HTTP server on specified port (default 8080)");
-		System.err.println("       --user <user>     login user");
-		System.err.println("       --password <pass> login password");
-		System.err.println("       --verbose         more detailed console output");
+		System.err.println("       --music <path>     music path prefix, default is 'music'");
+		System.err.println("       --port <port>      launch HTTP server on specified port (default 8080)");
+		System.err.println("       --user <user>      login user");
+		System.err.println("       --password <pass>  login password");
+		System.err.println("       --verbose          more detailed console output");
 		System.err.close();
 		System.exit(1);	
 	}
@@ -251,51 +254,52 @@ public class MusicMountServer {
 	 * @throws Exception
 	 */
 	public static void execute(String command, String[] args) throws Exception {
-		if (args.length < 2) {
-			exitWithError(command, "missing arguments");
-		}
 		String optionMusic = "music";
 		int optionPort = 8080;
 		String optionUser = null;
 		String optionPassword = null;
 		boolean optionVerbose = false;
 
-		int optionsLength = args.length - 2;
-		for (int i = 0; i < optionsLength; i++) {
-			switch (args[i]) {
+		int optionsLength = 0;
+		boolean optionsDone = false;
+		while (optionsLength < args.length && !optionsDone) {
+			switch (args[optionsLength]) {
 			case "--music":
-				if (++i == optionsLength) {
+				if (++optionsLength == args.length) {
 					exitWithError(command, "invalid arguments");
 				}
-				optionMusic = args[i];
+				optionMusic = args[optionsLength];
 				break;
 			case "--port":
-				if (++i == optionsLength) {
+				if (++optionsLength == args.length) {
 					exitWithError(command, "invalid arguments");
 				}
-				optionPort = Integer.parseInt(args[i]);
+				optionPort = Integer.parseInt(args[optionsLength]);
 				break;
 			case "--user":
-				if (++i == optionsLength) {
+				if (++optionsLength == args.length) {
 					exitWithError(command, "invalid arguments");
 				}
-				optionUser = args[i];
+				optionUser = args[optionsLength];
 				break;
 			case "--password":
-				if (++i == optionsLength) {
+				if (++optionsLength == args.length) {
 					exitWithError(command, "invalid arguments");
 				}
-				optionPassword = args[i];
+				optionPassword = args[optionsLength];
 				break;
 			case "--verbose":
 				optionVerbose = true;
 				break;
 			default:
-				if (args[i].startsWith("-")) {
-					exitWithError(command, "unknown option: " + args[i]);
+				if (args[optionsLength].startsWith("-")) {
+					exitWithError(command, "unknown option: " + args[optionsLength]);
 				} else {
-					exitWithError(command, "invalid arguments");
+					optionsDone = true;
 				}
+			}
+			if (!optionsDone) {
+				optionsLength++;
 			}
 		}
 		for (int i = optionsLength; i < args.length; i++) {
@@ -304,14 +308,32 @@ public class MusicMountServer {
 			}
 		}
 
-		File musicFolder = new File(args[optionsLength]);
+		File musicFolder = null;
+		File mountFolder = null;
+		switch (args.length - optionsLength) {
+		case 0:
+			exitWithError(command, "missing arguments");
+			break;
+		case 1:
+			mountFolder = new File(args[optionsLength]);
+			musicFolder = new File(mountFolder, optionMusic);
+			break;
+		case 2:
+			musicFolder = new File(args[optionsLength]);
+			mountFolder = new File(args[optionsLength + 1]);
+			if (!mountFolder.exists() && !mountFolder.mkdirs()) {
+				exitWithError(command, "cannot create mount folder " + mountFolder);
+			}
+			break;
+		default:
+			exitWithError(command, "bad arguments");
+		}
+		if (!mountFolder.exists() || mountFolder.isFile()) {
+			exitWithError(command, "mount folder doesn't exist: " + mountFolder);
+		}
 		if (!musicFolder.exists() || musicFolder.isFile()) {
 			exitWithError(command, "music folder doesn't exist: " + musicFolder);
 		}
-		File mountFolder = new File(args[optionsLength + 1]);
-		if (!mountFolder.exists() || mountFolder.isFile()) {
-			exitWithError(command, "output folder doesn't exist" + mountFolder);
-		}		
 		if ((optionUser == null) != (optionPassword == null)) {
 			exitWithError(command, String.format("either both or none of user/password must be given: %s/%s", optionUser, optionPassword));
 		}

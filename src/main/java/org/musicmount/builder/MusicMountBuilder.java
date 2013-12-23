@@ -160,9 +160,12 @@ public class MusicMountBuilder {
 		System.err.println();
 		System.err.println("*** " + (error == null ? "internal error" : error));
 		System.err.println();
-		System.err.println(String.format("Usage: %s [options] <music_folder> <mount_folder>", command));
+		System.err.println(String.format("Usage: %s [options] [<music_folder>] <mount_folder>", command));
 		System.err.println();
 		System.err.println("Generate MusicMount site from music in <music_folder> into <mount_folder>");
+		System.err.println();
+		System.err.println("         <music_folder>   input folder, default is <mount_folder>/<value of --music option>");
+		System.err.println("         <mount_folder>   output folder to contain the generated site");
 		System.err.println();
 		System.err.println("Options:");
 		System.err.println("       --music <path>     music path prefix, default is 'music'");
@@ -174,7 +177,7 @@ public class MusicMountBuilder {
 		System.err.println("       --noDirectoryIndex use 'path/index.ext' instead of 'path/'");
 		System.err.println("       --pretty           pretty-print JSON documents");
 		System.err.println("       --verbose          more detailed console output");
-//		System.err.println("       --normalize <form> normalize asset paths, one of NFC|NFD");
+//		System.err.println("       --normalize <form> normalize asset paths, 'NFC'|'NFD'");
 //		System.err.println("       --noImages         do not generate images");
 //		System.err.println("       --xml              generate XML instead of JSON");
 		System.err.close();
@@ -187,9 +190,6 @@ public class MusicMountBuilder {
 	 * @throws Exception
 	 */
 	public static void execute(String command, String[] args) throws Exception {
-		if (args.length < 2) {
-			exitWithError(command, "missing arguments");
-		}
 		String optionMusic = "music";
 		boolean optionRetina = false;
 		boolean optionPretty = false;
@@ -203,14 +203,15 @@ public class MusicMountBuilder {
 		boolean optionNoDirectoryIndex = false;
 		Normalizer.Form optionNormalize = null;
 
-		int optionsLength = args.length - 2;
-		for (int i = 0; i < optionsLength; i++) {
-			switch (args[i]) {
+		int optionsLength = 0;
+		boolean optionsDone = false;
+		while (optionsLength < args.length && !optionsDone) {
+			switch (args[optionsLength]) {
 			case "--music":
-				if (++i == optionsLength) {
+				if (++optionsLength == args.length) {
 					exitWithError(command, "invalid arguments");
 				}
-				optionMusic = args[i];
+				optionMusic = args[optionsLength];
 				break;
 			case "--retina":
 				optionRetina = true;
@@ -243,21 +244,24 @@ public class MusicMountBuilder {
 				optionGrouping = true;
 				break;
 			case "--normalize":
-				if (++i == optionsLength) {
+				if (++optionsLength == args.length) {
 					exitWithError(command, "invalid arguments");
 				}
 				try {
-					optionNormalize = Normalizer.Form.valueOf(args[i]);
+					optionNormalize = Normalizer.Form.valueOf(args[optionsLength]);
 				} catch (IllegalArgumentException e) {
-					exitWithError(command, "invalid normalize form: " + args[i]);
+					exitWithError(command, "invalid normalize form: " + args[optionsLength]);
 				}
 				break;
 			default:
-				if (args[i].startsWith("-")) {
-					exitWithError(command, "unknown option: " + args[i]);
+				if (args[optionsLength].startsWith("-")) {
+					exitWithError(command, "unknown option: " + args[optionsLength]);
 				} else {
-					exitWithError(command, "invalid arguments");
+					optionsDone = true;
 				}				
+			}
+			if (!optionsDone) {
+				optionsLength++;
 			}
 		}
 		for (int i = optionsLength; i < args.length; i++) {
@@ -265,14 +269,32 @@ public class MusicMountBuilder {
 				exitWithError(command, "invalid arguments");
 			}
 		}
-
-		final File inputFolder = new File(args[optionsLength]);
-		if (!inputFolder.exists() || inputFolder.isFile()) {
-			exitWithError(command, "input folder doesn't exist: " + inputFolder);
+		
+		File musicFolder = null;
+		File mountFolder = null;
+		switch (args.length - optionsLength) {
+		case 0:
+			exitWithError(command, "missing arguments");
+			break;
+		case 1:
+			mountFolder = new File(args[optionsLength]);
+			musicFolder = new File(mountFolder, optionMusic);
+			break;
+		case 2:
+			musicFolder = new File(args[optionsLength]);
+			mountFolder = new File(args[optionsLength + 1]);
+			if (!mountFolder.exists() && !mountFolder.mkdirs()) {
+				exitWithError(command, "cannot create mount folder " + mountFolder);
+			}
+			break;
+		default:
+			exitWithError(command, "bad arguments");
 		}
-		final File outputFolder = new File(args[optionsLength + 1]);
-		if (!outputFolder.exists() && !outputFolder.mkdirs()) {
-			exitWithError(command, "cannot create output folder " + outputFolder);
+		if (!mountFolder.exists() || mountFolder.isFile()) {
+			exitWithError(command, "mount folder doesn't exist: " + mountFolder);
+		}
+		if (!musicFolder.exists() || musicFolder.isFile()) {
+			exitWithError(command, "music folder doesn't exist: " + musicFolder);
 		}
 
 		/**
@@ -281,9 +303,9 @@ public class MusicMountBuilder {
 		LoggingUtil.configure(MusicMountBuilder.class.getPackage().getName(), optionVerbose ? Level.FINER : Level.FINE);
 
 		LocalStrings localStrings = new LocalStrings(Locale.ENGLISH);
-		File assetStoreFile = new File(outputFolder, ASSET_STORE);
+		File assetStoreFile = new File(mountFolder, ASSET_STORE);
 
-		AssetLocator assetStoreAssetLocator = new SimpleAssetLocator(inputFolder, null, null); // no prefix, no normalization
+		AssetLocator assetStoreAssetLocator = new SimpleAssetLocator(musicFolder, null, null); // no prefix, no normalization
 		AssetStore assetStore = new AssetStore(API_VERSION);
 		boolean assetStoreLoaded = false;
 		if (!optionFull && assetStoreFile.exists()) {
@@ -300,7 +322,7 @@ public class MusicMountBuilder {
 		AssetParser assetParser = new SimpleAssetParser();
 
 		LOGGER.info("Updating asset store...");
-		assetStore.update(inputFolder, assetParser);
+		assetStore.update(musicFolder, assetParser);
 
 		LOGGER.info("Building music libary...");
 		Library library = new LibraryParser().parse(assetStore.assets());
@@ -312,7 +334,7 @@ public class MusicMountBuilder {
 			LOGGER.fine(String.format("Number of albums changed: %d", changedAlbums.size()));
 		}
 
-		ResourceLocator resourceLocator = new SimpleResourceLocator(outputFolder, optionXML, optionNoImages);
+		ResourceLocator resourceLocator = new SimpleResourceLocator(mountFolder, optionXML, optionNoImages);
 
 		if (optionNoImages) {
 			assetStore.setRetina(null);
@@ -333,9 +355,9 @@ public class MusicMountBuilder {
 		} else {
 			responseFormatter = new ResponseFormatter.JSON(API_VERSION, localStrings, optionNoDirectoryIndex, optionUnknownGenre, optionGrouping, optionPretty);
 		}
-		AssetLocator responseAssetLocator = new SimpleAssetLocator(inputFolder, optionMusic, optionNormalize);
+		AssetLocator responseAssetLocator = new SimpleAssetLocator(musicFolder, optionMusic, optionNormalize);
 		LOGGER.info("Generating JSON...");
-		generateResponseFiles(library, outputFolder, responseFormatter, resourceLocator, responseAssetLocator);
+		generateResponseFiles(library, mountFolder, responseFormatter, resourceLocator, responseAssetLocator);
 
 		LOGGER.info("Saving asset store...");
 		try (OutputStream assetStoreOutput = createOutputStream(assetStoreFile)) {

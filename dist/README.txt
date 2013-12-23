@@ -10,7 +10,10 @@ Build Site
 
 Usage: java -jar musicmount-${project.version}.jar build [options] <music_folder> <mount_folder>
 
-Generate MusicMount site from music in <music_folder> into <mount_folder>
+Generate MusicMount site from music in [<music_folder>] into <mount_folder>
+
+         <music_folder>   input folder, default is <mount_folder>/<value of --music option>
+         <mount_folder>   output folder to contain the generated site
 
 Options:
        --music <path>     music path prefix, default is 'music'
@@ -26,13 +29,16 @@ Options:
 Test Site
 ---------
 
-Usage: java -jar musicmount-${project.version}.jar serve [options] <music_folder> <mount_folder>
+Usage: java -jar musicmount-${project.version}.jar serve [options] [<music_folder>] <mount_folder>
 
 Launch MusicMount site in <mount_folder> with music from <music_folder>
 
+         <music_folder>   input folder, default is <mount_folder>/<value of --music option>
+         <mount_folder>   output folder to contain the generated site
+
 Options:
-       --music <path>    music path prefix, default is 'music'
-       --port <port>     launch HTTP server on specified port (default 8080)
-       --user <user>     login user id (default 'test')
-       --password <pass> login password (default 'testXXX', XXX random number)
-       --verbose         more detailed console output
+       --music <path>     music path prefix, default is 'music'
+       --port <port>      launch HTTP server on specified port (default 8080)
+       --user <user>      login user id (default 'test')
+       --password <pass>  login password (default 'testXXX', XXX random number)
+       --verbose          more detailed console output
