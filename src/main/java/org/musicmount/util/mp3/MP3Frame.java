@@ -74,14 +74,13 @@ public class MP3Frame {
 	};
 	
 	// [channelMode][version]
-	private static final int[][] XING_OFFSETS = new int[][] {
+	private static final int[][] XING_HEADER_OFFSETS = new int[][] {
 			// 2.5  reserved  2        1
 			{  21,    -1,    21,      36 }, // stereo
 			{  21,    -1,    21,      36 }, // joint stereo
 			{  21,    -1,    21,      36 }, // dual channel
 			{  13,    -1,    13,      21 }, // mono
 	};
-	
 	
 	// [version][layer]
 	private static final int[][] SIZE_COEFFICIENTS = new int[][] {
@@ -173,7 +172,7 @@ public class MP3Frame {
 					frameSizeSum += nextFrame.getSize();
 					numberOfFrames++;
 				}
-				long duration = 1000L * frameSizeSum * numberOfFrames * 8 / bitrateSum; // == 1000 * audioByteCount / (8 * averageBitrate)
+				long duration = 1000L * frameSizeSum * numberOfFrames * 8 / bitrateSum; // == 1000 * frameSizeSum / (8 * averageBitrate)
 //				System.out.println("Scanned for duration, numberOfFrames=" + numberOfFrames + ", durationDiff=" + (frameDuration - duration) + ", vbr=" + vbr);
 				return duration;
 			}
@@ -266,7 +265,10 @@ public class MP3Frame {
 	}
 	
 	boolean isXingFrame() {
-		int xingOffset = XING_OFFSETS[channelMode][version];
+		int xingOffset = XING_HEADER_OFFSETS[channelMode][version];
+		if (bytes.length < xingOffset + 12) { // minimum Xing header size == 12
+			return false;
+		}
 		if (xingOffset < 0 || bytes.length < xingOffset + 8) {
 			return false;
 		}
@@ -278,10 +280,18 @@ public class MP3Frame {
 		}
 		return false;
 	}
-	
+
+	boolean isVBRIFrame() {
+		int vbriOffset = 36;
+		if (bytes.length < vbriOffset + 26) { // minimum VBRI header size == 26
+			return false;
+		}
+		return bytes[vbriOffset] == 'V' && bytes[vbriOffset + 1] == 'B' && bytes[vbriOffset + 2] == 'R' && bytes[vbriOffset + 3] == 'I';
+	}
+
 	public int getNumberOfFrames() {
 		if (isXingFrame()) {
-			int xingOffset = XING_OFFSETS[channelMode][version];
+			int xingOffset = XING_HEADER_OFFSETS[channelMode][version];
 			byte flags = bytes[xingOffset + 7];
 			if ((flags & 0xF01) != 0) {
 				return  ((bytes[xingOffset +  8] & 0xFF) << 24) |
@@ -289,6 +299,12 @@ public class MP3Frame {
 						((bytes[xingOffset + 10] & 0xFF) << 8)  |
 						( bytes[xingOffset + 11] & 0xFF);
 			}
+		} else if (isVBRIFrame()) {
+			int vbriOffset = 36;
+			return  ((bytes[vbriOffset + 14] & 0xFF) << 24) |
+					((bytes[vbriOffset + 15] & 0xFF) << 16) |
+					((bytes[vbriOffset + 16] & 0xFF) << 8)  |
+					( bytes[vbriOffset + 17] & 0xFF);
 		}
 		return -1;
 	}
