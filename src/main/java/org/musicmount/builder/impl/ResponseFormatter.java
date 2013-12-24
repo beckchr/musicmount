@@ -16,7 +16,7 @@
 package org.musicmount.builder.impl;
 
 import java.io.OutputStream;
-import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -100,7 +100,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 	private final boolean includeUnknownGenre;
 	private final boolean useGrouping;
 
-	private final String updateToken = DateFormat.getDateTimeInstance().format(new Date());
+	private final String updateToken = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(new Date());
 	
 	ResponseFormatter(String apiVersion, LocalStrings localStrings, String directoryIndex, boolean includeUnknownGenre, boolean useGrouping) {
 		this.apiVersion = apiVersion;
