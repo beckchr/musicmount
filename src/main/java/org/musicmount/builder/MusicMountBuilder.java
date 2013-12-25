@@ -283,17 +283,24 @@ public class MusicMountBuilder {
 		case 2:
 			musicFolder = new File(args[optionsLength]);
 			mountFolder = new File(args[optionsLength + 1]);
-			if (!mountFolder.exists() && !mountFolder.mkdirs()) {
-				exitWithError(command, "cannot create mount folder " + mountFolder);
-			}
 			break;
 		default:
 			exitWithError(command, "bad arguments");
 		}
-		if (!mountFolder.exists() || mountFolder.isFile()) {
-			exitWithError(command, "mount folder doesn't exist: " + mountFolder);
+		if (mountFolder.exists()) {
+			if (!mountFolder.isDirectory()) {
+				exitWithError(command, "mount folder is not a directory: " + mountFolder);
+			}
+		} else {
+			if (!mountFolder.mkdirs()) {
+				exitWithError(command, "cannot create mount folder " + mountFolder);
+			}
 		}
-		if (!musicFolder.exists() || musicFolder.isFile()) {
+		if (musicFolder.exists()) {
+			if (!musicFolder.isDirectory()) {
+				exitWithError(command, "music folder is not a directory: " + musicFolder);
+			}
+		} else {			
 			exitWithError(command, "music folder doesn't exist: " + musicFolder);
 		}
 

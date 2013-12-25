@@ -19,6 +19,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.musicmount.builder.MusicMountBuilder;
+import org.musicmount.linker.MusicMountLinker;
 import org.musicmount.server.MusicMountServer;
 import org.musicmount.util.LoggingUtil;
 
@@ -61,6 +62,9 @@ public class MusicMount {
 		System.arraycopy(args, 1, executeArgs, 0, executeArgs.length);
 
 		switch (command) {
+		case "link":
+			MusicMountLinker.execute(executeCommand, executeArgs);
+			break;
 		case "build":
 			MusicMountBuilder.execute(executeCommand, executeArgs);
 			break;
