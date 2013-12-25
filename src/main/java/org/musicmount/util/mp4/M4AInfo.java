@@ -22,7 +22,7 @@ import java.math.BigDecimal;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.mpatric.mp3agic.ID3v1Genres;
+import org.musicmount.util.mp3.ID3v1Genre;
 
 /**
  * M4A info.
@@ -322,7 +322,10 @@ public class M4AInfo {
 			if (genre == null || genre.trim().length() == 0) {
 				if (atom.getRemaining() == 2) { // id3v1 genre?
 					int index = atom.readShort() - 1;
-					genre = index >= 0 && index < ID3v1Genres.GENRES.length ? ID3v1Genres.GENRES[index] : null;
+					ID3v1Genre id3v1Genre = ID3v1Genre.getGenre(index);
+					if (id3v1Genre != null) {
+						genre = id3v1Genre.getDescription();
+					}
 				} else {
 					genre = atom.readString(UTF_8);
 				}

@@ -20,8 +20,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.mpatric.mp3agic.ID3v1Genres;
-
 public class ID3v2Info {
 	static final Logger LOGGER = Logger.getLogger(ID3v2Info.class.getName());
 
@@ -128,15 +126,27 @@ public class ID3v2Info {
 		case "TCO":
 		case "TCON":
 			String tcon = parseTextFrame(data, frame);
-			try {
-				int genreNumber = extractGenreNumber(tcon);
-				if (genreNumber >= 0 && genreNumber < ID3v1Genres.GENRES.length) {
-					genre = ID3v1Genres.GENRES[genreNumber];
-				} else {
-					genre = extractGenreDescription(tcon);
+			if (tcon.length() > 0) {
+				genre = tcon;
+				try {
+					ID3v1Genre id3v1Genre = null;
+					if (tcon.charAt(0) == '(') {
+						int pos = tcon.indexOf(')');
+						if (pos > 1) { // (123)
+							id3v1Genre = ID3v1Genre.getGenre(Integer.parseInt(tcon.substring(1, pos)));
+							if (id3v1Genre == null && tcon.length() > pos + 1) { // (789)Special
+								genre = tcon.substring(pos + 1);
+							}
+						}
+					} else { // 123
+						id3v1Genre = ID3v1Genre.getGenre(Integer.parseInt(tcon));
+					}
+					if (id3v1Genre != null) {
+						genre = id3v1Genre.getDescription();
+					}
+				} catch (NumberFormatException e) {
+					// ignore
 				}
-			} catch (NumberFormatException e) {
-				genre = extractGenreDescription(tcon);
 			}
 			break;
 		case "TCR":
@@ -249,30 +259,6 @@ public class ID3v2Info {
 			data.skipFully(frame.getBodySize());
 			break;
 		}
-	}
-	
-	protected int extractGenreNumber(String tcon) throws NumberFormatException {
-		if (tcon.length() > 0) {
-			if (tcon.charAt(0) == '(') {
-				int pos = tcon.indexOf(')');
-				if (pos > 0) {
-					return Integer.parseInt(tcon.substring(1, pos));
-				}
-			}
-		}
-		return Integer.parseInt(tcon);
-	}
-	
-	protected String extractGenreDescription(String tcon) throws NumberFormatException {
-		if (tcon.length() > 0) {
-			if (tcon.charAt(0) == '(') {
-				int pos = tcon.indexOf(')');
-				if (pos > 0) {
-					return tcon.substring(pos + 1);
-				}
-			}
-		}
-		return tcon;
 	}
 	
 	String extractString(byte[] bytes, int offset, int length, ID3v2Encoding encoding) throws UnsupportedEncodingException {
