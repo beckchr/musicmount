@@ -15,6 +15,7 @@
  */
 package org.musicmount.util.mp3;
 
+import java.io.EOFException;
 import java.io.IOException;
 
 public class MP3Frame {
@@ -96,12 +97,26 @@ public class MP3Frame {
 		// reserved III        II         I
 		  -1,        1,         1,        4
 	};
+	
+	public static interface StopReadCondition {
+		public static final StopReadCondition NEVER_STOP = new StopReadCondition() {
+			@Override
+			public boolean stopRead(MP3Input data) {
+				return false;
+			}
+		};
+		public boolean stopRead(MP3Input data) throws IOException;
+	}
 
-	public static MP3Frame readNextFrame(MP3Input data) throws IOException {
+	public static MP3Frame readNextFrame(MP3Input data, StopReadCondition stopCondition) throws IOException {
 		int b0 = 0;
 		int b1;
 		
-		while ((b1 = data.read()) != -1) {
+		while (!stopCondition.stopRead(data)) {
+			b1 = data.read();
+			if (b1 == -1) {
+				break;
+			}
 			if (b0 == 0xFF && (b1 & 0xE0) == 0xE0) { // first 11 bits should be 1
 				data.mark(2);
 				int b2 = data.read();
@@ -116,6 +131,8 @@ public class MP3Frame {
 					return new MP3Frame(b1, b2, b3, data);
 				} catch (MP3Exception e) {
 					data.reset();
+				} catch (EOFException e) {
+					break;
 				}
 			}
 			b0 = b1;
@@ -123,18 +140,13 @@ public class MP3Frame {
 		return null;
 	}
 	
-	public static long calculateDuration(MP3Input data, long totalLength) throws IOException {
-		MP3Frame firstFrame = MP3Frame.readNextFrame(data);
+	public static long calculateDuration(MP3Input data, long totalLength, StopReadCondition stopCondition) throws IOException, MP3Exception {
+		MP3Frame firstFrame = MP3Frame.readNextFrame(data, stopCondition);
 		if (firstFrame != null) {
 			// check for Xing header
 			int numberOfFrames = firstFrame.getNumberOfFrames();
-			if (numberOfFrames > 0) { // from Xing header
-//				System.out.println("Found Xing header");
-				long duration = 1000L * numberOfFrames * firstFrame.getSampleCount() / firstFrame.getFrequency();
-				if (firstFrame.getVersion() != MP3Frame.MPEG_VERSION_1 && firstFrame.getChannelMode() == MP3Frame.MPEG_CHANNEL_MODE_MONO) {
-					duration /= 2;
-				}
-				return duration;
+			if (numberOfFrames > 0) { // from Xing/VBRI header
+				return firstFrame.getTotalDuration(numberOfFrames * firstFrame.getSize());
 			} else { // scan file
 				numberOfFrames = 1;
 
@@ -144,40 +156,33 @@ public class MP3Frame {
 				int firstFrameBitrate = firstFrame.getBitrate();
 				long bitrateSum = firstFrameBitrate;
 				boolean vbr = false;
-				int cbrThreshold = (int)(10000 / firstFrame.getDuration()); // assume cbr after 10 seconds
-
-				@SuppressWarnings("unused")
-				double frameDuration = firstFrame.getDuration(); // debug
+				int cbrThreshold = 10000 / firstFrame.getDuration(); // assume cbr after 10 seconds
 
 				MP3Frame nextFrame = null;
 				while (true) {
-					if (numberOfFrames == cbrThreshold && !vbr && totalLength > 0) { 
-//						duration = (long)(firstAudioFrame.getDuration() * (totalLength - firstAudioFramePosition) / firstAudioFrame.getSize());
-						long duration = 1000L * (firstFrame.getSampleCount() * (totalLength - firstFramePosition))
-								/ (firstFrame.getSize() * firstFrame.getFrequency());
-						if (firstFrame.getVersion() != MP3Frame.MPEG_VERSION_1 && firstFrame.getChannelMode() == MP3Frame.MPEG_CHANNEL_MODE_MONO) {
-							duration /= 2;
-						}
-						return duration;
+					if (numberOfFrames == cbrThreshold && !vbr && totalLength > 0) {
+						return firstFrame.getTotalDuration(totalLength - firstFramePosition);
 					}
-					if ((nextFrame = MP3Frame.readNextFrame(data)) == null) {
+					if ((nextFrame = MP3Frame.readNextFrame(data, stopCondition)) == null) {
 						break;
+					}
+					if (!firstFrame.isCompatible(nextFrame)) {
+						throw new MP3Exception("Incompatible frame");
 					}
 					int bitrate = nextFrame.getBitrate();
 					if (bitrate != firstFrameBitrate) {
 						vbr = true;
 					}
 					bitrateSum += bitrate;
-					frameDuration += nextFrame.getDuration();
 					frameSizeSum += nextFrame.getSize();
 					numberOfFrames++;
 				}
 				long duration = 1000L * frameSizeSum * numberOfFrames * 8 / bitrateSum; // == 1000 * frameSizeSum / (8 * averageBitrate)
-//				System.out.println("Scanned for duration, numberOfFrames=" + numberOfFrames + ", durationDiff=" + (frameDuration - duration) + ", vbr=" + vbr);
 				return duration;
 			}
+		} else {
+			throw new MP3Exception("No audio frame");
 		}
-		return 0;
 	}
 
 	private final int version;
@@ -252,18 +257,22 @@ public class MP3Frame {
 		return bytes.length;
 	}
 	
-	public double getDuration() {
-		double duration = 1000.0 * getSampleCount() / getFrequency();
-		if (version != MPEG_VERSION_1 && getChannelMode() == MPEG_CHANNEL_MODE_MONO) {
-			duration /= 2.0;
-		}
-		return duration;
-	}
-
 	public int getBitrate() {
 		return BITRATES[bitrate][BITRATES_COLUMN[version][layer]];
 	}
 	
+	public int getDuration() {
+		return (int)getTotalDuration(getSize());
+	}
+
+	public long getTotalDuration(long totalSize) {
+		long duration = 1000L * (getSampleCount() * totalSize) / (getSize() * getFrequency());
+		if (getVersion() != MP3Frame.MPEG_VERSION_1 && getChannelMode() == MP3Frame.MPEG_CHANNEL_MODE_MONO) {
+			duration /= 2;
+		}
+		return duration;
+	}
+
 	boolean isXingFrame() {
 		int xingOffset = XING_HEADER_OFFSETS[channelMode][version];
 		if (bytes.length < xingOffset + 12) { // minimum Xing header size == 12
@@ -307,5 +316,9 @@ public class MP3Frame {
 					( bytes[vbriOffset + 17] & 0xFF);
 		}
 		return -1;
+	}
+	
+	public boolean isCompatible(MP3Frame frame) {
+		return layer == frame.layer && version == frame.version && frequency == frame.frequency && channelMode == frame.channelMode;
 	}
 }

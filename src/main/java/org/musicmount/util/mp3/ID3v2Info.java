@@ -95,7 +95,6 @@ public class ID3v2Info {
 				LOGGER.fine("ID3 exception occured: " + e.getMessage());
 			}
 		}
-		// TODO id3v1
 	}
 
 	void parseFrame(MP3Input data, ID3v2FrameHeader frame) throws IOException, ID3Exception {

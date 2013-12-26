@@ -33,7 +33,7 @@ public class MP3Input extends PositionInputStream {
 			if (current > 0) {
 				total += current;
 			} else {
-				throw new IOException("could not read fully...");
+				throw new EOFException();
 			}
 		}
 	}
@@ -44,14 +44,14 @@ public class MP3Input extends PositionInputStream {
 		return bytes;
 	}
 	
-	public void skipFully(int len) throws IOException {
+	public void skipFully(long len) throws IOException {
 		long total = 0;
 		while (total < len) {
 			long current = skip(len - total);
 			if (current > 0) {
 				total += current;
 			} else {
-				throw new IOException("could not skip fully...");
+				throw new EOFException();
 			}
 		}
 	}
