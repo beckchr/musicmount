@@ -171,7 +171,35 @@ public class MP3Frame {
 			throw new MP3Exception("No audio frame");
 		}
 	}
-	
+
+	static final class CRC16 {
+		private short crc = (short) 0xFFFF;
+
+		public void update(int value, int length) {
+			int mask = 1 << (length - 1);
+			do {
+				if (((crc & 0x8000) == 0) ^ ((value & mask) == 0)) {
+					crc <<= 1;
+					crc ^= 0x8005;
+				} else {
+					crc <<= 1;
+				}
+			} while ((mask >>>= 1) != 0);
+		}
+
+		public void update(byte value) {
+			update(value, 8);
+		}
+		
+		public short getValue() {
+			return crc;
+		}
+		
+		public void reset() {
+			crc = (short) 0xFFFF;
+		}
+	}
+
 	public static class Header {
 		private static final int MPEG_LAYER_RESERVED = 0;
 		private static final int MPEG_VERSION_RESERVED = 1;
@@ -233,12 +261,12 @@ public class MP3Frame {
 		};
 
 		// [channelMode][version]
-		private static final int[][] XING_HEADER_OFFSETS = new int[][] {
+		private static final int[][] SIDE_INFO_SIZES = new int[][] {
 				// 2.5  reserved  2        1
-				{  21,    -1,    21,      36 }, // stereo
-				{  21,    -1,    21,      36 }, // joint stereo
-				{  21,    -1,    21,      36 }, // dual channel
-				{  13,    -1,    13,      21 }, // mono
+				{  17,    -1,    17,      32 }, // stereo
+				{  17,    -1,    17,      32 }, // joint stereo
+				{  17,    -1,    17,      32 }, // dual channel
+				{   9,    -1,     9,      17 }, // mono
 		};
 
 		public static final int MPEG_LAYER_1 = 3;
@@ -250,6 +278,7 @@ public class MP3Frame {
 		public static final int MPEG_VERSION_2_5 = 0;
 
 		public static final int MPEG_CHANNEL_MODE_MONO = 3;
+		public static final int MPEG_PROTECTION_CRC = 0;
 
 		private final int version;
 		private final int layer;
@@ -257,6 +286,7 @@ public class MP3Frame {
 		private final int bitrate;
 		private final int channelMode;
 		private final int padding;
+		private final int protection;
 
 		Header(int b1, int b2, int b3) throws MP3Exception {
 			version = b1 >> 3 & 0x3;
@@ -280,9 +310,17 @@ public class MP3Frame {
 			}
 			channelMode = b3 >> 6 & 0x3;
 			padding = b2 >> 1 & 0x1;
+			protection = b1 & 0x1;
 
-			if (getFrameSize() < 4) {
-				throw new MP3Exception("Size must be at least four");
+			int minFrameSize = 4;
+			if (protection == MPEG_PROTECTION_CRC) {
+				minFrameSize += 2;
+			}
+			if (layer == MPEG_LAYER_3) {
+				minFrameSize += getSideInfoSize();
+			}
+			if (getFrameSize() < minFrameSize) {
+				throw new MP3Exception("Frame size must be at least " + minFrameSize);
 			}
 		}
 
@@ -300,6 +338,10 @@ public class MP3Frame {
 
 		public int getChannelMode() {
 			return channelMode;
+		}
+		
+		public int getProtection() {
+			return protection;
 		}
 
 		public int getSampleCount() {
@@ -334,12 +376,16 @@ public class MP3Frame {
 			return layer == header.layer && version == header.version && frequency == header.frequency && channelMode == header.channelMode;
 		}
 		
+		public int getSideInfoSize() {
+			return SIDE_INFO_SIZES[channelMode][version];
+		}
+		
 		public int getXingOffset() {
-			return XING_HEADER_OFFSETS[channelMode][version];
+			return 4 + getSideInfoSize();
 		}
 
 		public int getVBRIOffset() {
-			return 36;
+			return 4 + 32;
 		}
 	}
 
@@ -349,6 +395,24 @@ public class MP3Frame {
 	MP3Frame(Header header, byte[] bytes) {
 		this.header = header;
 		this.bytes = bytes;
+	}
+	
+	boolean isChecksumError() {
+		if (header.getProtection() == Header.MPEG_PROTECTION_CRC) {
+			if (header.getLayer() == Header.MPEG_LAYER_3) {
+				CRC16 crc16 = new CRC16();
+				crc16.update(bytes[2]);
+				crc16.update(bytes[3]);
+				// skip crc bytes 4+5
+				int sideInfoSize = header.getSideInfoSize();
+				for (int i = 0; i < sideInfoSize; i++) {
+					crc16.update(bytes[6 + i]);
+				}
+				int crc = ((bytes[4] & 0xFF) << 8) | (bytes[5] & 0xFF);
+				return crc != crc16.getValue();
+			}
+		}
+		return false;
 	}
 	
 	public int getSize() {
