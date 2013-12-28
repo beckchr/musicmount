@@ -28,12 +28,12 @@ public class ID3v2FrameHeader {
 	/*
 	 * Parse header and consume bytes up the frame data
 	 */
-	public ID3v2FrameHeader(MP3Input data, ID3v2Header tag) throws IOException, ID3Exception {
+	public ID3v2FrameHeader(MP3Input data, ID3v2Header tag) throws IOException, ID3v2Exception {
 		this.tag = tag;
 		parse(data);
 	}
 
-	void parse(MP3Input data) throws IOException, ID3Exception {
+	void parse(MP3Input data) throws IOException, ID3v2Exception {
 		/*
 		 * Frame Id
 		 */

@@ -29,17 +29,17 @@ public class ID3v2Header {
 	/*
 	 * Parse tag header and consume bytes up the first frame header
 	 */
-	public ID3v2Header(MP3Input data) throws IOException, ID3Exception {
+	public ID3v2Header(MP3Input data) throws IOException, ID3v2Exception {
 		parse(data);
 	}
 	
-	void parse(MP3Input data) throws IOException, ID3Exception {
+	void parse(MP3Input data) throws IOException, ID3v2Exception {
 		/*
 		 * Identifier: "ID3"
 		 */
 		String id = new String(data.readFully(3), ID3v2Encoding.ISO_8859_1.getCharset());
 		if (!"ID3".equals(id)) {
-			throw new ID3Exception("Invalid ID3 identifier: " + id);
+			throw new ID3v2Exception("Invalid ID3 identifier: " + id);
 		}
 		
 		/*
@@ -47,7 +47,7 @@ public class ID3v2Header {
 		 */
 		version = data.readByte();
 		if (version != 2 && version != 3 && version != 4) {
-			throw new ID3Exception("Unsupported ID3v2 version: " + version);
+			throw new ID3v2Exception("Unsupported ID3v2 version: " + version);
 		}
 		
 		/*

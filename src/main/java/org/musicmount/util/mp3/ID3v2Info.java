@@ -58,17 +58,17 @@ public class ID3v2Info {
 	private final byte[] textBuffer = new byte[1024];
 
 
-	public ID3v2Info(MP3Input data) throws IOException, ID3Exception {
+	public ID3v2Info(MP3Input data) throws IOException, ID3v2Exception {
 		this(data, Level.FINEST);
 	}
 
-	public ID3v2Info(MP3Input data, Level debugLevel) throws IOException, ID3Exception {
+	public ID3v2Info(MP3Input data, Level debugLevel) throws IOException, ID3v2Exception {
 		this.debugLevel = debugLevel;
 		if (isID3v2StartPosition(data)) {
 			ID3v2Header tag = new  ID3v2Header(data);
 			version = String.format("2.%d.%d", tag.getVersion(), tag.getRevision());
 			if (tag.isUnsynchronization() || tag.isCompression()) {
-				throw new ID3Exception("Unsynchronization is not supported");
+				throw new ID3v2Exception("Unsynchronization is not supported");
 			}
 			try {
 				int remainingBodySize = tag.getBodySize();
@@ -93,13 +93,13 @@ public class ID3v2Info {
 				if (remainingBodySize > 0) {
 					data.skipFully(remainingBodySize + tag.getPaddingSize() + tag.getFooterSize());
 				}
-			} catch (ID3Exception e) {
+			} catch (ID3v2Exception e) {
 				LOGGER.fine("ID3 exception occured: " + e.getMessage());
 			}
 		}
 	}
 
-	void parseFrame(MP3Input data, ID3v2FrameHeader frame) throws IOException, ID3Exception {
+	void parseFrame(MP3Input data, ID3v2FrameHeader frame) throws IOException, ID3v2Exception {
 		if (LOGGER.isLoggable(debugLevel)) {
 			LOGGER.log(debugLevel, "Parsing frame: " + frame.getFrameId());
 		}
@@ -314,7 +314,7 @@ public class ID3v2Info {
 	 * @return byte count (including terminating zero(s))
 	 * @throws IOException
 	 */
-	int readZeroTerminatedString(MP3Input data, byte[] bytes, ID3v2Encoding encoding) throws IOException, ID3Exception {
+	int readZeroTerminatedString(MP3Input data, byte[] bytes, ID3v2Encoding encoding) throws IOException, ID3v2Exception {
 		int zeros = 0;
 		for (int i = 0; i < bytes.length; i++) {
 			// UTF-16LE may have a zero byte as second byte of a 2-byte character -> skip first zero at odd index
@@ -326,14 +326,14 @@ public class ID3v2Info {
 				zeros = 0;
 			}
 		}
-		throw new ID3Exception("Could not read zero-termiated string");
+		throw new ID3v2Exception("Could not read zero-termiated string");
 	}
 
-	String parseTextFrame(MP3Input data, ID3v2FrameHeader frame) throws IOException, ID3Exception {
+	String parseTextFrame(MP3Input data, ID3v2FrameHeader frame) throws IOException, ID3v2Exception {
 		return readString(data, frame.getBodySize() - 1, ID3v2Encoding.getEncoding(data.readByte()));
 	}
 	
-	String parseCommentFrame(MP3Input data, ID3v2FrameHeader frame) throws IOException, ID3Exception {
+	String parseCommentFrame(MP3Input data, ID3v2FrameHeader frame) throws IOException, ID3v2Exception {
 		ID3v2Encoding encoding = ID3v2Encoding.getEncoding(data.readByte());
 
 		int languageByteCount = 3;
@@ -346,7 +346,7 @@ public class ID3v2Info {
 		return readString(data, frame.getBodySize() - (1 + languageByteCount + descriptionByteCount), encoding);
 	}
 
-	byte[] parsePictureFrame(MP3Input data, ID3v2FrameHeader frame) throws IOException, ID3Exception {
+	byte[] parsePictureFrame(MP3Input data, ID3v2FrameHeader frame) throws IOException, ID3v2Exception {
 		ID3v2Encoding encoding = ID3v2Encoding.getEncoding(data.readByte());
 
 		int imageTypeByteCount;

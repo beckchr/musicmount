@@ -15,10 +15,10 @@
  */
 package org.musicmount.util.mp3;
 
-public class ID3Exception extends Exception {
+public class ID3v2Exception extends Exception {
 	private static final long serialVersionUID = 1L;
 
-	public ID3Exception(String message) {
+	public ID3v2Exception(String message) {
 		super(message);
 	}
 }

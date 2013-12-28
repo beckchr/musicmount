@@ -26,7 +26,7 @@ import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
 
-import org.musicmount.util.mp3.ID3Exception;
+import org.musicmount.util.mp3.ID3v2Exception;
 import org.musicmount.util.mp3.ID3v1Info;
 import org.musicmount.util.mp3.ID3v2Info;
 import org.musicmount.util.mp3.MP3Exception;
@@ -45,7 +45,7 @@ public class MP3AssetParser implements AssetParser {
 	}
 
 	@Override
-	public Asset parse(final File file) throws IOException, ID3Exception {
+	public Asset parse(final File file) throws IOException, ID3v2Exception {
 		try (MP3Input data = new MP3Input(new BufferedInputStream(new FileInputStream(file)))) {
 			Asset asset = new Asset(file);
 			if (ID3v2Info.isID3v2StartPosition(data)) {
@@ -99,7 +99,7 @@ public class MP3AssetParser implements AssetParser {
 	}
 
 	@Override
-	public BufferedImage extractArtwork(File file) throws IOException, ID3Exception {
+	public BufferedImage extractArtwork(File file) throws IOException, ID3v2Exception {
 		try (MP3Input data = new MP3Input(new BufferedInputStream(new FileInputStream(file)))) {
 			byte[] imageData = new ID3v2Info(data).getCover();
 			if (imageData != null) {

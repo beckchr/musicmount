@@ -21,11 +21,11 @@ public enum ID3v2Encoding {
 	UTF_16BE("UTF-16BE", 2),
 	UTF_8("UTF-8", 1);
 	
-	public static ID3v2Encoding getEncoding(byte value) throws ID3Exception {
+	public static ID3v2Encoding getEncoding(byte value) throws ID3v2Exception {
 		try {
 			return values()[value];
 		} catch (ArrayIndexOutOfBoundsException e) {
-			throw new ID3Exception("Invalid encoding: " + value);
+			throw new ID3v2Exception("Invalid encoding: " + value);
 		}
 	}
 	
