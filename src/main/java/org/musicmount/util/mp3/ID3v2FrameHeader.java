@@ -38,9 +38,9 @@ public class ID3v2FrameHeader {
 		 * Frame Id
 		 */
 		if (tag.getVersion() == 2) { // $xx xx xx (three characters)
-			frameId = new String(data.readFully(3), ID3v2Encoding.ISO_8859_1.getCharsetName());
+			frameId = new String(data.readFully(3), ID3v2Encoding.ISO_8859_1.getCharset());
 		} else { // $xx xx xx xx (four characters)
-			frameId = new String(data.readFully(4), ID3v2Encoding.ISO_8859_1.getCharsetName());
+			frameId = new String(data.readFully(4), ID3v2Encoding.ISO_8859_1.getCharset());
 		}
 		
 		/*

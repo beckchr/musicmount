@@ -37,7 +37,7 @@ public class ID3v2Header {
 		/*
 		 * Identifier: "ID3"
 		 */
-		String id = new String(data.readFully(3), ID3v2Encoding.ISO_8859_1.getCharsetName());
+		String id = new String(data.readFully(3), ID3v2Encoding.ISO_8859_1.getCharset());
 		if (!"ID3".equals(id)) {
 			throw new ID3Exception("Invalid ID3 identifier: " + id);
 		}

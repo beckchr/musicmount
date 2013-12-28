@@ -16,10 +16,10 @@
 package org.musicmount.util.mp3;
 
 public enum ID3v2Encoding {
-	ISO_8859_1("ISO-8859-1", 1, false),
-	UTF_16("UTF-16LE", 2, true),
-	UTF_16BE("UTF-16BE", 3, true),
-	UTF_8("UTF-8", 1, true);
+	ISO_8859_1("ISO-8859-1", 1),
+	UTF_16("UTF-16", 2),
+	UTF_16BE("UTF-16BE", 2),
+	UTF_8("UTF-8", 1);
 	
 	public static ID3v2Encoding getEncoding(byte value) throws ID3Exception {
 		try {
@@ -31,24 +31,17 @@ public enum ID3v2Encoding {
 	
 	private final String charsetName;
 	private final int zeroBytes;
-	private final boolean bom;
 	
-	private ID3v2Encoding(String charsetName, int zeroBytes, boolean bom) {
+	private ID3v2Encoding(String charsetName, int zeroBytes) {
 		this.charsetName = charsetName;
 		this.zeroBytes = zeroBytes;
-		this.bom = bom;
-//		Charset.forName(charsetName);
 	}
 	
-	public String getCharsetName() {
+	public String getCharset() {
 		return charsetName;
 	}
 	
 	public int getZeroBytes() {
 		return zeroBytes;
-	}
-	
-	public boolean isBOM() {
-		return bom;
 	}
 }

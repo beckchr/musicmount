@@ -18,20 +18,218 @@ public class ID3v2InfoTest {
 			Assert.assertEquals("Sample Album", info.getAlbum());
 			Assert.assertEquals("Sample Genre", info.getGenre());
 			Assert.assertEquals("Sample Composer", info.getComposer());
+			Assert.assertNull(info.getComment());
 			Assert.assertEquals(0L, info.getDuration());
 			Assert.assertFalse(info.isCompilation());
 			Assert.assertEquals(2013, info.getYear());
 			Assert.assertEquals(1, info.getTrack());
-			Assert.assertEquals(1, info.getDisc());
-			Assert.assertNotNull(info.getCover());
-//
-//			// other fields
-			Assert.assertNull(info.getGrouping());
-			Assert.assertNull(info.getComment());
 			Assert.assertEquals(1, info.getTracks());
+			Assert.assertEquals(1, info.getDisc());
 			Assert.assertEquals(1, info.getDiscs());
+			Assert.assertNotNull(info.getCover());
+			Assert.assertNull(info.getGrouping());
+
+			// other fields
 			Assert.assertEquals(0, info.getTempo());
 			Assert.assertNull(info.getCopyright());
+			Assert.assertEquals(0, info.getRating());
+			Assert.assertNull(info.getLyrics());
+		}
+	}
+
+	@Test
+	public void testV22Tag() throws Exception {
+		try (MP3Input input = new MP3Input(getClass().getResource("/sample-assets/id3v22.mp3").openStream())) {
+			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
+			Assert.assertEquals("ID3", info.getBrand());
+			Assert.assertEquals("2.2.0", info.getVersion());
+
+			// relevant fields
+			Assert.assertEquals("NAME1234567890123456789012345678901234567890", info.getTitle());
+			Assert.assertEquals("ARTIST1234567890123456789012345678901234567890", info.getArtist());
+			Assert.assertNull(info.getAlbumArtist());
+			Assert.assertEquals("ALBUM1234567890123456789012345678901234567890", info.getAlbum());
+			Assert.assertEquals("AlternRock", info.getGenre());
+			Assert.assertEquals("COMPOSER1234567890123456789012345678901234567890", info.getComposer());
+			Assert.assertEquals(" 00000000 00000000 00000000 00000000 000000FF 000000FF 00000004 00000005 000000FF 000000FF", info.getComment());
+			Assert.assertEquals(0L, info.getDuration());
+			Assert.assertFalse(info.isCompilation());
+			Assert.assertEquals(2009, info.getYear());
+			Assert.assertEquals(4, info.getTrack());
+			Assert.assertEquals(15, info.getTracks());
+			Assert.assertEquals(1, info.getDisc());
+			Assert.assertEquals(1, info.getDiscs());
+			Assert.assertEquals(236734, info.getCover().length); // PNG
+			Assert.assertNull(info.getGrouping());
+
+			// other fields
+			Assert.assertEquals(0, info.getTempo());
+			Assert.assertNull(info.getCopyright());
+			Assert.assertEquals(0, info.getRating());
+			Assert.assertNull(info.getLyrics());
+		}
+	}
+
+	@Test
+	public void testV23Tag() throws Exception {
+		try (MP3Input input = new MP3Input(getClass().getResource("/sample-assets/id3v23.mp3").openStream())) {
+			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
+			Assert.assertEquals("ID3", info.getBrand());
+			Assert.assertEquals("2.3.0", info.getVersion());
+
+			// relevant fields
+			Assert.assertEquals("TITLE1234567890123456789012345", info.getTitle());
+			Assert.assertEquals("ARTIST123456789012345678901234", info.getArtist());
+			Assert.assertNull(info.getAlbumArtist());
+			Assert.assertEquals("ALBUM1234567890123456789012345", info.getAlbum());
+			Assert.assertEquals("Pop", info.getGenre());
+			Assert.assertEquals("COMPOSER23456789012345678901234", info.getComposer());
+			Assert.assertEquals("COMMENT123456789012345678901", info.getComment());
+			Assert.assertEquals(0L, info.getDuration());
+			Assert.assertFalse(info.isCompilation());
+			Assert.assertEquals(2001, info.getYear());
+			Assert.assertEquals(1, info.getTrack());
+			Assert.assertEquals(0, info.getTracks());
+			Assert.assertEquals(0, info.getDisc());
+			Assert.assertEquals(0, info.getDiscs());
+			Assert.assertNull(info.getCover());
+			Assert.assertNull(info.getGrouping());
+
+			// other fields
+			Assert.assertEquals(0, info.getTempo());
+			Assert.assertEquals("COPYRIGHT2345678901234567890123", info.getCopyright());
+			Assert.assertEquals(0, info.getRating());
+			Assert.assertNull(info.getLyrics());
+		}
+	}
+
+	@Test
+	public void testV23TagImage() throws Exception {
+		try (MP3Input input = new MP3Input(getClass().getResource("/sample-assets/id3v23_image.mp3").openStream())) {
+			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
+			Assert.assertEquals("ID3", info.getBrand());
+			Assert.assertEquals("2.3.0", info.getVersion());
+
+			// relevant fields
+			Assert.assertEquals("TITLE1234567890123456789012345", info.getTitle());
+			Assert.assertEquals("ARTIST123456789012345678901234", info.getArtist());
+			Assert.assertNull(info.getAlbumArtist());
+			Assert.assertEquals("ALBUM1234567890123456789012345", info.getAlbum());
+			Assert.assertEquals("Pop", info.getGenre());
+			Assert.assertEquals("COMPOSER23456789012345678901234", info.getComposer());
+			Assert.assertEquals("COMMENT123456789012345678901", info.getComment());
+			Assert.assertEquals(0L, info.getDuration());
+			Assert.assertFalse(info.isCompilation());
+			Assert.assertEquals(2001, info.getYear());
+			Assert.assertEquals(1, info.getTrack());
+			Assert.assertEquals(0, info.getTracks());
+			Assert.assertEquals(0, info.getDisc());
+			Assert.assertEquals(0, info.getDiscs());
+			Assert.assertEquals(1885, info.getCover().length);
+			Assert.assertNull(info.getGrouping());
+
+			// other fields
+			Assert.assertEquals(0, info.getTempo());
+			Assert.assertEquals("COPYRIGHT2345678901234567890123", info.getCopyright());
+			Assert.assertEquals(0, info.getRating());
+			Assert.assertNull(info.getLyrics());
+		}
+	}
+
+	@Test
+	public void testV23TagImageUTF16le() throws Exception {
+		try (MP3Input input = new MP3Input(getClass().getResource("/sample-assets/id3v23_image_utf16le.mp3").openStream())) {
+			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
+			Assert.assertEquals("ID3", info.getBrand());
+			Assert.assertEquals("2.3.0", info.getVersion());
+
+			// relevant fields
+			Assert.assertEquals("TITLE1234567890123456789012345", info.getTitle());
+			Assert.assertEquals("ARTIST123456789012345678901234", info.getArtist());
+			Assert.assertNull(info.getAlbumArtist());
+			Assert.assertEquals("ALBUM1234567890123456789012345", info.getAlbum());
+			Assert.assertEquals("Classic Rock", info.getGenre());
+			Assert.assertEquals("COMPOSER23456789012345678901234", info.getComposer());
+			Assert.assertEquals("COMMENT123456789012345678901", info.getComment());
+			Assert.assertEquals(0L, info.getDuration());
+			Assert.assertFalse(info.isCompilation());
+			Assert.assertEquals(2001, info.getYear());
+			Assert.assertEquals(1, info.getTrack());
+			Assert.assertEquals(0, info.getTracks());
+			Assert.assertEquals(0, info.getDisc());
+			Assert.assertEquals(0, info.getDiscs());
+			Assert.assertEquals(1885, info.getCover().length);
+			Assert.assertNull(info.getGrouping());
+
+			// other fields
+			Assert.assertEquals(0, info.getTempo());
+			Assert.assertEquals("COPYRIGHT2345678901234567890123", info.getCopyright());
+			Assert.assertEquals(0, info.getRating());
+			Assert.assertNull(info.getLyrics());
+		}
+	}
+
+	@Test
+	public void testV23TagUnicode() throws Exception {
+		try (MP3Input input = new MP3Input(getClass().getResource("/sample-assets/id3v23_unicode.mp3").openStream())) {
+			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
+			Assert.assertEquals("ID3", info.getBrand());
+			Assert.assertEquals("2.3.0", info.getVersion());
+
+			// relevant fields
+			Assert.assertEquals("\u4E2D\u6587", info.getTitle()); // chinese
+			Assert.assertEquals("\u03B3\u03B5\u03B9\u03AC \u03C3\u03BF\u03C5", info.getArtist()); // greek
+			Assert.assertNull(info.getAlbumArtist());
+			Assert.assertEquals("\u3053\u3093\u306B\u3061\u306F", info.getAlbum()); // japanese
+			Assert.assertNull(info.getGenre());
+			Assert.assertEquals("\u0AB9\u0AC7\u0AB2\u0ACD\u0AB2\u0ACB", info.getComposer()); // gujarati
+			Assert.assertNull(info.getComment());
+			Assert.assertEquals(0L, info.getDuration());
+			Assert.assertFalse(info.isCompilation());
+			Assert.assertEquals(0, info.getYear());
+			Assert.assertEquals(0, info.getTrack());
+			Assert.assertEquals(0, info.getTracks());
+			Assert.assertEquals(0, info.getDisc());
+			Assert.assertEquals(0, info.getDiscs());
+			Assert.assertNull(info.getCover());
+			Assert.assertNull(info.getGrouping());
+
+			// other fields
+			Assert.assertEquals(0, info.getTempo());
+			Assert.assertNull(info.getCopyright());
+			Assert.assertEquals(0, info.getRating());
+			Assert.assertNull(info.getLyrics());
+		}
+	}
+
+	@Test
+	public void testV24Tag() throws Exception {
+		try (MP3Input input = new MP3Input(getClass().getResource("/sample-assets/id3v24.mp3").openStream())) {
+			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
+			Assert.assertEquals("ID3", info.getBrand());
+			Assert.assertEquals("2.4.0", info.getVersion());
+
+			// relevant fields
+			Assert.assertEquals("TITLE1234567890123456789012345", info.getTitle());
+			Assert.assertEquals("ARTIST123456789012345678901234", info.getArtist());
+			Assert.assertNull(info.getAlbumArtist());
+			Assert.assertEquals("ALBUM1234567890123456789012345", info.getAlbum());
+			Assert.assertEquals("Pop", info.getGenre());
+			Assert.assertEquals("COMPOSER23456789012345678901234", info.getComposer());
+			Assert.assertEquals("COMMENT123456789012345678901", info.getComment());
+			Assert.assertEquals(0L, info.getDuration());
+			Assert.assertFalse(info.isCompilation());
+			Assert.assertEquals(2001, info.getYear());
+			Assert.assertEquals(1, info.getTrack());
+			Assert.assertEquals(0, info.getTracks());
+			Assert.assertEquals(0, info.getDisc());
+			Assert.assertEquals(0, info.getDiscs());
+			Assert.assertNull(info.getCover());
+			Assert.assertNull(info.getGrouping());
+
+			// other fields
+			Assert.assertEquals(0, info.getTempo());
+			Assert.assertEquals("COPYRIGHT2345678901234567890123", info.getCopyright());
 			Assert.assertEquals(0, info.getRating());
 			Assert.assertNull(info.getLyrics());
 		}
