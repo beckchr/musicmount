@@ -154,6 +154,18 @@ public class ID3v2Info {
 		case "TCOP":
 			copyright = parseTextFrame(data, frame);
 			break;
+		case "TDRC": // v2.4, replaces TYER
+			String tdrc = parseTextFrame(data, frame);
+			if (tdrc.length() >= 4) {
+				try {
+					year = Short.valueOf(tdrc.substring(0, 4));
+				} catch (NumberFormatException e) {
+					if (LOGGER.isLoggable(debugLevel)) {
+						LOGGER.log(debugLevel, "Could not parse year from: " + tdrc);
+					}
+				}
+			}
+			break;
 		case "TLE":
 		case "TLEN":
 			String tlen = parseTextFrame(data, frame);

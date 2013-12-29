@@ -85,12 +85,24 @@ public class MP3AssetParser implements AssetParser {
 					if (ID3v1Info.isID3v1StartPosition(data)) {
 //						System.out.println("Parsing id3v1 for asset:" + file);
 						ID3v1Info info = new ID3v1Info(data);
-						asset.setAlbum(info.getAlbum());
-						asset.setArtist(info.getArtist());
-						asset.setGenre(info.getGenre() != null ? info.getGenre().getDescription() : null);
-						asset.setName(info.getTitle());
-						asset.setTrackNumber(info.getTrack() > 0 ? Integer.valueOf(info.getTrack()) : null);
-						asset.setYear(info.getYear() > 0 ? Integer.valueOf(info.getYear()) : null);
+						if (asset.getAlbum() == null) {
+							asset.setAlbum(info.getAlbum());
+						}
+						if (asset.getArtist() == null) {
+							asset.setArtist(info.getArtist());
+						}
+						if (asset.getGenre() == null && info.getGenre() != null) {
+							asset.setGenre(info.getGenre().getDescription());
+						}
+						if (asset.getName() == null) {
+							asset.setName(info.getTitle());
+						}
+						if (asset.getTrackNumber() == null && info.getTrack() > 0) {
+							asset.setTrackNumber(Integer.valueOf(info.getTrack()));
+						}
+						if (asset.getYear() == null && info.getYear() > 0) {
+							asset.setYear(Integer.valueOf(info.getYear()));
+						}
 					}
 				}
 			}
