@@ -56,7 +56,7 @@ public class SimpleAssetParser implements AssetParser {
 		if (delegate != null) {
 			return delegate.parse(file);
 		} else {
-			throw new RuntimeException("Not an asset: " + file);
+			throw new IllegalArgumentException("Not an asset: " + file);
 		}
 	}
 	
@@ -66,7 +66,7 @@ public class SimpleAssetParser implements AssetParser {
 		if (delegate != null) {
 			return delegate.extractArtwork(file);
 		} else {
-			throw new RuntimeException("Not an asset: " + file);
+			throw new IllegalArgumentException("Not an asset: " + file);
 		}
 	}
 }

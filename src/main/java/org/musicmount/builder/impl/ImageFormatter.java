@@ -154,7 +154,7 @@ public class ImageFormatter {
 			for (Album album : library.getAlbums()) {
 				formatAlbumImages(album, resourceLocator, overwriteAlbums.contains(album));
 				if (++count % 100 == 0 && LOGGER.isLoggable(Level.FINE)) {
-					LOGGER.fine("Progress: #albums = " + count);
+					LOGGER.fine(String.format("Progress: #albums = %4d", count));
 				}
 			}
 		}

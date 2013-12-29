@@ -324,7 +324,7 @@ public class AssetStore {
 				if (entity != null) {
 					updatedEntities.add(entity);
 					if (LOGGER.isLoggable(Level.FINE) && updatedEntities.size() % 1000 == 0) {
-						LOGGER.fine("Progress: #assets = " + updatedEntities.size());
+						LOGGER.fine(String.format("Progress: #assets = %5d", updatedEntities.size()));
 					}
 				}
 			}

@@ -328,7 +328,7 @@ public class MusicMountBuilder {
 
 		AssetParser assetParser = new SimpleAssetParser();
 
-		LOGGER.info("Updating asset store...");
+		LOGGER.info(assetStoreLoaded ? "Updating asset store..." : "Creating asset store...");
 		assetStore.update(musicFolder, assetParser);
 
 		LOGGER.info("Building music libary...");
@@ -346,13 +346,13 @@ public class MusicMountBuilder {
 		if (optionNoImages) {
 			assetStore.setRetina(null);
 		} else {
-			LOGGER.info("Generating images...");
+			LOGGER.info(assetStoreLoaded ? "Updating images..." : "Generating images...");
 			ImageFormatter formatter = new ImageFormatter(assetParser, optionRetina);
 			final boolean retinaChange = !Boolean.valueOf(optionRetina).equals(assetStore.getRetina());
-			if (LOGGER.isLoggable(Level.FINE) && retinaChange) {
+			if (LOGGER.isLoggable(Level.FINE) && retinaChange && assetStoreLoaded) {
 				LOGGER.fine(String.format("Retina state %s", assetStore.getRetina() == null ? "unknown" : "changed"));
 			}
-			formatter.formatImages(library, resourceLocator, retinaChange ? new HashSet<>(library.getAlbums()) : changedAlbums);
+			formatter.formatImages(library, resourceLocator, retinaChange || optionFull ? new HashSet<>(library.getAlbums()) : changedAlbums);
 			assetStore.setRetina(optionRetina);
 		}
 
