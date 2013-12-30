@@ -32,136 +32,111 @@ public class MP3Frame {
 
 	/**
 	 * Searches the next audio frame.
-	 * If <code>validatNextHeader</code> is set, it is guaranteed that the returned frame is either the last frame
-	 * or is followed by a compatible header. This should be set when searching for the first frame to prevent
-	 * creating a frame from a false sync.
 	 * The stop condition is be used to make sure that the search ends as soon as the stop condition says so.
-	 * the header bytes.
+	 * This method reads the first two bytes of the follow-up frame header and checks them for compatibility
+	 * no lower the risk of a false sync.
 	 * @param data
 	 * @param stopCondition
-	 * @param validateNextHeader
+	 * @param previousFrame
 	 * @return next frame or <code>null</code>
 	 * @throws IOException
 	 */
-	public static MP3Frame readNextFrame(MP3Input data, StopReadCondition stopCondition, boolean validateNextHeader) throws IOException {
-		int b0;
-		int b1 = 0;
-		
-		while (!stopCondition.stopRead(data)) {
-			b0 = b1;
-			b1 = data.read();
-			if (b1 == -1) {
-				break;
-			}
+	public static MP3Frame readNextFrame(MP3Input data, StopReadCondition stopCondition, MP3Frame previousFrame) throws IOException, MP3Exception {
+		int b0 = previousFrame != null ? previousFrame.nextB0 : 0;
+		int b1 = previousFrame != null ? previousFrame.nextB1 : 0;
+		while (b1 != -1) {
 			if (b0 == 0xFF && (b1 & 0xE0) == 0xE0) { // first 11 bits should be 1
 				data.mark(2); // set mark at b2
-				int b2 = data.read();
+				int b2 = stopCondition.stopRead(data) ? -1 : data.read();
 				if (b2 == -1) {
 					break;
 				}
-				int b3 = data.read();
+				int b3 = stopCondition.stopRead(data) ? -1 : data.read();
 				if (b3 == -1) {
 					break;
 				}
+				Header header = null;
 				try {
-					Header header = new Header(b1, b2, b3);
-					/*
-					 * If the next header is invalid or not compatible, this is probably a false sync.
-					 * The code gets a bit complex here, because we need to be able to reset() to b2 if
-					 * the check fails. Thus, we have to reset() to b2 before doing a call to mark().
-					 */
-					if (validateNextHeader) {
-						data.reset(); // reset input to b2
-						data.mark(2 + header.getFrameSize()); // rest of frame (size - 2) + next header (4)
-						/*
-						 * create frame
-						 */
-						byte[] frameBytes = new byte[header.getFrameSize()];
-						frameBytes[0] = (byte)0xFF;
-						frameBytes[1] = (byte)b1;
-						data.readFully(frameBytes, 2, frameBytes.length - 2);
-						MP3Frame frame = new MP3Frame(header, frameBytes);
-						/*
-						 * read next header
-						 */
-						byte[] nextHeaderBytes;
-						try {
-							nextHeaderBytes = data.readFully(4);
-						} catch (EOFException e) {
-							return frame;
-						}
-						if ((nextHeaderBytes[0] & 0xFF) == 0xFF && (nextHeaderBytes[1] & 0xE0) == 0xE0) {
-							Header nextHeader = new Header(nextHeaderBytes[1], nextHeaderBytes[2], nextHeaderBytes[3]);
-							if (nextHeader.isCompatible(header)) {
-								/*
-								 * re-position to end of frame
-								 */
-								data.reset(); // reset input to b2
-								data.skipFully(header.getFrameSize() - 2);
-								return frame;
-							}
-						}
-						/*
-						 * there doesn't seem to be a compatible follow-up frame...
-						 */
-						data.reset(); // reset input to b2
-					} else {
-						/*
-						 * do not care about the next header; just create the frame
-						 */
-						byte[] frameBytes = new byte[header.getFrameSize()];
-						frameBytes[0] = (byte)0xFF;
-						frameBytes[1] = (byte)b1;
-						frameBytes[2] = (byte)b2;
-						frameBytes[3] = (byte)b3;
-						data.readFully(frameBytes, 4, frameBytes.length - 4);
-						return new MP3Frame(header, frameBytes);
-					}
+					header = new Header(b1, b2, b3);
 				} catch (MP3Exception e) {
-					data.reset(); // reset input to b2
-				} catch (EOFException e) {
-					break;
+					// not a valid frame header
 				}
+				if (header != null && (previousFrame == null || header.isCompatible(previousFrame.getHeader()))) { // we have a candidate
+					try {
+						/*
+						 * The code gets a bit complex here, because we need to be able to reset() to b2 if
+						 * the check fails. Thus, we have to reset() to b2 before doing a call to mark().
+						 */
+						data.reset(); // reset input to b2
+						data.mark(header.getFrameSize()); // rest of frame (size - 2) + next two header bytes
+						/*
+						 * read frame data
+						 */
+						byte[] frameBytes = new byte[header.getFrameSize()];
+						frameBytes[0] = (byte)0xFF;
+						frameBytes[1] = (byte)b1;
+						data.readFully(frameBytes, 2, frameBytes.length - 2); // may throw EOFException
+						
+						/*
+						 * read 2 bytes ahead  
+						 */
+						int nextB0 = stopCondition.stopRead(data) ? -1 : data.read();
+						int nextB1 = stopCondition.stopRead(data) ? -1 : data.read();
+						if (nextB1 == -1 || nextB0 == 0xFF && (nextB1 & 0xFE) == (b1 & 0xFE)) { // EOF or nextB1 must match b1's version & layer
+							return new MP3Frame(header, frameBytes, nextB0, nextB1);
+						}
+					} catch (EOFException e) {
+						break;
+					}
+				}
+				/*
+				 * seems to be a false sync...
+				 */
+				data.reset(); // reset input to b2
 			}
+			/*
+			 * if this is not the first frame, we expect the next frame to immediately follow the previous frame.
+			 */
+			if (previousFrame != null) {
+				break;
+			}
+			b0 = b1;
+			b1 = stopCondition.stopRead(data) ? -1 : data.read();
 		}
 		return null;
 	}
-	
+
 	public static long calculateDuration(MP3Input data, long totalLength, StopReadCondition stopCondition) throws IOException, MP3Exception {
-		MP3Frame firstFrame = MP3Frame.readNextFrame(data, stopCondition, true);
-		if (firstFrame != null) {
+		MP3Frame frame = MP3Frame.readNextFrame(data, stopCondition, null);
+		if (frame != null) {
 			// check for Xing header
-			int numberOfFrames = firstFrame.getNumberOfFrames();
+			int numberOfFrames = frame.getNumberOfFrames();
 			if (numberOfFrames > 0) { // from Xing/VBRI header
-				return firstFrame.getHeader().getTotalDuration(numberOfFrames * firstFrame.getSize());
+				return frame.getHeader().getTotalDuration(numberOfFrames * frame.getSize());
 			} else { // scan file
 				numberOfFrames = 1;
 
-				long firstFramePosition = data.getPosition() - firstFrame.getSize();
-				long frameSizeSum = firstFrame.getSize();
+				long firstFramePosition = data.getPosition() - frame.getSize();
+				long frameSizeSum = frame.getSize();
 
-				int firstFrameBitrate = firstFrame.getHeader().getBitrate();
+				int firstFrameBitrate = frame.getHeader().getBitrate();
 				long bitrateSum = firstFrameBitrate;
 				boolean vbr = false;
-				int cbrThreshold = 10000 / firstFrame.getHeader().getDuration(); // assume CBR after 10 seconds
+				int cbrThreshold = 10000 / frame.getHeader().getDuration(); // assume CBR after 10 seconds
 
-				MP3Frame nextFrame = null;
 				while (true) {
 					if (numberOfFrames == cbrThreshold && !vbr && totalLength > 0) {
-						return firstFrame.getHeader().getTotalDuration(totalLength - firstFramePosition);
+						return frame.getHeader().getTotalDuration(totalLength - firstFramePosition);
 					}
-					if ((nextFrame = MP3Frame.readNextFrame(data, stopCondition, false)) == null) {
+					if ((frame = MP3Frame.readNextFrame(data, stopCondition, frame)) == null) {
 						break;
 					}
-					if (!nextFrame.getHeader().isCompatible(firstFrame.getHeader())) {
-						throw new MP3Exception("Incompatible frame");
-					}
-					int bitrate = nextFrame.getHeader().getBitrate();
+					int bitrate = frame.getHeader().getBitrate();
 					if (bitrate != firstFrameBitrate) {
 						vbr = true;
 					}
 					bitrateSum += bitrate;
-					frameSizeSum += nextFrame.getSize();
+					frameSizeSum += frame.getSize();
 					numberOfFrames++;
 				}
 				long duration = 1000L * frameSizeSum * numberOfFrames * 8 / bitrateSum; // == 1000 * frameSizeSum / (8 * averageBitrate)
@@ -391,10 +366,22 @@ public class MP3Frame {
 
 	private final byte[] bytes;
 	private final Header header;
+	private final int nextB0;
+	private final int nextB1;
 
-	MP3Frame(Header header, byte[] bytes) {
+	MP3Frame(Header header, byte[] bytes, int nextB0, int nextB1) {
 		this.header = header;
 		this.bytes = bytes;
+		this.nextB0 = nextB0;
+		this.nextB1 = nextB1;
+	}
+	
+	int getNextB0() {
+		return nextB0;
+	}
+
+	public int getNextB1() {
+		return nextB1;
 	}
 	
 	boolean isChecksumError() {

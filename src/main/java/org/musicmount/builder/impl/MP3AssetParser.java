@@ -69,9 +69,10 @@ public class MP3AssetParser implements AssetParser {
 			if (asset.getDuration() == null) {
 				try {					
 					long duration = MP3Frame.calculateDuration(data, file.length(), new MP3Frame.StopReadCondition() {
+						final long stopPosition = file.length() - 128;
 						@Override
 						public boolean stopRead(MP3Input data) throws IOException {
-							return (data.getPosition() == file.length() - 128) && ID3v1Info.isID3v1StartPosition(data);
+							return (data.getPosition() == stopPosition) && ID3v1Info.isID3v1StartPosition(data);
 						}
 					});
 					asset.setDuration((int)((duration + 500) / 1000));
