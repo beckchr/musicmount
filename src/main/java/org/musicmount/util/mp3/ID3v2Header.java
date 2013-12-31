@@ -20,9 +20,10 @@ import java.io.IOException;
 public class ID3v2Header {
 	private int version = 0;
 	private int revision = 0;
-	private int bodySize = 0; // just the frames, i.e excluding tag header, extended header, footer & padding 
-	private int paddingSize = 0;
-	private int footerSize = 0;
+	private int headerSize = 0; // size of header, including extended header (with attachments)
+	private int totalTagSize = 0; // everything, i.e. inluding tag header, extended header, footer & padding
+	private int paddingSize = 0; // size of zero padding after frames
+	private int footerSize = 0; // size of footer (version 4 only)
 	private boolean unsynchronization;
 	private boolean compression;
 	
@@ -34,6 +35,8 @@ public class ID3v2Header {
 	}
 	
 	void parse(MP3Input data) throws IOException, ID3v2Exception {
+		long startPosition = data.getPosition();
+		
 		/*
 		 * Identifier: "ID3"
 		 */
@@ -63,7 +66,7 @@ public class ID3v2Header {
 		/*
 		 * Size: 4 * %0xxxxxxx (sync-save integer)
 		 */
-		bodySize = data.readSyncsaveInt();
+		totalTagSize = 10 + data.readSyncsaveInt();
 
 		/*
 		 * Evaluate flags
@@ -78,27 +81,40 @@ public class ID3v2Header {
 			 * Extended Header
 			 */
 			if ((flags & 0x40) != 0) {
-				/*
-				 * Extended header size: $xx xx xx xx (6 or 10 if CRC data present)
-				 */
-				int extendedHeaderSize = data.readInt();
-				
-				/*
-				 * Extended Flags: $xx xx (skip)
-				 */
-				data.readByte(); // flags...
-				data.readByte(); // more flags...
-				
-				/*
-				 * Size of padding: $xx xx xx xx
-				 */
-				paddingSize = data.readInt();
-				bodySize -= paddingSize;
-
-				for (int i = 10; i < extendedHeaderSize; i++) { // consume the rest
-					data.readByte();
+				if (version == 3) {
+					/*
+					 * Extended header size: $xx xx xx xx (6 or 10 if CRC data present)
+					 * In version 3, the size excludes itself.
+					 */
+					int extendedHeaderSize = data.readInt();
+					
+					/*
+					 * Extended Flags: $xx xx (skip)
+					 */
+					data.readByte(); // flags...
+					data.readByte(); // more flags...
+					
+					/*
+					 * Size of padding: $xx xx xx xx
+					 */
+					paddingSize = data.readInt();
+					
+					/*
+					 * consume the rest
+					 */
+					data.skipFully(extendedHeaderSize - 6);
+				} else {
+					/*
+					 * Extended header size: 4 * %0xxxxxxx (sync-save integer)
+					 * In version 4, the size includes itself.
+					 */
+					int extendedHeaderSize = data.readSyncsaveInt();
+					
+					/*
+					 * consume the rest
+					 */
+					data.skipFully(extendedHeaderSize - 4);
 				}
-				bodySize -= extendedHeaderSize;
 			}
 			
 			/*
@@ -106,8 +122,11 @@ public class ID3v2Header {
 			 */
 			if (version >= 4 && (flags & 0x10) != 0) { // footer present
 				footerSize = 10;
+				totalTagSize += 10;
 			}
 		}
+
+		headerSize = (int)(data.getPosition() - startPosition);
 	}
 	
 	public int getVersion() {
@@ -118,8 +137,8 @@ public class ID3v2Header {
 		return revision;
 	}
 	
-	public int getBodySize() {
-		return bodySize;
+	public int getTotalTagSize() {
+		return totalTagSize;
 	}
 	
 	public boolean isUnsynchronization() {
@@ -128,6 +147,10 @@ public class ID3v2Header {
 	
 	public boolean isCompression() {
 		return compression;
+	}
+	
+	public int getHeaderSize() {
+		return headerSize;
 	}
 	
 	public int getFooterSize() {
@@ -140,6 +163,6 @@ public class ID3v2Header {
 	
 	@Override
 	public String toString() {
-		return String.format("%s[version=%s, bodysize=%d]", getClass().getSimpleName(), version, bodySize);
+		return String.format("%s[version=%s, tagSize=%d]", getClass().getSimpleName(), version, totalTagSize);
 	}
 }

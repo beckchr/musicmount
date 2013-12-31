@@ -70,17 +70,16 @@ public class ID3v2Info {
 			if (tag.isUnsynchronization() || tag.isCompression()) {
 				throw new ID3v2Exception("Unsynchronization is not supported");
 			}
+			long tagEndPosition = data.getPosition() - tag.getHeaderSize() + tag.getTotalTagSize();
+			long framesEndPosition = tagEndPosition - tag.getFooterSize() - tag.getPaddingSize();
 			try {
-				int remainingBodySize = tag.getBodySize();
-				while (remainingBodySize > 0) { // TODO: remainingBodySize > tag.getMinimumFrameSize()
-					long headerPosition = data.getPosition();
+				while (data.getPosition() < framesEndPosition - 10) { // TODO - tag.minimumFrameSize()
 					ID3v2FrameHeader frame = new ID3v2FrameHeader(data, tag);
-					remainingBodySize -= (data.getPosition() - headerPosition);
 					if (frame.isPadding()) { // we ran into padding
 						break;
 					}
-					if (frame.getBodySize() > remainingBodySize) { // something wrong...
-						LOGGER.log(debugLevel, "ID3 frame claims to extend tag body");
+					if (data.getPosition() + frame.getBodySize() > framesEndPosition) { // something wrong...
+						LOGGER.log(debugLevel, "ID3 frame claims to extend frames area");
 						break;
 					}
 					if (!frame.isValid() || frame.isCompression() || frame.isEncryption() || frame.isUnsynchronization()) {
@@ -88,13 +87,12 @@ public class ID3v2Info {
 					} else {
 						parseFrame(data, frame);
 					}
-					remainingBodySize -= frame.getBodySize();
-				}
-				if (remainingBodySize > 0) {
-					data.skipFully(remainingBodySize + tag.getPaddingSize() + tag.getFooterSize());
 				}
 			} catch (ID3v2Exception e) {
 				LOGGER.fine("ID3 exception occured: " + e.getMessage());
+			}
+			if (data.getPosition() < tagEndPosition) {
+				data.skipFully(tagEndPosition - data.getPosition());
 			}
 		}
 	}
