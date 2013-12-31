@@ -24,6 +24,7 @@ public class ID3v2FrameHeader {
 	private boolean unsynchronization;
 	private boolean compression;
 	private boolean encryption;
+	private int dataLengthIndicator; // uncompressed size
 	
 	/*
 	 * Parse header and consume bytes up the frame data
@@ -81,20 +82,34 @@ public class ID3v2FrameHeader {
 			encryption = (formatFlags & encryptionMask) != 0;
 
 			/*
-			 * Skip flag attachments.
-			 * If we wanted to keep the attachments, we'd need to read them in the order of the flags (version dependent).
+			 * Read flag attachments in the order of the flags (version dependent).
 			 */
-			if ((formatFlags & groupingIdentityMask) != 0) {
-				data.readByte();
-				bodySize -= 1;
-			}
-			if (encryption) {
-				data.readByte();
-				bodySize -= 1;
-			}
-			if (compression || (formatFlags & dataLengthIndicatorMask) != 0) {
-				data.readSyncsaveInt();
-				bodySize -= 4;
+			if (tag.getVersion() == 3) {
+				if (compression) {
+					dataLengthIndicator = data.readInt();
+					bodySize -= 4;
+				}
+				if (encryption) {
+					data.readByte(); // just skip
+					bodySize -= 1;
+				}
+				if ((formatFlags & groupingIdentityMask) != 0) {
+					data.readByte(); // just skip
+					bodySize -= 1;
+				}
+			} else {
+				if ((formatFlags & groupingIdentityMask) != 0) {
+					data.readByte(); // just skip
+					bodySize -= 1;
+				}
+				if (encryption) {
+					data.readByte(); // just skip
+					bodySize -= 1;
+				}
+				if ((formatFlags & dataLengthIndicatorMask) != 0) {
+					dataLengthIndicator = data.readSyncsaveInt();
+					bodySize -= 4;
+				}				
 			}
 		}
 	}
@@ -121,6 +136,10 @@ public class ID3v2FrameHeader {
 	
 	public boolean isUnsynchronization() {
 		return unsynchronization;
+	}
+	
+	public int getDataLengthIndicator() {
+		return dataLengthIndicator;
 	}
 	
 	public boolean isValid() {
