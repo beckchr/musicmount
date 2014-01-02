@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.musicmount.util.mp4;
+package org.musicmount.audio.m4a;
 
 import java.io.IOException;
 import java.io.InputStream;

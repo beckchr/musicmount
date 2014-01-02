@@ -1,10 +1,11 @@
-package org.musicmount.util.mp3;
+package org.musicmount.audio.mp3;
 
 import java.io.InputStream;
 import java.util.logging.Level;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.musicmount.audio.mp3.ID3v2Info;
 
 public class ID3v2InfoTest {
 	@Test
@@ -31,9 +32,7 @@ public class ID3v2InfoTest {
 			Assert.assertNull(info.getGrouping());
 
 			// other fields
-			Assert.assertEquals(0, info.getTempo());
 			Assert.assertNull(info.getCopyright());
-			Assert.assertEquals(0, info.getRating());
 			Assert.assertNull(info.getLyrics());
 		}
 	}
@@ -64,9 +63,7 @@ public class ID3v2InfoTest {
 			Assert.assertNull(info.getGrouping());
 
 			// other fields
-			Assert.assertEquals(0, info.getTempo());
 			Assert.assertNull(info.getCopyright());
-			Assert.assertEquals(0, info.getRating());
 			Assert.assertNull(info.getLyrics());
 		}
 	}
@@ -97,9 +94,7 @@ public class ID3v2InfoTest {
 			Assert.assertNull(info.getGrouping());
 
 			// other fields
-			Assert.assertEquals(0, info.getTempo());
 			Assert.assertEquals("COPYRIGHT2345678901234567890123", info.getCopyright());
-			Assert.assertEquals(0, info.getRating());
 			Assert.assertNull(info.getLyrics());
 		}
 	}
@@ -130,9 +125,7 @@ public class ID3v2InfoTest {
 			Assert.assertNull(info.getGrouping());
 
 			// other fields
-			Assert.assertEquals(0, info.getTempo());
 			Assert.assertEquals("COPYRIGHT2345678901234567890123", info.getCopyright());
-			Assert.assertEquals(0, info.getRating());
 			Assert.assertNull(info.getLyrics());
 		}
 	}
@@ -163,9 +156,7 @@ public class ID3v2InfoTest {
 			Assert.assertNull(info.getGrouping());
 
 			// other fields
-			Assert.assertEquals(0, info.getTempo());
 			Assert.assertEquals("COPYRIGHT2345678901234567890123", info.getCopyright());
-			Assert.assertEquals(0, info.getRating());
 			Assert.assertNull(info.getLyrics());
 		}
 	}
@@ -196,9 +187,7 @@ public class ID3v2InfoTest {
 			Assert.assertNull(info.getGrouping());
 
 			// other fields
-			Assert.assertEquals(0, info.getTempo());
 			Assert.assertNull(info.getCopyright());
-			Assert.assertEquals(0, info.getRating());
 			Assert.assertNull(info.getLyrics());
 		}
 	}
@@ -229,9 +218,7 @@ public class ID3v2InfoTest {
 			Assert.assertNull(info.getGrouping());
 
 			// other fields
-			Assert.assertEquals(0, info.getTempo());
 			Assert.assertEquals("COPYRIGHT2345678901234567890123", info.getCopyright());
-			Assert.assertEquals(0, info.getRating());
 			Assert.assertNull(info.getLyrics());
 		}
 	}

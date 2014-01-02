@@ -1,10 +1,11 @@
-package org.musicmount.util.mp3;
+package org.musicmount.audio.mp3;
 
 import java.io.File;
 import java.io.InputStream;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.musicmount.audio.mp3.ID3v1Info;
 
 public class ID3v1InfoTest {
 	@Test
@@ -15,12 +16,14 @@ public class ID3v1InfoTest {
 			Assert.assertTrue(ID3v1Info.isID3v1StartPosition(input));
 
 			ID3v1Info info = new ID3v1Info(input);
+			Assert.assertEquals("ID3", info.getBrand());
+			Assert.assertEquals("1.0", info.getVersion());
 
 			// relevant fields
 			Assert.assertEquals("TITLE1234567890123456789012345", info.getTitle());
 			Assert.assertEquals("ARTIST123456789012345678901234", info.getArtist());
 			Assert.assertEquals("ALBUM1234567890123456789012345", info.getAlbum());
-			Assert.assertEquals(ID3v1Genre.Pop, info.getGenre());
+			Assert.assertEquals("Pop", info.getGenre());
 			Assert.assertEquals(2001, info.getYear());
 			Assert.assertEquals("COMMENT123456789012345678901", info.getComment());
 
@@ -36,12 +39,14 @@ public class ID3v1InfoTest {
 			Assert.assertTrue(ID3v1Info.isID3v1StartPosition(input));
 
 			ID3v1Info info = new ID3v1Info(input);
+			Assert.assertEquals("ID3", info.getBrand());
+			Assert.assertEquals("1.1", info.getVersion());
 
 			// relevant fields
 			Assert.assertEquals("TITLE1234567890123456789012345", info.getTitle());
 			Assert.assertEquals("ARTIST123456789012345678901234", info.getArtist());
 			Assert.assertEquals("ALBUM1234567890123456789012345", info.getAlbum());
-			Assert.assertEquals(ID3v1Genre.Pop, info.getGenre());
+			Assert.assertEquals("Pop", info.getGenre());
 			Assert.assertEquals(2001, info.getYear());
 			Assert.assertEquals("COMMENT123456789012345678901", info.getComment());
 

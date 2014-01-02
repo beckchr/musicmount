@@ -13,14 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.musicmount.util.mp3;
+package org.musicmount.audio.mp3;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ID3v2Info {
+import org.musicmount.audio.AudioInfo;
+
+public class ID3v2Info extends AudioInfo {
 	static final Logger LOGGER = Logger.getLogger(ID3v2Info.class.getName());
 
 	public static boolean isID3v2StartPosition(InputStream input) throws IOException {
@@ -32,28 +34,6 @@ public class ID3v2Info {
 		}
 	}
 	
-	private String version;		// e.g. 2.3.0
-	private long duration;		// in milliseconds
-	private String title;
-	private String artist;
-	private String albumArtist;
-	private String album;
-	private short year;
-	private String genre;
-	private String comment;
-	private short track;
-	private short tracks;
-	private short disc;
-	private short discs;
-	private String copyright;
-	private String composer;
-	private short tempo;		// not supported
-	private String grouping;
-	private byte rating;		// not supported
-	private boolean compilation;
-	private String lyrics;
-	private byte[] cover;
-
 	private final Level debugLevel;
 	private final byte[] textBuffer = new byte[1024];
 
@@ -66,6 +46,7 @@ public class ID3v2Info {
 		this.debugLevel = debugLevel;
 		if (isID3v2StartPosition(input)) {
 			ID3v2TagHeader tagHeader = new  ID3v2TagHeader(input);
+			brand = "ID3";
 			version = String.format("2.%d.%d", tagHeader.getVersion(), tagHeader.getRevision());
 			ID3v2TagBody tagBody = tagHeader.tagBody(input);
 			try {
@@ -302,93 +283,5 @@ public class ID3v2Info {
 		data.getData().readByte(); // picture type
 		data.readZeroTerminatedString(textBuffer, 200, encoding); // description
 		return data.getData().readFully((int)data.getRemainingLength()); // image data
-	}
-	
-	public String getBrand() {
-		return "ID3";
-	}
-	
-	public String getVersion() {
-		return version;
-	}
-	
-	public String getTitle() {
-		return title;
-	}
-
-	public String getArtist() {
-		return artist;
-	}
-
-	public String getAlbum() {
-		return album;
-	}
-
-	public String getAlbumArtist() {
-		return albumArtist;
-	}
-
-	public short getYear() {
-		return year;
-	}
-
-	public String getComment()  {
-		return comment;
-	}
-
-	public short getTrack() {
-		return track;
-	}
-	
-	public short getTracks() {
-		return tracks;
-	}
-
-	public short getDisc() {
-		return disc;
-	}
-	
-	public short getDiscs() {
-		return discs;
-	}
-
-	public String getGenre() {
-		return genre;
-	}
-
-	public String getGrouping() {
-		return grouping;
-	}
-
-	public String getCopyright() {
-		return copyright;
-	}
-
-	public String getComposer() {
-		return composer;
-	}
-
-	public short getTempo() {
-		return tempo;
-	}
-
-	public long getDuration() {
-		return duration;
-	}
-
-	public boolean isCompilation() {
-		return compilation;
-	}
-
-	public String getLyrics() {
-		return lyrics;
-	}
-
-	public byte getRating() {
-		return rating;
-	}
-	
-	public byte[] getCover() {
-		return cover;
 	}
 }

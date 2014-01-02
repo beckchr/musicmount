@@ -1,4 +1,4 @@
-package org.musicmount.util.mp3;
+package org.musicmount.audio.mp3;
 
 import java.io.EOFException;
 import java.io.IOException;

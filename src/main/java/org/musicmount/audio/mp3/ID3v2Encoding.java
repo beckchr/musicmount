@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.musicmount.util.mp3;
+package org.musicmount.audio.mp3;
 
 public enum ID3v2Encoding {
 	ISO_8859_1("ISO-8859-1", 1),

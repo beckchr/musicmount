@@ -13,14 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.musicmount.util.mp3;
+package org.musicmount.audio.mp3;
 
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 
-public class ID3v1Info {
+import org.musicmount.audio.AudioInfo;
+
+public class ID3v1Info extends AudioInfo {
 	public static boolean isID3v1StartPosition(InputStream input) throws IOException {
 		input.mark(3);
 		try {
@@ -30,16 +32,10 @@ public class ID3v1Info {
 		}
 	}
 
-	private String title;
-	private String artist;
-	private String album;
-	private short year;
-	private String comment;
-	private short track;
-	private ID3v1Genre genre;
-
 	public ID3v1Info(InputStream input) throws IOException {
 		if (isID3v1StartPosition(input)) {
+			brand = "ID3";
+			version = "1.0";
 			byte[] bytes = readBytes(input, 128);
 			title = extractString(bytes, 3, 30);
 			artist = extractString(bytes, 33, 30);
@@ -50,12 +46,16 @@ public class ID3v1Info {
 				year = 0;
 			}
 			comment = extractString(bytes, 97, 30);
-			genre = ID3v1Genre.getGenre(bytes[127]);
+			ID3v1Genre id3v1Genre = ID3v1Genre.getGenre(bytes[127]);
+			if (id3v1Genre != null) {
+				genre = id3v1Genre.getDescription();
+			}
 			
 			/*
 			 * ID3v1.1
 			 */
 			if (bytes[125] == 0 && bytes[126] != 0) {
+				version = "1.1";
 				track = (short)(bytes[126] & 0xFF);
 			}
  		}
@@ -79,33 +79,5 @@ public class ID3v1Info {
 		String text = new String(bytes, offset, length, "ISO-8859-1");
 		int zeroIndex = text.indexOf(0);
 		return zeroIndex < 0 ? text : text.substring(0, zeroIndex);
-	}
-
-	public String getTitle() {
-		return title;
-	}
-
-	public String getArtist() {
-		return artist;
-	}
-
-	public String getAlbum() {
-		return album;
-	}
-
-	public short getYear() {
-		return year;
-	}
-
-	public String getComment() {
-		return comment;
-	}
-
-	public short getTrack() {
-		return track;
-	}
-
-	public ID3v1Genre getGenre() {
-		return genre;
 	}
 }

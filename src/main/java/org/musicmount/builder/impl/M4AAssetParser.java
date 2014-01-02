@@ -15,59 +15,27 @@
  */
 package org.musicmount.builder.impl;
 
-import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 
-import javax.imageio.ImageIO;
-
-import org.musicmount.util.mp4.M4AInfo;
+import org.musicmount.audio.AudioInfo;
+import org.musicmount.audio.m4a.M4AInfo;
 
 /**
  * M4A (MP4 audio) asset parser. 
  */
-public class M4AAssetParser implements AssetParser {
+public class M4AAssetParser extends AudioInfoAssetParser {
 	@Override
 	public boolean isAssetFile(File file) {
 		return file.getName().toLowerCase().endsWith(".m4a");
 	}
 
 	@Override
-	public Asset parse(File file) throws IOException {
+	protected AudioInfo getAudioInfo(File file) throws Exception {
 		try (InputStream input = new BufferedInputStream(new FileInputStream(file))) {
-			M4AInfo info = new M4AInfo(input);
-			Asset asset = new Asset(file);
-			asset.setAlbum(info.getAlbum());
-			asset.setAlbumArtist(info.getAlbumArtist());
-			asset.setArtist(info.getArtist());
-			asset.setArtworkAvailable(info.getCover() != null);
-			asset.setCompilation(info.isCompilation());
-			asset.setComposer(info.getComposer());
-			asset.setDiscNumber(info.getDisc() > 0 ? Integer.valueOf(info.getDisc()) : null);
-			asset.setDuration(info.getDuration() > 0 ? (int)((info.getDuration() + 500) / 1000) : null);
-			asset.setGenre(info.getGenre());
-			asset.setGrouping(info.getGrouping());
-			asset.setName(info.getTitle());
-			asset.setTrackNumber(info.getTrack() > 0 ? Integer.valueOf(info.getTrack()) : null);
-			asset.setYear(info.getYear() > 0 ? Integer.valueOf(info.getYear()) : null);
-			return asset;
-		}
-	}
-
-	@Override
-	public BufferedImage extractArtwork(File file) throws IOException {
-		try (InputStream input = new BufferedInputStream(new FileInputStream(file))) {
-			byte[] imageData = new M4AInfo(input).getCover();
-			if (imageData != null) {
-				try (InputStream imageDataInput = new ByteArrayInputStream(imageData)) {
-					return ImageIO.read(imageDataInput);
-				}
-			}
-			return null;
+			return new M4AInfo(input);
 		}
 	}
 }

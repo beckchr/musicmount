@@ -15,112 +15,27 @@
  */
 package org.musicmount.builder.impl;
 
-import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.util.logging.Logger;
 
-import javax.imageio.ImageIO;
-
-import org.musicmount.util.mp3.ID3v2Exception;
-import org.musicmount.util.mp3.ID3v1Info;
-import org.musicmount.util.mp3.ID3v2Info;
-import org.musicmount.util.mp3.MP3Exception;
-import org.musicmount.util.mp3.MP3Frame;
-import org.musicmount.util.mp3.MP3Input;
+import org.musicmount.audio.AudioInfo;
+import org.musicmount.audio.mp3.MP3Info;
 
 /**
- * M4A (MP4 audio) asset parser. 
+ * MP3 asset parser. 
  */
-public class MP3AssetParser implements AssetParser {
-	static final Logger LOGGER = Logger.getLogger(MP3AssetParser.class.getName());
-
+public class MP3AssetParser extends AudioInfoAssetParser {
 	@Override
 	public boolean isAssetFile(File file) {
 		return file.getName().toLowerCase().endsWith(".mp3");
 	}
 
 	@Override
-	public Asset parse(final File file) throws IOException, ID3v2Exception {
-		try (MP3Input input = new MP3Input(new BufferedInputStream(new FileInputStream(file)))) {
-			Asset asset = new Asset(file);
-			if (ID3v2Info.isID3v2StartPosition(input)) {
-				ID3v2Info info = new ID3v2Info(input);
-				asset.setAlbum(info.getAlbum());
-				asset.setAlbumArtist(info.getAlbumArtist());
-				asset.setArtist(info.getArtist());
-				asset.setArtworkAvailable(info.getCover() != null);
-				asset.setCompilation(info.isCompilation());
-				asset.setComposer(info.getComposer());
-				asset.setDiscNumber(info.getDisc() > 0 ? Integer.valueOf(info.getDisc()) : null);
-				if (info.getDuration() > 0) {
-					asset.setDuration(info.getDuration() > 0 ? (int)((info.getDuration() + 500) / 1000) : null);
-				}
-				asset.setGenre(info.getGenre());
-				asset.setGrouping(info.getGrouping());
-				asset.setName(info.getTitle());
-				asset.setTrackNumber(info.getTrack() > 0 ? Integer.valueOf(info.getTrack()) : null);
-				asset.setYear(info.getYear() > 0 ? Integer.valueOf(info.getYear()) : null);
-			}
-			if (asset.getDuration() == null) {
-				try {					
-					long duration = MP3Frame.calculateDuration(input, file.length(), new MP3Frame.StopReadCondition() {
-						final long stopPosition = file.length() - 128;
-						@Override
-						public boolean stopRead(MP3Input data) throws IOException {
-							return (data.getPosition() == stopPosition) && ID3v1Info.isID3v1StartPosition(data);
-						}
-					});
-					asset.setDuration((int)((duration + 500) / 1000));
-				} catch (MP3Exception e) {
-//					System.out.println("Could not determine duration for asset:" + file + " (" + e + ")");
-				}
-			}
-			if (asset.getName() == null || asset.getAlbum() == null || asset.getArtist() == null) {
-				if (input.getPosition() <= file.length() - 128) { // position to last 128 bytes
-					input.skipFully(file.length() - 128 - input.getPosition());
-					if (ID3v1Info.isID3v1StartPosition(input)) {
-//						System.out.println("Parsing id3v1 for asset:" + file);
-						ID3v1Info info = new ID3v1Info(input);
-						if (asset.getAlbum() == null) {
-							asset.setAlbum(info.getAlbum());
-						}
-						if (asset.getArtist() == null) {
-							asset.setArtist(info.getArtist());
-						}
-						if (asset.getGenre() == null && info.getGenre() != null) {
-							asset.setGenre(info.getGenre().getDescription());
-						}
-						if (asset.getName() == null) {
-							asset.setName(info.getTitle());
-						}
-						if (asset.getTrackNumber() == null && info.getTrack() > 0) {
-							asset.setTrackNumber(Integer.valueOf(info.getTrack()));
-						}
-						if (asset.getYear() == null && info.getYear() > 0) {
-							asset.setYear(Integer.valueOf(info.getYear()));
-						}
-					}
-				}
-			}
-			return asset;
-		}
-	}
-
-	@Override
-	public BufferedImage extractArtwork(File file) throws IOException, ID3v2Exception {
+	protected AudioInfo getAudioInfo(File file) throws Exception {
 		try (InputStream input = new BufferedInputStream(new FileInputStream(file))) {
-			byte[] imageData = new ID3v2Info(input).getCover();
-			if (imageData != null) {
-				try (InputStream imageDataInput = new ByteArrayInputStream(imageData)) {
-					return ImageIO.read(imageDataInput);
-				}
-			}
+			return new MP3Info(input, file.length());
 		}
-		return null;
 	}
 }

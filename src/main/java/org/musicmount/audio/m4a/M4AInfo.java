@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.musicmount.util.mp4;
+package org.musicmount.audio.m4a;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -23,7 +23,8 @@ import java.math.BigDecimal;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.musicmount.util.mp3.ID3v1Genre;
+import org.musicmount.audio.AudioInfo;
+import org.musicmount.audio.mp3.ID3v1Genre;
 
 /**
  * M4A info.
@@ -97,38 +98,17 @@ import org.musicmount.util.mp3.ID3v1Genre;
  *           [sosn]         sort show
  * 
  */
-public class M4AInfo {
+public class M4AInfo extends AudioInfo {
 	static final Logger LOGGER = Logger.getLogger(M4AInfo.class.getName());
 
 	private static final String ASCII = "ISO8859_1";
 	private static final String UTF_8 = "UTF-8";
 
-	private String brand;			// "M4A", ...
-	private String version;		// version info
-
-	private long duration;		// in milliseconds
 	private BigDecimal volume;		// normal = 1.0
 	private BigDecimal speed;		// normal = 1.0
 
-	private String title;
-	private String artist;
-	private String albumArtist;	// album artist
-	private String album;
-	private short year;
-	private String genre;
-	private String comment;
-	private short track;
-	private short tracks;			// total number of tracks
-	private short disc;
-	private short discs;			// total number of discs
-	private String copyright;
-	private String composer;
 	private short tempo;
-	private String grouping;
 	private byte rating;			// none = 0, clean = 2, explicit = 4
-	private boolean compilation;	// compilation flag
-	private String lyrics;
-	private byte[] cover;
 
 	private final Level debugLevel;
 
@@ -363,84 +343,8 @@ public class M4AInfo {
 		}
 	}
 
-	public String getTitle() {
-		return title;
-	}
-
-	public String getArtist() {
-		return artist;
-	}
-
-	public String getAlbum() {
-		return album;
-	}
-
-	public String getAlbumArtist() {
-		return albumArtist;
-	}
-
-	public short getYear() {
-		return year;
-	}
-
-	public String getComment()  {
-		return comment;
-	}
-
-	public short getTrack() {
-		return track;
-	}
-
-	public short getTracks() {
-		return tracks;
-	}
-
-	public short getDisc() {
-		return disc;
-	}
-
-	public short getDiscs() {
-		return discs;
-	}
-
-	public String getGenre() {
-		return genre;
-	}
-
-	public String getGrouping() {
-		return grouping;
-	}
-
-	public String getCopyright() {
-		return copyright;
-	}
-
-	public String getComposer() {
-		return composer;
-	}
-
 	public short getTempo() {
 		return tempo;
-	}
-
-	public String getBrand() {
-		return brand;
-	}
-
-	public long getDuration() {
-		return duration;
-	}
-
-	public String getVersion() {
-		return version;
-	}
-
-	public boolean isCompilation() {
-		return compilation;
-	}
-
-	public String getLyrics() {
-		return lyrics;
 	}
 
 	public byte getRating() {
@@ -455,10 +359,6 @@ public class M4AInfo {
 		return volume;
 	}
 	
-	public byte[] getCover() {
-		return cover;
-	}
-
 	public static void main(String[] args) throws IOException {
 		if (args.length != 1) {
 			System.err.println("usage: M4Info <file>");

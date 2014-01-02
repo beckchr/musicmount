@@ -1,10 +1,11 @@
-package org.musicmount.util.mp4;
+package org.musicmount.audio.m4a;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.musicmount.audio.m4a.M4AInfo;
 
 public class M4AInfoTest {
 	@Test
