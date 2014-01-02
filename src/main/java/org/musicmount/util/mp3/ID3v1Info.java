@@ -15,16 +15,18 @@
  */
 package org.musicmount.util.mp3;
 
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 
 public class ID3v1Info {
-	public static boolean isID3v1StartPosition(MP3Input data) throws IOException {
-		data.mark(3);
+	public static boolean isID3v1StartPosition(InputStream input) throws IOException {
+		input.mark(3);
 		try {
-			return data.read() == 'T' && data.read() == 'A' && data.read() == 'G';
+			return input.read() == 'T' && input.read() == 'A' && input.read() == 'G';
 		} finally {
-			data.reset();
+			input.reset();
 		}
 	}
 
@@ -36,9 +38,9 @@ public class ID3v1Info {
 	private short track;
 	private ID3v1Genre genre;
 
-	public ID3v1Info(MP3Input data) throws IOException {
-		if (isID3v1StartPosition(data)) {
-			byte[] bytes = data.readFully(128);
+	public ID3v1Info(InputStream input) throws IOException {
+		if (isID3v1StartPosition(input)) {
+			byte[] bytes = readBytes(input, 128);
 			title = extractString(bytes, 3, 30);
 			artist = extractString(bytes, 33, 30);
 			album = extractString(bytes, 63, 30);
@@ -57,6 +59,20 @@ public class ID3v1Info {
 				track = (short)(bytes[126] & 0xFF);
 			}
  		}
+	}
+
+	byte[] readBytes(InputStream input, int len) throws IOException {
+		int total = 0;
+		byte[] bytes = new byte[len];
+		while (total < len) {
+			int current = input.read(bytes, total, len - total);
+			if (current > 0) {
+				total += current;
+			} else {
+				throw new EOFException();
+			}
+		}
+		return bytes;
 	}
 
 	String extractString(byte[] bytes, int offset, int length) throws UnsupportedEncodingException {

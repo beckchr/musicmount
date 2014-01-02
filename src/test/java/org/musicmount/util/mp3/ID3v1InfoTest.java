@@ -1,6 +1,7 @@
 package org.musicmount.util.mp3;
 
 import java.io.File;
+import java.io.InputStream;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -9,7 +10,7 @@ public class ID3v1InfoTest {
 	@Test
 	public void testV10Tag() throws Exception {
 		File mp3File = new File(getClass().getResource("/sample-assets/id3v10.mp3").toURI());
-		try (MP3Input input = new MP3Input(mp3File.toURI().toURL().openStream())) {
+		try (InputStream input = mp3File.toURI().toURL().openStream()) {
 			input.skip(mp3File.length() - 128);
 			Assert.assertTrue(ID3v1Info.isID3v1StartPosition(input));
 
@@ -30,7 +31,7 @@ public class ID3v1InfoTest {
 	@Test
 	public void testV11Tag() throws Exception {
 		File mp3File = new File(getClass().getResource("/sample-assets/id3v11.mp3").toURI());
-		try (MP3Input input = new MP3Input(mp3File.toURI().toURL().openStream())) {
+		try (InputStream input = mp3File.toURI().toURL().openStream()) {
 			input.skip(mp3File.length() - 128);
 			Assert.assertTrue(ID3v1Info.isID3v1StartPosition(input));
 

@@ -26,6 +26,10 @@ public class MP3Input extends PositionInputStream {
 		super(delegate);
 	}
 	
+	public MP3Input(InputStream delegate, long position) {
+		super(delegate, position);
+	}
+
 	public final void readFully(byte b[], int off, int len) throws IOException {
 		int total = 0;
 		while (total < len) {
@@ -38,12 +42,6 @@ public class MP3Input extends PositionInputStream {
 		}
 	}
 	
-	public byte[] readFully(int len) throws IOException {
-		byte[] bytes = new byte[len];
-		readFully(bytes, 0, len);
-		return bytes;
-	}
-	
 	public void skipFully(long len) throws IOException {
 		long total = 0;
 		while (total < len) {
@@ -54,22 +52,6 @@ public class MP3Input extends PositionInputStream {
 				throw new EOFException();
 			}
 		}
-	}
-	
-	public byte readByte() throws IOException {
-		int b = read();
-		if (b < 0) {
-			throw new EOFException();
-		}
-		return (byte) b;
-	}
-
-	public int readInt() throws IOException {
-		return ((readByte() & 0xFF) << 24) | ((readByte() & 0xFF) << 16) | ((readByte() & 0xFF) << 8) | (readByte() & 0xFF);
-	}
-
-	public int readSyncsaveInt() throws IOException {
-		return ((readByte() & 0x7F) << 21) | ((readByte() & 0x7F) << 14) | ((readByte() & 0x7F) << 7) | (readByte() & 0x7F);
 	}
 	
 	public String toString() {

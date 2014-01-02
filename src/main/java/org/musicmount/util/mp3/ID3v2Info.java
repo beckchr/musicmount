@@ -16,19 +16,19 @@
 package org.musicmount.util.mp3;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ID3v2Info {
 	static final Logger LOGGER = Logger.getLogger(ID3v2Info.class.getName());
 
-	public static boolean isID3v2StartPosition(MP3Input data) throws IOException {
-		data.mark(3);
+	public static boolean isID3v2StartPosition(InputStream input) throws IOException {
+		input.mark(3);
 		try {
-			return data.read() == 'I' && data.read() == 'D' && data.read() == '3';
+			return input.read() == 'I' && input.read() == 'D' && input.read() == '3';
 		} finally {
-			data.reset();
+			input.reset();
 		}
 	}
 	
@@ -58,73 +58,77 @@ public class ID3v2Info {
 	private final byte[] textBuffer = new byte[1024];
 
 
-	public ID3v2Info(MP3Input data) throws IOException, ID3v2Exception {
-		this(data, Level.FINEST);
+	public ID3v2Info(InputStream input) throws IOException, ID3v2Exception {
+		this(input, Level.FINEST);
 	}
 
-	public ID3v2Info(MP3Input data, Level debugLevel) throws IOException, ID3v2Exception {
+	public ID3v2Info(InputStream input, Level debugLevel) throws IOException, ID3v2Exception {
 		this.debugLevel = debugLevel;
-		if (isID3v2StartPosition(data)) {
-			ID3v2Header tag = new  ID3v2Header(data);
-			version = String.format("2.%d.%d", tag.getVersion(), tag.getRevision());
-			if (tag.isUnsynchronization() || tag.isCompression()) {
-				throw new ID3v2Exception("Unsynchronization is not supported");
-			}
-			long tagEndPosition = data.getPosition() - tag.getHeaderSize() + tag.getTotalTagSize();
-			long framesEndPosition = tagEndPosition - tag.getFooterSize() - tag.getPaddingSize();
+		if (isID3v2StartPosition(input)) {
+			ID3v2TagHeader tagHeader = new  ID3v2TagHeader(input);
+			version = String.format("2.%d.%d", tagHeader.getVersion(), tagHeader.getRevision());
+			ID3v2TagBody tagBody = tagHeader.tagBody(input);
 			try {
-				while (data.getPosition() < framesEndPosition - 10) { // TODO - tag.minimumFrameSize()
-					ID3v2FrameHeader frame = new ID3v2FrameHeader(data, tag);
-					if (frame.isPadding()) { // we ran into padding
+				while (tagBody.getRemainingLength() > 10) { // TODO > tag.minimumFrameSize()
+					ID3v2FrameHeader frameHeader = new ID3v2FrameHeader(tagBody);
+					if (frameHeader.isPadding()) { // we ran into padding
 						break;
 					}
-					if (data.getPosition() + frame.getBodySize() > framesEndPosition) { // something wrong...
+					if (frameHeader.getBodySize() > tagBody.getRemainingLength()) { // something wrong...
 						LOGGER.log(debugLevel, "ID3 frame claims to extend frames area");
 						break;
 					}
-					if (!frame.isValid() || frame.isCompression() || frame.isEncryption() || frame.isUnsynchronization()) {
-						data.skipFully(frame.getBodySize());
+					if (frameHeader.isValid() && !frameHeader.isEncryption()) {
+						ID3v2FrameBody frameBody = tagBody.frameBody(frameHeader);
+						try {
+							parseFrame(frameBody);
+						} catch (ID3v2Exception e) {
+							LOGGER.fine("ID3 exception occured: " + e.getMessage());
+						} finally {
+							frameBody.getData().skipFully(frameBody.getRemainingLength());
+						}
 					} else {
-						parseFrame(data, frame);
+						tagBody.getData().skipFully(frameHeader.getBodySize());
 					}
 				}
 			} catch (ID3v2Exception e) {
 				LOGGER.fine("ID3 exception occured: " + e.getMessage());
 			}
-			if (data.getPosition() < tagEndPosition) {
-				data.skipFully(tagEndPosition - data.getPosition());
+			tagBody.getData().skipFully(tagBody.getRemainingLength());
+			if (tagHeader.getFooterSize() > 0) {
+				input.skip(tagHeader.getFooterSize());
 			}
 		}
 	}
 
-	void parseFrame(MP3Input data, ID3v2FrameHeader frame) throws IOException, ID3v2Exception {
+	void parseFrame(ID3v2FrameBody frame) throws IOException, ID3v2Exception {
 		if (LOGGER.isLoggable(debugLevel)) {
-			LOGGER.log(debugLevel, "Parsing frame: " + frame.getFrameId());
+			LOGGER.log(debugLevel, "Parsing frame: " + frame.getFrameHeader().getFrameId());
 		}
-		switch (frame.getFrameId()) {
+		switch (frame.getFrameHeader().getFrameId()) {
 		case "PIC":
 		case "APIC":
-			cover = parsePictureFrame(data, frame); 
+			cover = parsePictureFrame(frame);
 			break;
 		case "COM":
 		case "COMM":
-			comment = parseCommentFrame(data, frame);
+			comment = parseCommentOrLyricsFrame(frame);
 			break;
 		case "TAL":
 		case "TALB":
-			album = parseTextFrame(data, frame);
+			album = parseTextFrame(frame);
 			break;
 		case "TCP":
 		case "TCMP":
-			compilation = "1".equals(parseTextFrame(data, frame));
+			compilation = "1".equals(parseTextFrame(frame));
 			break;
 		case "TCM":
 		case "TCOM":
-			composer = parseTextFrame(data, frame);
+			composer = parseTextFrame(frame);
 			break;
 		case "TCO":
 		case "TCON":
-			String tcon = parseTextFrame(data, frame);
+			String tcon = parseTextFrame(frame);
 			if (tcon.length() > 0) {
 				genre = tcon;
 				try {
@@ -150,10 +154,10 @@ public class ID3v2Info {
 			break;
 		case "TCR":
 		case "TCOP":
-			copyright = parseTextFrame(data, frame);
+			copyright = parseTextFrame(frame);
 			break;
 		case "TDRC": // v2.4, replaces TYER
-			String tdrc = parseTextFrame(data, frame);
+			String tdrc = parseTextFrame(frame);
 			if (tdrc.length() >= 4) {
 				try {
 					year = Short.valueOf(tdrc.substring(0, 4));
@@ -166,7 +170,7 @@ public class ID3v2Info {
 			break;
 		case "TLE":
 		case "TLEN":
-			String tlen = parseTextFrame(data, frame);
+			String tlen = parseTextFrame(frame);
 			try {
 				duration = Long.valueOf(tlen);
 			} catch (NumberFormatException e) {
@@ -177,15 +181,15 @@ public class ID3v2Info {
 			break;
 		case "TP1":
 		case "TPE1":
-			artist = parseTextFrame(data, frame);
+			artist = parseTextFrame(frame);
 			break;
 		case "TP2":
 		case "TPE2":
-			albumArtist = parseTextFrame(data, frame);
+			albumArtist = parseTextFrame(frame);
 			break;
 		case "TPA":
 		case "TPOS":
-			String tpos = parseTextFrame(data, frame);
+			String tpos = parseTextFrame(frame);
 			if (tpos.length() > 0) {
 				int index = tpos.indexOf('/');
 				if (index < 0) {
@@ -216,7 +220,7 @@ public class ID3v2Info {
 			break;
 		case "TRK":
 		case "TRCK":
-			String trck = parseTextFrame(data, frame);
+			String trck = parseTextFrame(frame);
 			if (trck.length() > 0) {
 				int index = trck.indexOf('/');
 				if (index < 0) {
@@ -247,15 +251,15 @@ public class ID3v2Info {
 			break;
 		case "TT1":
 		case "TIT1":
-			grouping = parseTextFrame(data, frame);
+			grouping = parseTextFrame(frame);
 			break;
 		case "TT2":
 		case "TIT2":
-			title = parseTextFrame(data, frame);
+			title = parseTextFrame(frame);
 			break;
 		case "TYE":
 		case "TYER":
-			String tyer = parseTextFrame(data, frame);
+			String tyer = parseTextFrame(frame);
 			if (tyer.length() > 0) {
 				try {
 					year = Short.valueOf(tyer);
@@ -266,115 +270,38 @@ public class ID3v2Info {
 				}
 			}
 			break;
+		case "ULT":
+		case "USLT":
+			lyrics = parseCommentOrLyricsFrame(frame);
+			break;
 		default:
-			data.skipFully(frame.getBodySize());
+			frame.getData().skipFully(frame.getRemainingLength());
 			break;
 		}
 	}
 
-	String extractString(byte[] bytes, int offset, int length, ID3v2Encoding encoding, boolean searchZeros) throws UnsupportedEncodingException {
-		if (searchZeros) {
-			int zeros = 0;
-			for (int i = 0; i < length; i++) {
-				// UTF-16LE may have a zero byte as second byte of a 2-byte character -> skip first zero at odd index
-				if (bytes[offset + i] == 0 && (encoding != ID3v2Encoding.UTF_16 || zeros != 0 || (offset + i) % 2 == 0)) {
-					if (++zeros == encoding.getZeroBytes()) {
-						length = i + 1 - encoding.getZeroBytes();
-						break;
-					}
-				} else {
-					zeros = 0;
-				}
-			}
-		}
-		String string = new String(bytes, offset, length, encoding.getCharset());
-		if (string.length() > 0 && string.charAt(0) == '\uFEFF') { // remove BOM
-			string = string.substring(1);
-		}
-		return string;
-	}
-
-	/**
-	 * Reads a possibly zero-terminated string.
-	 * @param data
-	 * @param len
-	 * @param encoding
-	 * @return string
-	 * @throws IOException
-	 */
-	String readString(MP3Input data, int len, ID3v2Encoding encoding) throws IOException {
-		byte[] bytes = len <= textBuffer.length ? textBuffer : new byte[len];
-		data.readFully(bytes, 0, len);
-		return extractString(bytes, 0, len, encoding, true);
-	}
-
-	String extractZeroTerminatedString(byte[] bytes, int offset, int length, ID3v2Encoding encoding) throws IOException {
-		return extractString(bytes, offset, length - encoding.getZeroBytes(), encoding, false);
-	}
-
-	String extractFixedLengthString(byte[] bytes, int offset, int length, ID3v2Encoding encoding) throws IOException {
-		return extractString(bytes, offset, length, encoding, false);
-	}
-
-	/**
-	 * copy bytes of zero(s)-terminated string into buffer.
-	 * @param data
-	 * @param bytes
-	 * @param encoding
-	 * @return byte count (including terminating zero(s))
-	 * @throws IOException
-	 */
-	int readZeroTerminatedString(MP3Input data, byte[] bytes, ID3v2Encoding encoding) throws IOException, ID3v2Exception {
-		int zeros = 0;
-		for (int i = 0; i < bytes.length; i++) {
-			// UTF-16LE may have a zero byte as second byte of a 2-byte character -> skip first zero at odd index
-			if ((bytes[i] = data.readByte()) == 0 && (encoding != ID3v2Encoding.UTF_16 || zeros != 0 || i % 2 == 0)) {
-				if (++zeros == encoding.getZeroBytes()) {
-					return i + 1;
-				}
-			} else {
-				zeros = 0;
-			}
-		}
-		throw new ID3v2Exception("Could not read zero-termiated string");
-	}
-
-	String parseTextFrame(MP3Input data, ID3v2FrameHeader frame) throws IOException, ID3v2Exception {
-		return readString(data, frame.getBodySize() - 1, ID3v2Encoding.getEncoding(data.readByte()));
+	String parseTextFrame(ID3v2FrameBody frame) throws IOException, ID3v2Exception {
+		ID3v2Encoding encoding = frame.readEncoding();
+		return frame.readFixedLengthString(textBuffer, (int)frame.getRemainingLength(), encoding); // text
 	}
 	
-	String parseCommentFrame(MP3Input data, ID3v2FrameHeader frame) throws IOException, ID3v2Exception {
-		ID3v2Encoding encoding = ID3v2Encoding.getEncoding(data.readByte());
-
-		int languageByteCount = 3;
-		data.readFully(textBuffer, 0, languageByteCount);
-//		extractFixedLengthString(textBuffer, 0, languageByteCount, ID3v2Encoding.ISO_8859_1);
-		
-		int descriptionByteCount = readZeroTerminatedString(data, textBuffer, encoding);
-//		extractZeroTerminatedString(textBuffer, 0, descriptionByteCount, encoding);
-
-		return readString(data, frame.getBodySize() - (1 + languageByteCount + descriptionByteCount), encoding);
+	String parseCommentOrLyricsFrame(ID3v2FrameBody data) throws IOException, ID3v2Exception {
+		ID3v2Encoding encoding = data.readEncoding();
+		data.readFixedLengthString(textBuffer, 3, encoding); // language
+		data.readZeroTerminatedString(textBuffer, 200, encoding); // description
+		return data.readFixedLengthString(textBuffer, (int)data.getRemainingLength(), encoding); // text
 	}
 
-	byte[] parsePictureFrame(MP3Input data, ID3v2FrameHeader frame) throws IOException, ID3v2Exception {
-		ID3v2Encoding encoding = ID3v2Encoding.getEncoding(data.readByte());
-
-		int imageTypeByteCount;
-		if (frame.getTag().getVersion() == 2) {
-			imageTypeByteCount = 3;
-			data.readFully(textBuffer, 0, imageTypeByteCount);
-//			extractFixedLengthString(textBuffer, 0, imageTypeByteCount, ID3v2Encoding.ISO_8859_1);
+	byte[] parsePictureFrame(ID3v2FrameBody data) throws IOException, ID3v2Exception {
+		ID3v2Encoding encoding = data.readEncoding();
+		if (data.getTagHeader().getVersion() == 2) { // file type, e.g. "JPG"
+			data.readFixedLengthString(textBuffer, 3, ID3v2Encoding.ISO_8859_1);
 		} else { // mime type, e.g. "image/jpg"
-			imageTypeByteCount = readZeroTerminatedString(data, textBuffer, ID3v2Encoding.ISO_8859_1);
-//			extractZeroTerminatedString(textBuffer, 0, imageTypeByteCount, ID3v2Encoding.ISO_8859_1);
+			data.readZeroTerminatedString(textBuffer, 20, ID3v2Encoding.ISO_8859_1);
 		}
-
-		data.readByte(); // picture type
-
-		int descriptionByteCount = readZeroTerminatedString(data, textBuffer, encoding);
-//		extractZeroTerminatedString(textBuffer, 0, descriptionByteCount, encoding);
-		
-		return data.readFully(frame.getBodySize() - (1 + imageTypeByteCount + 1 + descriptionByteCount));
+		data.getData().readByte(); // picture type
+		data.readZeroTerminatedString(textBuffer, 200, encoding); // description
+		return data.getData().readFully((int)data.getRemainingLength()); // image data
 	}
 	
 	public String getBrand() {

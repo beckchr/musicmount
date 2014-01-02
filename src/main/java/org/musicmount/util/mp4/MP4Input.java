@@ -23,55 +23,23 @@ import org.musicmount.util.PositionInputStream;
 /**
  * Input box.
  */
-public final class MP4Input extends PositionInputStream implements MP4Box {
-	private MP4Atom child;
-
-	public MP4Input(InputStream delegate) throws IOException {
-		super(delegate);
+public final class MP4Input extends MP4Box<PositionInputStream> {
+	/**
+	 * Create new MP4 input.
+	 * @param input stream
+	 * @throws IOException
+	 */
+	public MP4Input(InputStream delegate) {
+		super(new PositionInputStream(delegate), null, "");
 	}
 
-	public MP4Box getParent() {
-		return null;
-	}
-
-	public String getType() {
-		return "";
-	}
-
-	public MP4Atom nextChild() throws IOException {
-		if (child != null) {
-			child.skip(child.getRemaining());
-		}
-		return child = new MP4Atom(this);
-	}
-
-	public MP4Atom nextChild(String expectedTypeExpression) throws IOException {
-		MP4Atom atom = nextChild();
-		if (atom.getType().matches(expectedTypeExpression)) {
-			return atom;
-		}
-		throw new IOException("atom type mismatch, expected "
-				+ expectedTypeExpression + ", got " + atom.getType());
-	}
-
-	public MP4Atom nextChildUpTo(String expectedTypeExpression)
-			throws IOException {
+	public MP4Atom nextChildUpTo(String expectedTypeExpression) throws IOException {
 		while (true) {
 			MP4Atom atom = nextChild();
 			if (atom.getType().matches(expectedTypeExpression)) {
 				return atom;
 			}
 		}
-	}
-
-	@Override
-	public boolean markSupported() {
-		return false;
-	}
-	
-	@Override
-	public synchronized void reset() throws IOException {
-		throw new IOException("mark/reset not supported");
 	}
 
 	public String toString() {

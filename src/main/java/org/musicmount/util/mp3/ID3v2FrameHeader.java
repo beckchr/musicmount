@@ -19,8 +19,8 @@ import java.io.IOException;
 
 public class ID3v2FrameHeader {
 	private String frameId;
+	private int headerSize;
 	private int bodySize;
-	private ID3v2Header tag;
 	private boolean unsynchronization;
 	private boolean compression;
 	private boolean encryption;
@@ -29,16 +29,15 @@ public class ID3v2FrameHeader {
 	/*
 	 * Parse header and consume bytes up the frame data
 	 */
-	public ID3v2FrameHeader(MP3Input data, ID3v2Header tag) throws IOException, ID3v2Exception {
-		this.tag = tag;
-		parse(data);
-	}
+	public ID3v2FrameHeader(ID3v2TagBody input) throws IOException, ID3v2Exception {
+		long startPosition = input.getPosition();
 
-	void parse(MP3Input data) throws IOException, ID3v2Exception {
+		ID3v2DataInput data = input.getData();
+		
 		/*
 		 * Frame Id
 		 */
-		if (tag.getVersion() == 2) { // $xx xx xx (three characters)
+		if (input.getTagHeader().getVersion() == 2) { // $xx xx xx (three characters)
 			frameId = new String(data.readFully(3), ID3v2Encoding.ISO_8859_1.getCharset());
 		} else { // $xx xx xx xx (four characters)
 			frameId = new String(data.readFully(4), ID3v2Encoding.ISO_8859_1.getCharset());
@@ -47,18 +46,18 @@ public class ID3v2FrameHeader {
 		/*
 		 * Size 
 		 */
-		if (tag.getVersion() == 2) { // $xx xx xx
+		if (input.getTagHeader().getVersion() == 2) { // $xx xx xx
 			bodySize = ((data.readByte() & 0xFF) << 16) | ((data.readByte() & 0xFF) << 8) | (data.readByte() & 0xFF);
-		} else if (tag.getVersion() == 3) { // $xx xx xx xx
+		} else if (input.getTagHeader().getVersion() == 3) { // $xx xx xx xx
 			bodySize = data.readInt();
 		} else { // 4 * %0xxxxxxx (sync-save integer)
-			bodySize = data.readSyncsaveInt();
+			bodySize = data.readSyncsafeInt();
 		}
 		
 		/*
 		 * Flags
 		 */
-		if (tag.getVersion() > 2) { // $xx xx
+		if (input.getTagHeader().getVersion() > 2) { // $xx xx
 			data.readByte(); // status flags
 			byte formatFlags = data.readByte();
 			int compressionMask = 0x00;
@@ -66,7 +65,7 @@ public class ID3v2FrameHeader {
 			int groupingIdentityMask = 0x00;
 			int unsynchronizationMask = 0x00;
 			int dataLengthIndicatorMask = 0x00;
-			if (tag.getVersion() == 3) { // %(compression)(encryption)(groupingIdentity)00000
+			if (input.getTagHeader().getVersion() == 3) { // %(compression)(encryption)(groupingIdentity)00000
 				compressionMask = 0x80;
 				encryptionMask = 0x40;
 				groupingIdentityMask = 0x20;
@@ -84,7 +83,7 @@ public class ID3v2FrameHeader {
 			/*
 			 * Read flag attachments in the order of the flags (version dependent).
 			 */
-			if (tag.getVersion() == 3) {
+			if (input.getTagHeader().getVersion() == 3) {
 				if (compression) {
 					dataLengthIndicator = data.readInt();
 					bodySize -= 4;
@@ -107,23 +106,25 @@ public class ID3v2FrameHeader {
 					bodySize -= 1;
 				}
 				if ((formatFlags & dataLengthIndicatorMask) != 0) {
-					dataLengthIndicator = data.readSyncsaveInt();
+					dataLengthIndicator = data.readSyncsafeInt();
 					bodySize -= 4;
 				}				
 			}
 		}
+
+		headerSize = (int)(input.getPosition() - startPosition);
 	}
-	
+
 	public String getFrameId() {
 		return frameId;
 	}
 	
-	public int getBodySize() {
-		return bodySize;
+	public int getHeaderSize() {
+		return headerSize;
 	}
 	
-	public ID3v2Header getTag() {
-		return tag;
+	public int getBodySize() {
+		return bodySize;
 	}
 	
 	public boolean isCompression() {

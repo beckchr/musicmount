@@ -18,6 +18,7 @@ package org.musicmount.util.mp4;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -128,15 +129,16 @@ public class M4AInfo {
 	private boolean compilation;	// compilation flag
 	private String lyrics;
 	private byte[] cover;
-	
+
 	private final Level debugLevel;
 
-	public M4AInfo(MP4Input mp4) throws IOException {
-		this(mp4, Level.FINEST);
+	public M4AInfo(InputStream input) throws IOException {
+		this(input, Level.FINEST);
 	}
 
-	public M4AInfo(MP4Input mp4, Level debugLevel) throws IOException {
+	public M4AInfo(InputStream input, Level debugLevel) throws IOException {
 		this.debugLevel = debugLevel;
+		MP4Input mp4 = new MP4Input(input);
 		if (LOGGER.isLoggable(debugLevel)) {
 			LOGGER.log(debugLevel, mp4.toString());
 		}
@@ -462,7 +464,7 @@ public class M4AInfo {
 			System.err.println("usage: M4Info <file>");
 			System.exit(1);
 		}
-		M4AInfo info = new M4AInfo(new MP4Input(new FileInputStream(new File(args[0]))));
+		M4AInfo info = new M4AInfo(new FileInputStream(new File(args[0])));
 		System.out.println("Audio info for " + args[0] + " (null or 0 means not available)");
 		System.out.println("  Brand:        " + info.brand);
 		System.out.println("  Version:      " + info.version);

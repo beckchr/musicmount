@@ -19,12 +19,20 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+/**
+ * Input stream filter that keeps track of the current read position.
+ */
 public class PositionInputStream extends FilterInputStream {
-	private long position = 0;
+	private long position;
 	private long positionMark;
 
 	public PositionInputStream(InputStream delegate) {
+		this(delegate, 0L);
+	}
+
+	public PositionInputStream(InputStream delegate, long position) {
 		super(delegate);
+		this.position = position;
 	}
 
 	@Override
@@ -57,13 +65,8 @@ public class PositionInputStream extends FilterInputStream {
 	}
 
 	@Override
-	public int read(byte[] b) throws IOException {
-		long p = position;
-		int read = super.read(b);
-		if (read > 0) {
-			position = p + read;
-		}
-		return read;
+	public final int read(byte[] b) throws IOException {
+		return read(b, 0, b.length);
 	}
 
 	public long skip(long n) throws IOException {

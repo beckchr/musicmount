@@ -15,9 +15,13 @@
  */
 package org.musicmount.util.mp3;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
-public class ID3v2Header {
+import org.musicmount.util.PositionInputStream;
+
+public class ID3v2TagHeader {
 	private int version = 0;
 	private int revision = 0;
 	private int headerSize = 0; // size of header, including extended header (with attachments)
@@ -26,16 +30,18 @@ public class ID3v2Header {
 	private int footerSize = 0; // size of footer (version 4 only)
 	private boolean unsynchronization;
 	private boolean compression;
-	
-	/*
+
+	/**
 	 * Parse tag header and consume bytes up the first frame header
 	 */
-	public ID3v2Header(MP3Input data) throws IOException, ID3v2Exception {
-		parse(data);
+	public ID3v2TagHeader(InputStream input) throws IOException, ID3v2Exception {
+		this(new PositionInputStream(input));
 	}
 	
-	void parse(MP3Input data) throws IOException, ID3v2Exception {
-		long startPosition = data.getPosition();
+	ID3v2TagHeader(PositionInputStream input) throws IOException, ID3v2Exception {
+		long startPosition = input.getPosition();
+		
+		ID3v2DataInput data = new ID3v2DataInput(input);
 		
 		/*
 		 * Identifier: "ID3"
@@ -57,7 +63,7 @@ public class ID3v2Header {
 		 * Revision: $xx
 		 */
 		revision = data.readByte();
-
+		
 		/*
 		 * Flags (evaluated below)
 		 */
@@ -66,8 +72,8 @@ public class ID3v2Header {
 		/*
 		 * Size: 4 * %0xxxxxxx (sync-save integer)
 		 */
-		totalTagSize = 10 + data.readSyncsaveInt();
-
+		totalTagSize = 10 + data.readSyncsafeInt();
+		
 		/*
 		 * Evaluate flags
 		 */
@@ -108,7 +114,7 @@ public class ID3v2Header {
 					 * Extended header size: 4 * %0xxxxxxx (sync-save integer)
 					 * In version 4, the size includes itself.
 					 */
-					int extendedHeaderSize = data.readSyncsaveInt();
+					int extendedHeaderSize = data.readSyncsafeInt();
 					
 					/*
 					 * consume the rest
@@ -125,8 +131,29 @@ public class ID3v2Header {
 				totalTagSize += 10;
 			}
 		}
-
-		headerSize = (int)(data.getPosition() - startPosition);
+		
+		headerSize = (int)(input.getPosition() - startPosition);
+	}
+	
+	public ID3v2TagBody tagBody(InputStream input) throws IOException, ID3v2Exception {
+		if (compression) {
+			throw new ID3v2Exception("Tag compression is not supported");
+		}
+		if (version < 4 && unsynchronization) {
+			assert footerSize == 0;
+			byte[] bytes = new ID3v2DataInput(input).readFully(totalTagSize - headerSize);
+			boolean ff = false;
+			int len = 0;
+			for (byte b : bytes) {
+				if (!ff || b != 0) {
+					bytes[len++] = b;
+				}
+				ff = (b == 0xFF);
+			}
+			return new ID3v2TagBody(new ByteArrayInputStream(bytes, 0, len), headerSize, len, this);
+		} else {
+			return new ID3v2TagBody(input, headerSize, totalTagSize - headerSize - footerSize, this);
+		}
 	}
 	
 	public int getVersion() {
@@ -163,6 +190,6 @@ public class ID3v2Header {
 	
 	@Override
 	public String toString() {
-		return String.format("%s[version=%s, tagSize=%d]", getClass().getSimpleName(), version, totalTagSize);
+		return String.format("%s[version=%s, totalTagSize=%d]", getClass().getSimpleName(), version, totalTagSize);
 	}
 }

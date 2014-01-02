@@ -46,10 +46,10 @@ public class MP3AssetParser implements AssetParser {
 
 	@Override
 	public Asset parse(final File file) throws IOException, ID3v2Exception {
-		try (MP3Input data = new MP3Input(new BufferedInputStream(new FileInputStream(file)))) {
+		try (MP3Input input = new MP3Input(new BufferedInputStream(new FileInputStream(file)))) {
 			Asset asset = new Asset(file);
-			if (ID3v2Info.isID3v2StartPosition(data)) {
-				ID3v2Info info = new ID3v2Info(data);
+			if (ID3v2Info.isID3v2StartPosition(input)) {
+				ID3v2Info info = new ID3v2Info(input);
 				asset.setAlbum(info.getAlbum());
 				asset.setAlbumArtist(info.getAlbumArtist());
 				asset.setArtist(info.getArtist());
@@ -68,7 +68,7 @@ public class MP3AssetParser implements AssetParser {
 			}
 			if (asset.getDuration() == null) {
 				try {					
-					long duration = MP3Frame.calculateDuration(data, file.length(), new MP3Frame.StopReadCondition() {
+					long duration = MP3Frame.calculateDuration(input, file.length(), new MP3Frame.StopReadCondition() {
 						final long stopPosition = file.length() - 128;
 						@Override
 						public boolean stopRead(MP3Input data) throws IOException {
@@ -81,11 +81,11 @@ public class MP3AssetParser implements AssetParser {
 				}
 			}
 			if (asset.getName() == null || asset.getAlbum() == null || asset.getArtist() == null) {
-				if (data.getPosition() <= file.length() - 128) { // position to last 128 bytes
-					data.skipFully(file.length() - 128 - data.getPosition());
-					if (ID3v1Info.isID3v1StartPosition(data)) {
+				if (input.getPosition() <= file.length() - 128) { // position to last 128 bytes
+					input.skipFully(file.length() - 128 - input.getPosition());
+					if (ID3v1Info.isID3v1StartPosition(input)) {
 //						System.out.println("Parsing id3v1 for asset:" + file);
-						ID3v1Info info = new ID3v1Info(data);
+						ID3v1Info info = new ID3v1Info(input);
 						if (asset.getAlbum() == null) {
 							asset.setAlbum(info.getAlbum());
 						}
@@ -113,11 +113,11 @@ public class MP3AssetParser implements AssetParser {
 
 	@Override
 	public BufferedImage extractArtwork(File file) throws IOException, ID3v2Exception {
-		try (MP3Input data = new MP3Input(new BufferedInputStream(new FileInputStream(file)))) {
-			byte[] imageData = new ID3v2Info(data).getCover();
+		try (InputStream input = new BufferedInputStream(new FileInputStream(file))) {
+			byte[] imageData = new ID3v2Info(input).getCover();
 			if (imageData != null) {
-				try (InputStream input = new ByteArrayInputStream(imageData)) {
-					return ImageIO.read(input);
+				try (InputStream imageDataInput = new ByteArrayInputStream(imageData)) {
+					return ImageIO.read(imageDataInput);
 				}
 			}
 		}

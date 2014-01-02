@@ -1,5 +1,6 @@
 package org.musicmount.util.mp3;
 
+import java.io.InputStream;
 import java.util.logging.Level;
 
 import org.junit.Assert;
@@ -8,7 +9,7 @@ import org.junit.Test;
 public class ID3v2InfoTest {
 	@Test
 	public void testSample() throws Exception {
-		try (MP3Input input = new MP3Input(getClass().getResource("/sample-assets/sample.mp3").openStream())) {
+		try (InputStream input = getClass().getResource("/sample-assets/sample.mp3").openStream()) {
 			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
 
 			// relevant fields
@@ -39,7 +40,7 @@ public class ID3v2InfoTest {
 
 	@Test
 	public void testV22Tag() throws Exception {
-		try (MP3Input input = new MP3Input(getClass().getResource("/sample-assets/id3v22.mp3").openStream())) {
+		try (InputStream input = getClass().getResource("/sample-assets/id3v22.mp3").openStream()) {
 			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
 			Assert.assertEquals("ID3", info.getBrand());
 			Assert.assertEquals("2.2.0", info.getVersion());
@@ -72,7 +73,7 @@ public class ID3v2InfoTest {
 
 	@Test
 	public void testV23Tag() throws Exception {
-		try (MP3Input input = new MP3Input(getClass().getResource("/sample-assets/id3v23.mp3").openStream())) {
+		try (InputStream input = getClass().getResource("/sample-assets/id3v23.mp3").openStream()) {
 			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
 			Assert.assertEquals("ID3", info.getBrand());
 			Assert.assertEquals("2.3.0", info.getVersion());
@@ -105,7 +106,7 @@ public class ID3v2InfoTest {
 
 	@Test
 	public void testV23TagImage() throws Exception {
-		try (MP3Input input = new MP3Input(getClass().getResource("/sample-assets/id3v23_image.mp3").openStream())) {
+		try (InputStream input = getClass().getResource("/sample-assets/id3v23_image.mp3").openStream()) {
 			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
 			Assert.assertEquals("ID3", info.getBrand());
 			Assert.assertEquals("2.3.0", info.getVersion());
@@ -138,7 +139,7 @@ public class ID3v2InfoTest {
 
 	@Test
 	public void testV23TagImageUTF16le() throws Exception {
-		try (MP3Input input = new MP3Input(getClass().getResource("/sample-assets/id3v23_image_utf16le.mp3").openStream())) {
+		try (InputStream input = getClass().getResource("/sample-assets/id3v23_image_utf16le.mp3").openStream()) {
 			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
 			Assert.assertEquals("ID3", info.getBrand());
 			Assert.assertEquals("2.3.0", info.getVersion());
@@ -171,7 +172,7 @@ public class ID3v2InfoTest {
 
 	@Test
 	public void testV23TagUnicode() throws Exception {
-		try (MP3Input input = new MP3Input(getClass().getResource("/sample-assets/id3v23_unicode.mp3").openStream())) {
+		try (InputStream input = getClass().getResource("/sample-assets/id3v23_unicode.mp3").openStream()) {
 			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
 			Assert.assertEquals("ID3", info.getBrand());
 			Assert.assertEquals("2.3.0", info.getVersion());
@@ -204,7 +205,7 @@ public class ID3v2InfoTest {
 
 	@Test
 	public void testV24Tag() throws Exception {
-		try (MP3Input input = new MP3Input(getClass().getResource("/sample-assets/id3v24.mp3").openStream())) {
+		try (InputStream input = getClass().getResource("/sample-assets/id3v24.mp3").openStream()) {
 			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
 			Assert.assertEquals("ID3", info.getBrand());
 			Assert.assertEquals("2.4.0", info.getVersion());

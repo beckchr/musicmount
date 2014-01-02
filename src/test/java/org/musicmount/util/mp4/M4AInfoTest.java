@@ -1,5 +1,6 @@
 package org.musicmount.util.mp4;
 
+import java.io.InputStream;
 import java.math.BigDecimal;
 
 import org.junit.Assert;
@@ -8,7 +9,7 @@ import org.junit.Test;
 public class M4AInfoTest {
 	@Test
 	public void testSample() throws Exception {
-		try (MP4Input input = new MP4Input(getClass().getResourceAsStream("/sample-assets/sample.m4a"))) {
+		try (InputStream input = getClass().getResourceAsStream("/sample-assets/sample.m4a")) {
 			M4AInfo info = new M4AInfo(input);
 
 			// relevant fields

@@ -15,158 +15,48 @@
  */
 package org.musicmount.util.mp4;
 
+import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.EOFException;
-import java.io.FilterInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
+
+import org.musicmount.util.PositionLengthInputStream;
 
 /**
  * MP4 atom.
  */
-public class MP4Atom implements MP4Box {
-	/**
-	 * Convert leading 4 (big endian) bytes to int
-	 */
-	static int beb2int(final byte[] x) {
-        return ( (int)x[0]         << 24) |
-               (((int)x[1] & 0xFF) << 16) |
-               (((int)x[2] & 0xFF) <<  8) |
-               ( (int)x[3] & 0xFF       );
-    }
+public class MP4Atom extends MP4Box<PositionLengthInputStream> {
+	private final DataInput data;
 
-	/**
-	 * Convert int to 4 (big endian) bytes
-	 */
-    static byte[] int2beb(final int x) {
-		byte[] buf = new byte[4];
-    	buf[0] = (byte)(x >> 24);
-    	buf[1] = (byte)(x >> 16);
-    	buf[2] = (byte)(x >>  8);
-    	buf[3] = (byte) x       ;
-		return buf;
-    }
-
-    class AtomInput extends FilterInputStream {
-    	AtomInput(MP4Input in) {
-    		super(in);
-    	}
-    	
-    	public int read() throws IOException {
-    		if (getRemaining() < 1) {
-    			throw new IOException("cannot read beyond atom: " + MP4Atom.this);
-    		}
-    		return super.read();
-    	}
-
-    	public int read(byte[] b, int off, int len) throws IOException {
-    		if (getRemaining() < len) {
-    			throw new IOException("cannot read beyond atom: " + MP4Atom.this);
-    		}
-    		return super.read(b, off, len);
-    	}
-
-    	public int read(byte[] b) throws IOException {
-    		if (getRemaining() < b.length) {
-    			throw new IOException("cannot read beyond atom: " + MP4Atom.this);
-    		}
-    		return super.read(b);
-    	}
-    }
-
-	private static final String ASCII = "ISO8859_1";
-
-    private MP4Input input;
-	private MP4Box parent;
-	private MP4Atom child;
-	private long start;
-	private long length;
-	private String type;
-	private DataInputStream data;
-
-	/**
-	 * Create top-level atom
-	 * @param input
-	 * @throws IOException
-	 */
-	protected MP4Atom(MP4Input input) throws IOException {
-		this(input, input);
-	}
-
-	/**
-	 * Create inner atom
-	 * @param input
-	 * @throws IOException
-	 */
-	protected MP4Atom(MP4Input input, MP4Atom parent) throws IOException {
-		this(input, (MP4Box)parent);
-	}
-
-	private MP4Atom(MP4Input input, MP4Box parent) throws IOException {
-		this.input = input;
-		this.parent = parent;
-		data = new DataInputStream(new AtomInput(input));
-		start = input.getPosition();
-		length = 8; // at least...
-		length = readInt();
-		if (length == 1) { // extended length
-			length = 16;
-			type = new String(int2beb(readInt()), ASCII);
-			length = readLong();
-		} else {
-			type = new String(int2beb(readInt()), ASCII);
-		}
-	}
-
-	public MP4Box getParent() {
-		return parent;
-	}
-
-	public String getType() {
-		return type;
-	}
-	
-	public int getTypeAsInt() {
-		return beb2int(type.getBytes());
-	}
-	
-	public long getPosition() {
-		return input.getPosition() - start;
+	public MP4Atom(PositionLengthInputStream input, MP4Box<?> parent, String type) {
+		super(input, parent, type);
+		this.data = new DataInputStream(input);
 	}
 
 	/**
 	 * @return atom length (bytes)
 	 */
 	public long getLength() {
-		return length;
+		return getInput().getPosition() + getInput().getRemainingLength();
 	}
 
 	/**
 	 * @return start offset relative to parent box
 	 */
 	public long getOffset() {
-		return parent.getPosition() - getPosition();
+		return getParent().getPosition() - getPosition();
 	}
 
 	/**
 	 * @return number of remaining bytes
 	 */
 	public long getRemaining() {
-		return getLength() - getPosition();
+		return getInput().getRemainingLength();
 	}
 	
 	public boolean hasMoreChildren() {
-		return getPosition() + (child != null ? child.getRemaining() : 0) < getLength();
-	}
-
-	public MP4Atom nextChild() throws IOException {
-		if (child != null) {
-			skip(child.getRemaining());
-		}
-		if (getRemaining() <= 0) {
-			throw new IOException ("cannot read beyond atom: " + this);
-		}
-		return child = new MP4Atom(input, this);
+		return (getChild() != null ? getChild().getRemaining() : 0) < getRemaining();
 	}
 
 	public MP4Atom nextChild(String expectedTypeExpression) throws IOException {
@@ -195,34 +85,8 @@ public class MP4Atom implements MP4Box {
 		return data.readByte();
 	}
 
-	public int readUnsignedByte() throws IOException {
-		return data.readUnsignedByte();
-	}
-
-	public char readChar() throws IOException {
-		return data.readChar();
-	}
-
-	public void readBytes(byte[] b) throws IOException {
-		int offset = 0;
-		while (offset < b.length) {
-			long read = data.read(b, offset, b.length - offset);
-		    if (read < 0) {
-		        throw new IOException("read failed: " + this);
-		    } else {
-		    	offset += read;
-		    }
-		}
-	}
-
-	public byte[] readBytes(int len) throws IOException {
-		byte[] bytes = new byte[len];
-		readBytes(bytes);
-		return bytes;
-	}
-
-	public byte[] readBytes() throws IOException {
-		return readBytes((int)getRemaining());
+	public short readShort() throws IOException {
+		return data.readShort();
 	}
 
 	public int readInt() throws IOException {
@@ -233,24 +97,26 @@ public class MP4Atom implements MP4Box {
 		return data.readLong();
 	}
 
-	public short readShort() throws IOException {
-		return data.readShort();
+	public byte[] readBytes(int len) throws IOException {
+		byte[] bytes = new byte[len];
+		data.readFully(bytes);
+		return bytes;
+	}
+
+	public byte[] readBytes() throws IOException {
+		return readBytes((int)getRemaining());
 	}
 
 	public BigDecimal readShortFixedPoint() throws IOException {
-		int integer = readByte();
-		int decimal = readUnsignedByte();
+		int integer = data.readByte();
+		int decimal = data.readUnsignedByte();
 		return new BigDecimal(String.valueOf(integer) + "." + String.valueOf(decimal));
 	}
 
 	public BigDecimal readIntegerFixedPoint() throws IOException {
-		int integer = readShort();
-		int decimal = readUnsignedShort();
+		int integer = data.readShort();
+		int decimal = data.readUnsignedShort();
 		return new BigDecimal(String.valueOf(integer) + "." + String.valueOf(decimal));
-	}
-
-	public int readUnsignedShort() throws IOException {
-		return data.readUnsignedShort();
 	}
 
 	public String readString(int len, String enc) throws IOException {
@@ -263,22 +129,27 @@ public class MP4Atom implements MP4Box {
 		return readString((int)getRemaining(), enc);
 	}
 
-	public void skip(long length) throws IOException {
-		if (getRemaining() < length) {
-			throw new IOException ("cannot skip" + length + " bytes: " + this);
-		}
-		long skipped = 0;
-		while (skipped < length) {
-			long current = data.skip(length - skipped);
-		    if (current < 0) {
-		        throw new EOFException("could not skip...");
-		    } else {
-		        skipped += current;
-		    }
+	public void skip(int len) throws IOException {
+		int total = 0;
+		while (total < len) {
+			int current = data.skipBytes(len - total);
+			if (current > 0) {
+				total += current;
+			} else {
+				throw new EOFException();
+			}
 		}
 	}
 
-	private StringBuffer appendPath(StringBuffer s, MP4Box box) {
+	public void skip() throws IOException {
+		while (getRemaining() > 0) {
+			if (getInput().skip(getRemaining()) == 0) {
+				throw new EOFException("Cannot skip atom");
+			}
+		}
+	}
+
+	private StringBuffer appendPath(StringBuffer s, MP4Box<?> box) {
 		if (box.getParent() != null) {
 			appendPath(s, box.getParent());
 			s.append("/");
@@ -298,7 +169,7 @@ public class MP4Atom implements MP4Box {
 		s.append(",pos=");
 		s.append(getPosition());
 		s.append(",len=");
-		s.append(length);
+		s.append(getLength());
 		s.append("]");
 		return s.toString();
 	}
