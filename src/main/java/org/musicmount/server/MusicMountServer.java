@@ -61,39 +61,39 @@ public class MusicMountServer {
 		public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 			long timestamp = System.currentTimeMillis();
 			chain.doFilter(request, response);
-	        if (LOGGER.isLoggable(Level.FINER)) {
+			if (LOGGER.isLoggable(Level.FINER)) {
 				response.flushBuffer();
 
-				HttpServletRequest httpRequest = (HttpServletRequest)request;
-				HttpServletResponse httpResponse = (HttpServletResponse)response;
+				HttpServletRequest httpRequest = (HttpServletRequest) request;
+				HttpServletResponse httpResponse = (HttpServletResponse) response;
 
 				StringBuilder builder = new StringBuilder();
 				String uri = httpRequest.getRequestURI();
 				final int methodAndURIFormatLength = 42;
-		        int maxURILength = methodAndURIFormatLength - 1 - httpRequest.getMethod().length();
-		        if (uri.length() > maxURILength) {
-		        	uri = "..." +  uri.substring(uri.length() - maxURILength + 3);
-		        }
-		        String methodAndURI = String.format("%s %s", httpRequest.getMethod(), uri);
-		        builder.append(String.format(String.format("%%-%ds", methodAndURIFormatLength), methodAndURI));
-	    		builder.append(String.format("%4d", httpResponse.getStatus()));
-		        String contentLengthHeader = httpResponse.getHeader("Content-Length");
-		        if (contentLengthHeader != null) {
-		        	builder.append(String.format("%,11dB", Long.valueOf(contentLengthHeader)));
-		        } else {
-		            builder.append("            ");
-		        }
-		        long time = System.currentTimeMillis() - timestamp;
-		        builder.append(String.format("%5.2fs", time / 1000.0));
+				int maxURILength = methodAndURIFormatLength - 1 - httpRequest.getMethod().length();
+				if (uri.length() > maxURILength) {
+					uri = "..." + uri.substring(uri.length() - maxURILength + 3);
+				}
+				String methodAndURI = String.format("%s %s", httpRequest.getMethod(), uri);
+				builder.append(String.format(String.format("%%-%ds", methodAndURIFormatLength), methodAndURI));
+				builder.append(String.format("%4d", httpResponse.getStatus()));
+				String contentLengthHeader = httpResponse.getHeader("Content-Length");
+				if (contentLengthHeader != null) {
+					builder.append(String.format("%,11dB", Long.valueOf(contentLengthHeader)));
+				} else {
+					builder.append("            ");
+				}
+				long time = System.currentTimeMillis() - timestamp;
+				builder.append(String.format("%5.2fs", time / 1000.0));
 				LOGGER.finer(builder.toString());
-	        }
+			}
 		}
-		
+
 		@Override
 		public void destroy() {
 		}
 	};
-	
+
 	static final Filter UTF8Filter = new Filter() {
 		@Override
 		public void init(FilterConfig filterConfig) throws ServletException {
@@ -102,14 +102,14 @@ public class MusicMountServer {
 		@Override
 		public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 			response.setCharacterEncoding("UTF-8");
-			chain.doFilter(request, response);				
+			chain.doFilter(request, response);
 		}
 
 		@Override
 		public void destroy() {
 		}
 	};
-		
+
 	static void exitWithError(String command, String error) {
 		System.err.println();
 		System.err.println("*** " + (error == null ? "internal error" : error));
@@ -128,49 +128,50 @@ public class MusicMountServer {
 		System.err.println("       --password <pass>  login password");
 		System.err.println("       --verbose          more detailed console output");
 		System.err.close();
-		System.exit(1);	
+		System.exit(1);
 	}
-	
+
 	private static Context addContext(Tomcat tomcat, String contextPath, File baseDir) {
-        Context mountContext = tomcat.addContext(contextPath, baseDir.getAbsolutePath());
-        mountContext.addWelcomeFile("index.json");
-        mountContext.addMimeMapping("json", "text/json");
+		Context mountContext = tomcat.addContext(contextPath, baseDir.getAbsolutePath());
+		mountContext.addWelcomeFile("index.json");
+		mountContext.addMimeMapping("json", "text/json");
 
-        Wrapper defaultServlet = mountContext.createWrapper();
-        defaultServlet.setName("default");
-        defaultServlet.setServlet(new DefaultServlet());
-        defaultServlet.addInitParameter("debug", "0");
-        defaultServlet.addInitParameter("listings", "false");
-        defaultServlet.setLoadOnStartup(1);
-        mountContext.addChild(defaultServlet);
-        mountContext.addServletMapping("/", "default");
+		Wrapper defaultServlet = mountContext.createWrapper();
+		defaultServlet.setName("default");
+		defaultServlet.setServlet(new DefaultServlet());
+		defaultServlet.addInitParameter("debug", "0");
+		defaultServlet.addInitParameter("listings", "false");
+		defaultServlet.setLoadOnStartup(1);
+		mountContext.addChild(defaultServlet);
+		mountContext.addServletMapping("/", "default");
 
-        return mountContext;
+		return mountContext;
 	}
-	
-	private static void addBasicAuth(StandardContext context) {
-        SecurityConstraint securityConstraint = new SecurityConstraint();
-        securityConstraint.addAuthRole("test");
-        SecurityCollection securityCollection = new SecurityCollection();
-        securityCollection.addMethod("GET");
-        securityCollection.addPattern("/*");
-        securityConstraint.addCollection(securityCollection);
-        
-        LoginConfig loginConfig = new LoginConfig();
-        loginConfig.setAuthMethod("BASIC");
 
-        context.addConstraint(securityConstraint);
-        context.setLoginConfig(loginConfig);
-        context.addValve(new BasicAuthenticator());
+	private static void addBasicAuth(StandardContext context) {
+		SecurityConstraint securityConstraint = new SecurityConstraint();
+		securityConstraint.addAuthRole("user");
+		SecurityCollection securityCollection = new SecurityCollection();
+//		securityCollection.addMethod("GET"); // defaults to all methods
+		securityCollection.addPattern("/*");
+		securityConstraint.addCollection(securityCollection);
+
+		LoginConfig loginConfig = new LoginConfig();
+		loginConfig.setAuthMethod("BASIC");
+		loginConfig.setRealmName("MusiMount");
+
+		context.addConstraint(securityConstraint);
+		context.setLoginConfig(loginConfig);
+		context.addValve(new BasicAuthenticator());
 	}
 
 	private static boolean deleteRecursive(File parent) {
-	    if (parent.isDirectory()) {
-	    	for (File child : parent.listFiles()) {
-	    		deleteRecursive(child);
-	    	}
-	    }
-	    return parent.delete();
+		if (parent.isDirectory()) {
+			for (File child : parent.listFiles()) {
+				deleteRecursive(child);
+			}
+		}
+		return parent.delete();
 	}
 
 	public static void startServer(int port, File mountBase, File musicBase, String musicPath, final String user, final String password) throws Exception {
@@ -178,7 +179,7 @@ public class MusicMountServer {
 		final File workDir = File.createTempFile("musicmount-", null);
 		workDir.delete();
 		workDir.mkdir();
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 			@Override
 			public void run() {
 				if (!deleteRecursive(workDir)) {
@@ -186,68 +187,71 @@ public class MusicMountServer {
 				}
 			}
 		}));
-        tomcat.setBaseDir(workDir.getAbsolutePath());
-        tomcat.setPort(port);
-        tomcat.getConnector().setURIEncoding("UTF-8");
-        
-        Context musicContext = addContext(tomcat, musicPath.startsWith("/") ? musicPath : "/" + musicPath, musicBase);
-        musicContext.addMimeMapping("m4a", "audio/mp4");
-        musicContext.addMimeMapping("mp3", "audio/mpeg");
+		tomcat.setBaseDir(workDir.getAbsolutePath());
+		tomcat.setPort(port);
+		tomcat.getConnector().setURIEncoding("UTF-8");
+		tomcat.setSilent(true);
 
-        Context mountContext = addContext(tomcat, "/", mountBase);
-        mountContext.addWelcomeFile("index.json");
-        mountContext.addMimeMapping("json", "text/json");
+		Context musicContext = addContext(tomcat, musicPath.startsWith("/") ? musicPath : "/" + musicPath, musicBase);
+		musicContext.addMimeMapping("m4a", "audio/mp4");
+		musicContext.addMimeMapping("mp3", "audio/mpeg");
 
-        FilterDef utf8FilterDef = new FilterDef();
-        utf8FilterDef.setFilterName("utf8-filter");
-        utf8FilterDef.setFilter(UTF8Filter);
-        FilterMap utf8FilterMap = new FilterMap(); 
-        utf8FilterMap.setFilterName("utf8-filter"); 
-        utf8FilterMap.addURLPattern("*"); 
+		Context mountContext = addContext(tomcat, "/", mountBase);
+		mountContext.addWelcomeFile("index.json");
+		mountContext.addMimeMapping("json", "text/json");
 
-        mountContext.addFilterDef(utf8FilterDef);
-        mountContext.addFilterMap(utf8FilterMap); 
+		FilterDef utf8FilterDef = new FilterDef();
+		utf8FilterDef.setFilterName("utf8-filter");
+		utf8FilterDef.setFilter(UTF8Filter);
+		FilterMap utf8FilterMap = new FilterMap();
+		utf8FilterMap.setFilterName("utf8-filter");
+		utf8FilterMap.addURLPattern("*");
 
-        if (LOGGER.isLoggable(Level.FINER)) {
-        	FilterDef logFilterDef = new FilterDef();
-        	logFilterDef.setFilterName("log-filter");
-        	logFilterDef.setFilter(AccessLogFilter);
-        	FilterMap logFilterMap = new FilterMap(); 
-        	logFilterMap.setFilterName("log-filter"); 
-        	logFilterMap.addURLPattern("*"); 
-        	
-        	mountContext.addFilterDef(logFilterDef);
-        	mountContext.addFilterMap(logFilterMap);
-        	
-        	musicContext.addFilterDef(logFilterDef);
-        	musicContext.addFilterMap(logFilterMap);
-        }
+		mountContext.addFilterDef(utf8FilterDef);
+		mountContext.addFilterMap(utf8FilterMap);
 
-        if (user != null && password != null) {
-            tomcat.getEngine().setRealm(new RealmBase() {
-    			@Override
-    			protected Principal getPrincipal(String username) {
-    				String password = getPassword(username);
-    				return password != null ? new GenericPrincipal(username, password, Arrays.asList("user")) : null;
-    			}
-    			@Override
-    			protected String getPassword(String username) {
-    				return user.equals(username) ? password : null;
-    			}
-    			@Override
-    			protected String getName() {
-    				return "MusicMount";
-    			}
-    		});
-            
-            addBasicAuth((StandardContext)mountContext);
-            addBasicAuth((StandardContext)musicContext);
-        }
+		if (LOGGER.isLoggable(Level.FINER)) {
+			FilterDef logFilterDef = new FilterDef();
+			logFilterDef.setFilterName("log-filter");
+			logFilterDef.setFilter(AccessLogFilter);
+			FilterMap logFilterMap = new FilterMap();
+			logFilterMap.setFilterName("log-filter");
+			logFilterMap.addURLPattern("*");
 
-        tomcat.start();
-        tomcat.getServer().await(); 
+			mountContext.addFilterDef(logFilterDef);
+			mountContext.addFilterMap(logFilterMap);
+
+			musicContext.addFilterDef(logFilterDef);
+			musicContext.addFilterMap(logFilterMap);
+		}
+
+		if (user != null && password != null) {
+			tomcat.getEngine().setRealm(new RealmBase() {
+				@Override
+				protected Principal getPrincipal(String username) {
+					String password = getPassword(username);
+					return password != null ? new GenericPrincipal(username, password, Arrays.asList("user")) : null;
+				}
+
+				@Override
+				protected String getPassword(String username) {
+					return user.equals(username) ? password : null;
+				}
+
+				@Override
+				protected String getName() {
+					return "MusicMount";
+				}
+			});
+
+			addBasicAuth((StandardContext) mountContext);
+			addBasicAuth((StandardContext) musicContext);
+		}
+
+		tomcat.start();
+		tomcat.getServer().await();
 	}
-    
+
 	/**
 	 * Launch HTTP Server
 	 * @param args inputFolder, outputFolder
@@ -338,7 +342,7 @@ public class MusicMountServer {
 			if (!musicFolder.isDirectory()) {
 				exitWithError(command, "music folder is not a directory: " + musicFolder);
 			}
-		} else {			
+		} else {
 			exitWithError(command, "music folder doesn't exist: " + musicFolder);
 		}
 		if ((optionUser == null) != (optionPassword == null)) {
@@ -371,7 +375,7 @@ public class MusicMountServer {
 		LOGGER.info("Press CTRL-C to exit...");
 		startServer(optionPort, mountFolder, musicFolder, optionMusic, optionUser, optionPassword);
 	}
-	
+
 	public static void main(String[] args) throws Exception {
 		execute(MusicMountServer.class.getSimpleName(), args);
 	}
