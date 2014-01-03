@@ -56,9 +56,15 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.mpatric</groupId>
-			<artifactId>mp3agic</artifactId>
-			<version>0.8.2</version>
+			<groupId>org.eclipse.jetty.aggregate</groupId>
+			<artifactId>jetty-servlet</artifactId>
+			<version>8.1.14.v20131031</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty.orbit</groupId>
+			<artifactId>javax.servlet</artifactId>
+			<version>3.0.0.v201112011016</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
