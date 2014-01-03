@@ -33,7 +33,7 @@ public class M4AAssetParser extends AudioInfoAssetParser {
 	}
 
 	@Override
-	protected AudioInfo getAudioInfo(File file) throws Exception {
+	protected AudioInfo getAudioInfo(File file, boolean imageOnly) throws Exception {
 		try (InputStream input = new BufferedInputStream(new FileInputStream(file))) {
 			return new M4AInfo(input);
 		}

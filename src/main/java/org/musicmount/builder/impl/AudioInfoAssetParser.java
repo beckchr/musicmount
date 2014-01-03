@@ -30,15 +30,16 @@ import org.musicmount.audio.AudioInfo;
 public abstract class AudioInfoAssetParser implements AssetParser {
 	/**
 	 * Do the magic...
-	 * @param file
+	 * @param file audio file
+	 * @param imageOnly <code>true</code> if only interested in cover image
 	 * @return audio info
 	 * @throws Exception
 	 */
-	protected abstract AudioInfo getAudioInfo(File file) throws Exception;
+	protected abstract AudioInfo getAudioInfo(File file, boolean imageOnly) throws Exception;
 
 	@Override
 	public Asset parse(File file) throws Exception {
-		AudioInfo info = getAudioInfo(file);
+		AudioInfo info = getAudioInfo(file, false);
 		Asset asset = new Asset(file);
 		asset.setAlbum(info.getAlbum());
 		asset.setAlbumArtist(info.getAlbumArtist());
@@ -58,10 +59,10 @@ public abstract class AudioInfoAssetParser implements AssetParser {
 
 	@Override
 	public BufferedImage extractArtwork(File file) throws Exception {
-		byte[] imageData = getAudioInfo(file).getCover();
-		if (imageData != null) {
-			try (InputStream imageDataInput = new ByteArrayInputStream(imageData)) {
-				return ImageIO.read(imageDataInput);
+		byte[] cover = getAudioInfo(file, true).getCover();
+		if (cover != null) {
+			try (InputStream data = new ByteArrayInputStream(cover)) {
+				return ImageIO.read(data);
 			}
 		}
 		return null;

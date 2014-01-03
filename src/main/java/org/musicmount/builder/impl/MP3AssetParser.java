@@ -21,6 +21,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 
 import org.musicmount.audio.AudioInfo;
+import org.musicmount.audio.mp3.ID3v2Info;
 import org.musicmount.audio.mp3.MP3Info;
 
 /**
@@ -33,9 +34,9 @@ public class MP3AssetParser extends AudioInfoAssetParser {
 	}
 
 	@Override
-	protected AudioInfo getAudioInfo(File file) throws Exception {
+	protected AudioInfo getAudioInfo(File file, boolean imageOnly) throws Exception {
 		try (InputStream input = new BufferedInputStream(new FileInputStream(file))) {
-			return new MP3Info(input, file.length());
+			return imageOnly ? new ID3v2Info(input) : new MP3Info(input, file.length());
 		}
 	}
 }
