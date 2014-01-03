@@ -15,18 +15,20 @@
  */
 package org.musicmount.audio.mp3;
 
+import java.io.File;
 import java.io.InputStream;
-import java.util.logging.Level;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.musicmount.audio.mp3.ID3v2Info;
 
-public class ID3v2InfoTest {
+public class MP3InfoTest {
 	@Test
 	public void testSample() throws Exception {
-		try (InputStream input = getClass().getResource("/sample-assets/sample.mp3").openStream()) {
-			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
+		File mp3File = new File(getClass().getResource("/sample-assets/sample.mp3").toURI());
+		try (InputStream input = mp3File.toURI().toURL().openStream()) {
+			MP3Info info = new MP3Info(input, mp3File.length());
+			Assert.assertEquals("MP3", info.getBrand());
+			Assert.assertEquals("0", info.getVersion());
 
 			// relevant fields
 			Assert.assertEquals("Sample MP3", info.getTitle());
@@ -36,7 +38,7 @@ public class ID3v2InfoTest {
 			Assert.assertEquals("Sample Genre", info.getGenre());
 			Assert.assertEquals("Sample Composer", info.getComposer());
 			Assert.assertNull(info.getComment());
-			Assert.assertEquals(0L, info.getDuration());
+			Assert.assertEquals(4440L, info.getDuration());
 			Assert.assertFalse(info.isCompilation());
 			Assert.assertEquals(2013, info.getYear());
 			Assert.assertEquals(1, info.getTrack());
@@ -53,11 +55,56 @@ public class ID3v2InfoTest {
 	}
 
 	@Test
+	public void testV10Tag() throws Exception {
+		File mp3File = new File(getClass().getResource("/sample-assets/id3v10.mp3").toURI());
+		try (InputStream input = mp3File.toURI().toURL().openStream()) {
+			MP3Info info = new MP3Info(input, mp3File.length());
+			Assert.assertEquals("MP3", info.getBrand());
+			Assert.assertEquals("0", info.getVersion());
+
+			// relevant fields
+			Assert.assertEquals("TITLE1234567890123456789012345", info.getTitle());
+			Assert.assertEquals("ARTIST123456789012345678901234", info.getArtist());
+			Assert.assertEquals("ALBUM1234567890123456789012345", info.getAlbum());
+			Assert.assertEquals("Pop", info.getGenre());
+			Assert.assertEquals(2001, info.getYear());
+			Assert.assertEquals("COMMENT123456789012345678901", info.getComment());
+
+			Assert.assertEquals(156L, info.getDuration());
+
+			Assert.assertEquals(0, info.getTrack());
+		}
+	}
+
+	@Test
+	public void testV11Tag() throws Exception {
+		File mp3File = new File(getClass().getResource("/sample-assets/id3v11.mp3").toURI());
+		try (InputStream input = mp3File.toURI().toURL().openStream()) {
+			MP3Info info = new MP3Info(input, mp3File.length());
+			Assert.assertEquals("MP3", info.getBrand());
+			Assert.assertEquals("0", info.getVersion());
+
+			// relevant fields
+			Assert.assertEquals("TITLE1234567890123456789012345", info.getTitle());
+			Assert.assertEquals("ARTIST123456789012345678901234", info.getArtist());
+			Assert.assertEquals("ALBUM1234567890123456789012345", info.getAlbum());
+			Assert.assertEquals("Pop", info.getGenre());
+			Assert.assertEquals(2001, info.getYear());
+			Assert.assertEquals("COMMENT123456789012345678901", info.getComment());
+
+			Assert.assertEquals(156L, info.getDuration());
+
+			Assert.assertEquals(1, info.getTrack());
+		}
+	}
+
+	@Test
 	public void testV22Tag() throws Exception {
-		try (InputStream input = getClass().getResource("/sample-assets/id3v22.mp3").openStream()) {
-			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
-			Assert.assertEquals("ID3", info.getBrand());
-			Assert.assertEquals("2.2.0", info.getVersion());
+		File mp3File = new File(getClass().getResource("/sample-assets/id3v22.mp3").toURI());
+		try (InputStream input = mp3File.toURI().toURL().openStream()) {
+			MP3Info info = new MP3Info(input, mp3File.length());
+			Assert.assertEquals("MP3", info.getBrand());
+			Assert.assertEquals("0", info.getVersion());
 
 			// relevant fields
 			Assert.assertEquals("NAME1234567890123456789012345678901234567890", info.getTitle());
@@ -67,7 +114,6 @@ public class ID3v2InfoTest {
 			Assert.assertEquals("AlternRock", info.getGenre());
 			Assert.assertEquals("COMPOSER1234567890123456789012345678901234567890", info.getComposer());
 			Assert.assertEquals("COMMENTS1234567890123456789012345678901234567890", info.getComment());
-			Assert.assertEquals(0L, info.getDuration());
 			Assert.assertFalse(info.isCompilation());
 			Assert.assertEquals(2009, info.getYear());
 			Assert.assertEquals(4, info.getTrack());
@@ -77,6 +123,8 @@ public class ID3v2InfoTest {
 			Assert.assertEquals(236734, info.getCover().length); // PNG
 			Assert.assertNull(info.getGrouping());
 
+			Assert.assertEquals(190406L, info.getDuration());
+
 			// other fields
 			Assert.assertNull(info.getCopyright());
 			Assert.assertNull(info.getLyrics());
@@ -85,10 +133,11 @@ public class ID3v2InfoTest {
 
 	@Test
 	public void testV23Tag() throws Exception {
-		try (InputStream input = getClass().getResource("/sample-assets/id3v23.mp3").openStream()) {
-			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
-			Assert.assertEquals("ID3", info.getBrand());
-			Assert.assertEquals("2.3.0", info.getVersion());
+		File mp3File = new File(getClass().getResource("/sample-assets/id3v23.mp3").toURI());
+		try (InputStream input = mp3File.toURI().toURL().openStream()) {
+			MP3Info info = new MP3Info(input, mp3File.length());
+			Assert.assertEquals("MP3", info.getBrand());
+			Assert.assertEquals("0", info.getVersion());
 
 			// relevant fields
 			Assert.assertEquals("TITLE1234567890123456789012345", info.getTitle());
@@ -98,7 +147,6 @@ public class ID3v2InfoTest {
 			Assert.assertEquals("Pop", info.getGenre());
 			Assert.assertEquals("COMPOSER23456789012345678901234", info.getComposer());
 			Assert.assertEquals("COMMENT123456789012345678901", info.getComment());
-			Assert.assertEquals(0L, info.getDuration());
 			Assert.assertFalse(info.isCompilation());
 			Assert.assertEquals(2001, info.getYear());
 			Assert.assertEquals(1, info.getTrack());
@@ -107,6 +155,8 @@ public class ID3v2InfoTest {
 			Assert.assertEquals(0, info.getDiscs());
 			Assert.assertNull(info.getCover());
 			Assert.assertNull(info.getGrouping());
+
+			Assert.assertEquals(156L, info.getDuration());
 
 			// other fields
 			Assert.assertEquals("COPYRIGHT2345678901234567890123", info.getCopyright());
@@ -116,10 +166,11 @@ public class ID3v2InfoTest {
 
 	@Test
 	public void testV23TagImage() throws Exception {
-		try (InputStream input = getClass().getResource("/sample-assets/id3v23_image.mp3").openStream()) {
-			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
-			Assert.assertEquals("ID3", info.getBrand());
-			Assert.assertEquals("2.3.0", info.getVersion());
+		File mp3File = new File(getClass().getResource("/sample-assets/id3v23_image.mp3").toURI());
+		try (InputStream input = mp3File.toURI().toURL().openStream()) {
+			MP3Info info = new MP3Info(input, mp3File.length());
+			Assert.assertEquals("MP3", info.getBrand());
+			Assert.assertEquals("0", info.getVersion());
 
 			// relevant fields
 			Assert.assertEquals("TITLE1234567890123456789012345", info.getTitle());
@@ -129,7 +180,6 @@ public class ID3v2InfoTest {
 			Assert.assertEquals("Pop", info.getGenre());
 			Assert.assertEquals("COMPOSER23456789012345678901234", info.getComposer());
 			Assert.assertEquals("COMMENT123456789012345678901", info.getComment());
-			Assert.assertEquals(0L, info.getDuration());
 			Assert.assertFalse(info.isCompilation());
 			Assert.assertEquals(2001, info.getYear());
 			Assert.assertEquals(1, info.getTrack());
@@ -138,6 +188,8 @@ public class ID3v2InfoTest {
 			Assert.assertEquals(0, info.getDiscs());
 			Assert.assertEquals(1885, info.getCover().length);
 			Assert.assertNull(info.getGrouping());
+
+			Assert.assertEquals(156L, info.getDuration());
 
 			// other fields
 			Assert.assertEquals("COPYRIGHT2345678901234567890123", info.getCopyright());
@@ -147,10 +199,11 @@ public class ID3v2InfoTest {
 
 	@Test
 	public void testV23TagImageUTF16le() throws Exception {
-		try (InputStream input = getClass().getResource("/sample-assets/id3v23_image_utf16le.mp3").openStream()) {
-			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
-			Assert.assertEquals("ID3", info.getBrand());
-			Assert.assertEquals("2.3.0", info.getVersion());
+		File mp3File = new File(getClass().getResource("/sample-assets/id3v23_image_utf16le.mp3").toURI());
+		try (InputStream input = mp3File.toURI().toURL().openStream()) {
+			MP3Info info = new MP3Info(input, mp3File.length());
+			Assert.assertEquals("MP3", info.getBrand());
+			Assert.assertEquals("0", info.getVersion());
 
 			// relevant fields
 			Assert.assertEquals("TITLE1234567890123456789012345", info.getTitle());
@@ -160,7 +213,6 @@ public class ID3v2InfoTest {
 			Assert.assertEquals("Classic Rock", info.getGenre());
 			Assert.assertEquals("COMPOSER23456789012345678901234", info.getComposer());
 			Assert.assertEquals("COMMENT123456789012345678901", info.getComment());
-			Assert.assertEquals(0L, info.getDuration());
 			Assert.assertFalse(info.isCompilation());
 			Assert.assertEquals(2001, info.getYear());
 			Assert.assertEquals(1, info.getTrack());
@@ -170,6 +222,8 @@ public class ID3v2InfoTest {
 			Assert.assertEquals(1885, info.getCover().length);
 			Assert.assertNull(info.getGrouping());
 
+			Assert.assertEquals(156L, info.getDuration());
+
 			// other fields
 			Assert.assertEquals("COPYRIGHT2345678901234567890123", info.getCopyright());
 			Assert.assertNull(info.getLyrics());
@@ -178,10 +232,11 @@ public class ID3v2InfoTest {
 
 	@Test
 	public void testV23TagUnicode() throws Exception {
-		try (InputStream input = getClass().getResource("/sample-assets/id3v23_unicode.mp3").openStream()) {
-			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
-			Assert.assertEquals("ID3", info.getBrand());
-			Assert.assertEquals("2.3.0", info.getVersion());
+		File mp3File = new File(getClass().getResource("/sample-assets/id3v23_unicode.mp3").toURI());
+		try (InputStream input = mp3File.toURI().toURL().openStream()) {
+			MP3Info info = new MP3Info(input, mp3File.length());
+			Assert.assertEquals("MP3", info.getBrand());
+			Assert.assertEquals("0", info.getVersion());
 
 			// relevant fields
 			Assert.assertEquals("\u4E2D\u6587", info.getTitle()); // chinese
@@ -191,7 +246,6 @@ public class ID3v2InfoTest {
 			Assert.assertNull(info.getGenre());
 			Assert.assertEquals("\u0AB9\u0AC7\u0AB2\u0ACD\u0AB2\u0ACB", info.getComposer()); // gujarati
 			Assert.assertNull(info.getComment());
-			Assert.assertEquals(0L, info.getDuration());
 			Assert.assertFalse(info.isCompilation());
 			Assert.assertEquals(0, info.getYear());
 			Assert.assertEquals(0, info.getTrack());
@@ -201,6 +255,8 @@ public class ID3v2InfoTest {
 			Assert.assertNull(info.getCover());
 			Assert.assertNull(info.getGrouping());
 
+			Assert.assertEquals(156L, info.getDuration());
+
 			// other fields
 			Assert.assertNull(info.getCopyright());
 			Assert.assertNull(info.getLyrics());
@@ -209,10 +265,11 @@ public class ID3v2InfoTest {
 
 	@Test
 	public void testV24Tag() throws Exception {
-		try (InputStream input = getClass().getResource("/sample-assets/id3v24.mp3").openStream()) {
-			ID3v2Info info = new ID3v2Info(input, Level.FINEST);
-			Assert.assertEquals("ID3", info.getBrand());
-			Assert.assertEquals("2.4.0", info.getVersion());
+		File mp3File = new File(getClass().getResource("/sample-assets/id3v24.mp3").toURI());
+		try (InputStream input = mp3File.toURI().toURL().openStream()) {
+			MP3Info info = new MP3Info(input, mp3File.length());
+			Assert.assertEquals("MP3", info.getBrand());
+			Assert.assertEquals("0", info.getVersion());
 
 			// relevant fields
 			Assert.assertEquals("TITLE1234567890123456789012345", info.getTitle());
@@ -222,7 +279,6 @@ public class ID3v2InfoTest {
 			Assert.assertEquals("Pop", info.getGenre());
 			Assert.assertEquals("COMPOSER23456789012345678901234", info.getComposer());
 			Assert.assertEquals("COMMENT123456789012345678901", info.getComment());
-			Assert.assertEquals(0L, info.getDuration());
 			Assert.assertFalse(info.isCompilation());
 			Assert.assertEquals(2001, info.getYear());
 			Assert.assertEquals(1, info.getTrack());
@@ -231,6 +287,8 @@ public class ID3v2InfoTest {
 			Assert.assertEquals(0, info.getDiscs());
 			Assert.assertNull(info.getCover());
 			Assert.assertNull(info.getGrouping());
+
+			Assert.assertEquals(156L, info.getDuration());
 
 			// other fields
 			Assert.assertEquals("COPYRIGHT2345678901234567890123", info.getCopyright());

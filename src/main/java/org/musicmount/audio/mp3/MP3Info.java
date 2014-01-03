@@ -80,6 +80,9 @@ public class MP3Info extends AudioInfo {
 					if (artist == null) {
 						artist = info.getArtist();
 					}
+					if (comment == null) {
+						comment = info.getComment();
+					}
 					if (genre == null) {
 						genre = info.getGenre();
 					}

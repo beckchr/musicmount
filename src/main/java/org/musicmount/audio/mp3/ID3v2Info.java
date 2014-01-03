@@ -89,11 +89,15 @@ public class ID3v2Info extends AudioInfo {
 		switch (frame.getFrameHeader().getFrameId()) {
 		case "PIC":
 		case "APIC":
-			cover = parsePictureFrame(frame);
+			if (cover == null) {
+				cover = parsePictureFrame(frame);
+			}
 			break;
 		case "COM":
 		case "COMM":
-			comment = parseCommentOrLyricsFrame(frame);
+			if (comment == null) { // use first comment
+				comment = parseCommentOrLyricsFrame(frame);
+			}
 			break;
 		case "TAL":
 		case "TALB":
@@ -253,7 +257,9 @@ public class ID3v2Info extends AudioInfo {
 			break;
 		case "ULT":
 		case "USLT":
-			lyrics = parseCommentOrLyricsFrame(frame);
+			if (lyrics == null) {
+				lyrics = parseCommentOrLyricsFrame(frame);
+			}
 			break;
 		default:
 			frame.getData().skipFully(frame.getRemainingLength());
@@ -268,7 +274,7 @@ public class ID3v2Info extends AudioInfo {
 	
 	String parseCommentOrLyricsFrame(ID3v2FrameBody data) throws IOException, ID3v2Exception {
 		ID3v2Encoding encoding = data.readEncoding();
-		data.readFixedLengthString(textBuffer, 3, encoding); // language
+		data.readFixedLengthString(textBuffer, 3, ID3v2Encoding.ISO_8859_1); // language
 		data.readZeroTerminatedString(textBuffer, 200, encoding); // description
 		return data.readFixedLengthString(textBuffer, (int)data.getRemainingLength(), encoding); // text
 	}
