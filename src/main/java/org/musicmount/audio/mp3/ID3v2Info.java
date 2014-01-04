@@ -25,6 +25,35 @@ import org.musicmount.audio.AudioInfo;
 public class ID3v2Info extends AudioInfo {
 	static final Logger LOGGER = Logger.getLogger(ID3v2Info.class.getName());
 
+	static class AttachedPicture {
+		static final byte TYPE_OTHER = 0x00;
+		static final byte TYPE_COVER_FRONT = 0x03;
+
+		final byte type;
+		final String description;
+		final String imageType;
+		final byte[] imageData;
+
+		public AttachedPicture(byte type, String description, String imageType, byte[] imageData) {
+			this.type = type;
+			this.description = description;
+			this.imageType = imageType;
+			this.imageData = imageData;
+		}
+	}
+
+	static class CommentOrUnsynchronizedLyrics {
+		final String language;
+		final String description;
+		final String text;
+		
+		public CommentOrUnsynchronizedLyrics(String language, String description, String text) {
+			this.language = language;
+			this.description = description;
+			this.text = text;
+		}
+	}
+
 	public static boolean isID3v2StartPosition(InputStream input) throws IOException {
 		input.mark(3);
 		try {
@@ -37,6 +66,7 @@ public class ID3v2Info extends AudioInfo {
 	private final Level debugLevel;
 	private final byte[] textBuffer = new byte[1024];
 
+	private byte coverPictureType;
 
 	public ID3v2Info(InputStream input) throws IOException, ID3v2Exception {
 		this(input, Level.FINEST);
@@ -88,15 +118,20 @@ public class ID3v2Info extends AudioInfo {
 		}
 		switch (frame.getFrameHeader().getFrameId()) {
 		case "PIC":
-		case "APIC":
-			if (cover == null) {
-				cover = parsePictureFrame(frame);
+		case "APIC": // cover: prefer TYPE_COVER_FRONT, then TYPE_OTHER, then anything else
+			if (cover == null || coverPictureType != AttachedPicture.TYPE_COVER_FRONT) {
+				AttachedPicture picture = parseAttachedPictureFrame(frame);
+				if (cover == null || picture.type == AttachedPicture.TYPE_COVER_FRONT || picture.type == AttachedPicture.TYPE_OTHER) {
+					cover = picture.imageData;
+					coverPictureType = picture.type;
+				}
 			}
 			break;
 		case "COM":
 		case "COMM":
-			if (comment == null) { // use first comment
-				comment = parseCommentOrLyricsFrame(frame);
+			CommentOrUnsynchronizedLyrics comm = parseCommentOrUnsynchronizedLyricsFrame(frame);
+			if (comment == null || comm.description == null || "".equals(comm.description)) { // prefer "default" comment (without description)
+				comment = comm.text;
 			}
 			break;
 		case "TAL":
@@ -258,36 +293,48 @@ public class ID3v2Info extends AudioInfo {
 		case "ULT":
 		case "USLT":
 			if (lyrics == null) {
-				lyrics = parseCommentOrLyricsFrame(frame);
+				lyrics = parseCommentOrUnsynchronizedLyricsFrame(frame).text;
 			}
 			break;
 		default:
-			frame.getData().skipFully(frame.getRemainingLength());
 			break;
 		}
 	}
 
 	String parseTextFrame(ID3v2FrameBody frame) throws IOException, ID3v2Exception {
 		ID3v2Encoding encoding = frame.readEncoding();
-		return frame.readFixedLengthString(textBuffer, (int)frame.getRemainingLength(), encoding); // text
+		return frame.readFixedLengthString(textBuffer, (int)frame.getRemainingLength(), encoding);
 	}
 	
-	String parseCommentOrLyricsFrame(ID3v2FrameBody data) throws IOException, ID3v2Exception {
+	CommentOrUnsynchronizedLyrics parseCommentOrUnsynchronizedLyricsFrame(ID3v2FrameBody data) throws IOException, ID3v2Exception {
 		ID3v2Encoding encoding = data.readEncoding();
-		data.readFixedLengthString(textBuffer, 3, ID3v2Encoding.ISO_8859_1); // language
-		data.readZeroTerminatedString(textBuffer, 200, encoding); // description
-		return data.readFixedLengthString(textBuffer, (int)data.getRemainingLength(), encoding); // text
+		String language = data.readFixedLengthString(textBuffer, 3, ID3v2Encoding.ISO_8859_1);
+		String description = data.readZeroTerminatedString(textBuffer, 200, encoding);
+		String text = data.readFixedLengthString(textBuffer, (int)data.getRemainingLength(), encoding);
+		return new CommentOrUnsynchronizedLyrics(language, description, text);
 	}
 
-	byte[] parsePictureFrame(ID3v2FrameBody data) throws IOException, ID3v2Exception {
+	AttachedPicture parseAttachedPictureFrame(ID3v2FrameBody data) throws IOException, ID3v2Exception {
 		ID3v2Encoding encoding = data.readEncoding();
+		String imageType;
 		if (data.getTagHeader().getVersion() == 2) { // file type, e.g. "JPG"
-			data.readFixedLengthString(textBuffer, 3, ID3v2Encoding.ISO_8859_1);
-		} else { // mime type, e.g. "image/jpg"
-			data.readZeroTerminatedString(textBuffer, 20, ID3v2Encoding.ISO_8859_1);
+			String fileType = data.readFixedLengthString(textBuffer, 3, ID3v2Encoding.ISO_8859_1);
+			switch (fileType.toUpperCase()) {
+			case "PNG":
+				imageType = "image/png";
+				break;
+			case "JPG":
+				imageType = "image/jpeg";
+				break;
+			default:
+				imageType = "image/unknown";
+			}
+		} else { // mime type, e.g. "image/jpeg"
+			imageType = data.readZeroTerminatedString(textBuffer, 20, ID3v2Encoding.ISO_8859_1);
 		}
-		data.getData().readByte(); // picture type
-		data.readZeroTerminatedString(textBuffer, 200, encoding); // description
-		return data.getData().readFully((int)data.getRemainingLength()); // image data
+		byte pictureType = data.getData().readByte();
+		String description = data.readZeroTerminatedString(textBuffer, 200, encoding);
+		byte[] imageData = data.getData().readFully((int)data.getRemainingLength());
+		return new AttachedPicture(pictureType, description, imageType, imageData);
 	}
 }
