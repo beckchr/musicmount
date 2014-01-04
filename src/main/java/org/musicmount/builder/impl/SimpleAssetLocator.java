@@ -58,7 +58,7 @@ public class SimpleAssetLocator implements AssetLocator {
 		if (path == null) {
 			return "";
 		}
-		while (path.startsWith(FILE_SEPARATOR)) {
+		while (path.startsWith(FILE_SEPARATOR + FILE_SEPARATOR)) {
 			path = path.substring(1);
 		}
 		while (path.endsWith(FILE_SEPARATOR)) {

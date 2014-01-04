@@ -192,14 +192,21 @@ public class MusicMountServer {
 		tomcat.getConnector().setURIEncoding("UTF-8");
 		tomcat.setSilent(true);
 
-		Context musicContext = addContext(tomcat, musicPath.startsWith("/") ? musicPath : "/" + musicPath, musicBase);
-		musicContext.addMimeMapping("m4a", "audio/mp4");
-		musicContext.addMimeMapping("mp3", "audio/mpeg");
-
 		Context mountContext = addContext(tomcat, "/", mountBase);
 		mountContext.addWelcomeFile("index.json");
 		mountContext.addMimeMapping("json", "text/json");
 
+		Context musicContext = null;
+		if (musicPath == null || musicPath.isEmpty()) {
+			if (!mountBase.equals(musicBase)) {
+				throw new IllegalArgumentException("Missing music path");
+			}
+		} else {			
+			musicContext = addContext(tomcat, musicPath.startsWith("/") ? musicPath : "/" + musicPath, musicBase);
+			musicContext.addMimeMapping("m4a", "audio/mp4");
+			musicContext.addMimeMapping("mp3", "audio/mpeg");
+		}
+		
 		FilterDef utf8FilterDef = new FilterDef();
 		utf8FilterDef.setFilterName("utf8-filter");
 		utf8FilterDef.setFilter(UTF8Filter);
@@ -221,8 +228,10 @@ public class MusicMountServer {
 			mountContext.addFilterDef(logFilterDef);
 			mountContext.addFilterMap(logFilterMap);
 
-			musicContext.addFilterDef(logFilterDef);
-			musicContext.addFilterMap(logFilterMap);
+			if (musicContext != null) {
+				musicContext.addFilterDef(logFilterDef);
+				musicContext.addFilterMap(logFilterMap);
+			}
 		}
 
 		if (user != null && password != null) {
@@ -245,7 +254,9 @@ public class MusicMountServer {
 			});
 
 			addBasicAuth((StandardContext) mountContext);
-			addBasicAuth((StandardContext) musicContext);
+			if (musicContext != null) {
+				addBasicAuth((StandardContext) musicContext);
+			}
 		}
 
 		tomcat.start();

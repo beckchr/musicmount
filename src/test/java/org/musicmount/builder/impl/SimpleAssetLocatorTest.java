@@ -56,7 +56,7 @@ public class SimpleAssetLocatorTest {
 		Assert.assertEquals("music/Bjo%CC%88rk/Vespertine/07%20Aurora.m4a", locator.getAssetPath(new File(baseFolder, "Bj\u00F6rk/Vespertine/07 Aurora.m4a")));
 
 		locator = new SimpleAssetLocator(baseFolder, "///music///", null);
-		Assert.assertEquals("music/sample-aac.m4a", locator.getAssetPath(new File(baseFolder, "sample-aac.m4a")));
+		Assert.assertEquals("/music/sample-aac.m4a", locator.getAssetPath(new File(baseFolder, "sample-aac.m4a")));
 
 		locator = new SimpleAssetLocator(baseFolder, "", null);
 		Assert.assertEquals("sample-aac.m4a", locator.getAssetPath(new File(baseFolder, "sample-aac.m4a")));
