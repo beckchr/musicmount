@@ -174,7 +174,7 @@ public class MusicMountBuilder {
 		System.err.println("       --grouping         use grouping tag to group album tracks");
 		System.err.println("       --unknownGenre     report missing genre as 'Unknown'");
 		System.err.println("       --noVariousArtists exclude 'Various Artists' from album artist index");
-		System.err.println("       --noDirectoryIndex use 'path/index.ext' instead of 'path/'");
+		System.err.println("       --directoryIndex   use 'path/' instead of 'path/index.ext'");
 		System.err.println("       --pretty           pretty-print JSON documents");
 		System.err.println("       --verbose          more detailed console output");
 //		System.err.println("       --normalize <form> normalize asset paths, 'NFC'|'NFD'");
@@ -200,7 +200,7 @@ public class MusicMountBuilder {
 		boolean optionGrouping = false;
 		boolean optionUnknownGenre = false;
 		boolean optionNoVariousArtists = false;
-		boolean optionNoDirectoryIndex = false;
+		boolean optionDirectoryIndex = false;
 		Normalizer.Form optionNormalize = null;
 
 		int optionsLength = 0;
@@ -234,8 +234,10 @@ public class MusicMountBuilder {
 			case "--noImages":
 				optionNoImages = true;
 				break;
-			case "--noDirectoryIndex":
-				optionNoDirectoryIndex = true;
+			case "--noDirectoryIndex": // deprecated
+				break;
+			case "--directoryIndex":
+				optionDirectoryIndex = true;
 				break;
 			case "--xml":
 				optionXML = true;
@@ -358,9 +360,9 @@ public class MusicMountBuilder {
 
 		ResponseFormatter<?> responseFormatter;
 		if (optionXML) {
-			responseFormatter = new ResponseFormatter.XML(API_VERSION, localStrings, optionNoDirectoryIndex, optionUnknownGenre, optionGrouping, optionPretty);
+			responseFormatter = new ResponseFormatter.XML(API_VERSION, localStrings, optionDirectoryIndex, optionUnknownGenre, optionGrouping, optionPretty);
 		} else {
-			responseFormatter = new ResponseFormatter.JSON(API_VERSION, localStrings, optionNoDirectoryIndex, optionUnknownGenre, optionGrouping, optionPretty);
+			responseFormatter = new ResponseFormatter.JSON(API_VERSION, localStrings, optionDirectoryIndex, optionUnknownGenre, optionGrouping, optionPretty);
 		}
 		AssetLocator responseAssetLocator = new SimpleAssetLocator(musicFolder, optionMusic, optionNormalize);
 		LOGGER.info("Generating JSON...");
@@ -389,7 +391,10 @@ public class MusicMountBuilder {
 	}
 
 	private static OutputStream createOutputStream(File file) throws IOException {
-		file.getParentFile().mkdirs();
+		File folder = file.getParentFile();
+		if (!folder.exists() && !folder.mkdirs()) {
+			throw new IOException("Could not create directory: " + folder.getAbsolutePath());
+		}
 		OutputStream output = new BufferedOutputStream(new FileOutputStream(file));
 		if (file.getName().endsWith(".gz")) {
 			output = new GZIPOutputStream(output);

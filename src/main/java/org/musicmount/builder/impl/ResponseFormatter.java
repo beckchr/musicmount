@@ -47,8 +47,8 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 	public static class JSON extends ResponseFormatter<JsonXMLStreamWriter> {
 		private final JsonXMLOutputFactory factory;
 		
-		public JSON(String apiVersion, LocalStrings localStrings, boolean noDirectoryIndex, boolean includeUnknownGenre, boolean useGrouping, boolean prettyPrint) {
-			super(apiVersion, localStrings, noDirectoryIndex ? null : "index.json", includeUnknownGenre, useGrouping);
+		public JSON(String apiVersion, LocalStrings localStrings, boolean directoryIndex, boolean includeUnknownGenre, boolean useGrouping, boolean prettyPrint) {
+			super(apiVersion, localStrings, directoryIndex ? "index.json" : null, includeUnknownGenre, useGrouping);
 			factory = new JsonXMLOutputFactory(new JsonXMLConfigBuilder().prettyPrint(prettyPrint).virtualRoot("response").build());
 		}
 
@@ -71,8 +71,8 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		private final XMLOutputFactory factory;
 		private final boolean prettyPrint;
 		
-		public XML(String apiVersion, LocalStrings localStrings, boolean noDirectoryIndex, boolean includeUnknownGenre, boolean useGrouping, boolean prettyPrint) {
-			super(apiVersion, localStrings, noDirectoryIndex ? null : "index.xml", includeUnknownGenre, useGrouping);
+		public XML(String apiVersion, LocalStrings localStrings, boolean directoryIndex, boolean includeUnknownGenre, boolean useGrouping, boolean prettyPrint) {
+			super(apiVersion, localStrings, directoryIndex ? "index.xml" : null, includeUnknownGenre, useGrouping);
 			factory = XMLOutputFactory.newFactory();
 			this.prettyPrint = prettyPrint;
 		}
