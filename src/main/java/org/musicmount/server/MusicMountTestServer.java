@@ -49,8 +49,8 @@ import org.apache.catalina.startup.DigesterFactory;
 import org.apache.catalina.startup.Tomcat;
 import org.musicmount.util.LoggingUtil;
 
-public class MusicMountServer {
-	static final Logger LOGGER = Logger.getLogger(MusicMountServer.class.getName());
+public class MusicMountTestServer {
+	static final Logger LOGGER = Logger.getLogger(MusicMountTestServer.class.getName());
 
 	static final Filter AccessLogFilter = new Filter() {
 		@Override
@@ -363,7 +363,7 @@ public class MusicMountServer {
 		/**
 		 * Configure logging
 		 */
-		LoggingUtil.configure(MusicMountServer.class.getPackage().getName(), optionVerbose ? Level.FINER : Level.FINE);
+		LoggingUtil.configure(MusicMountTestServer.class.getPackage().getName(), optionVerbose ? Level.FINER : Level.FINE);
 		LoggingUtil.configure("org.apache", Level.INFO);
 		LoggingUtil.configure(DigesterFactory.class.getName(), Level.SEVERE); // get rid of warnings on missing jsp schema files		
 		
@@ -388,6 +388,6 @@ public class MusicMountServer {
 	}
 
 	public static void main(String[] args) throws Exception {
-		execute(MusicMountServer.class.getSimpleName(), args);
+		execute(MusicMountTestServer.class.getSimpleName(), args);
 	}
 }

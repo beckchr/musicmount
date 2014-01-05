@@ -23,13 +23,14 @@ Options:
        --unknownGenre     report missing genre as 'Unknown'
        --noVariousArtists exclude 'Various Artists' from album artist index
        --directoryIndex   use 'path/' instead of 'path/index.json'
+       --normalize <form> normalize asset paths, 'NFC'|'NFD' (experimental)
        --pretty           pretty-print JSON documents
        --verbose          more detailed console output
 
 Test Site
 ---------
 
-Usage: java -jar musicmount-${project.version}.jar serve [options] [<music_folder>] <mount_folder>
+Usage: java -jar musicmount-${project.version}.jar test [options] [<music_folder>] <mount_folder>
 
 Launch MusicMount site in <mount_folder> with music from <music_folder>
 
@@ -39,6 +40,6 @@ Launch MusicMount site in <mount_folder> with music from <music_folder>
 Options:
        --music <path>     music path prefix, default is 'music'
        --port <port>      launch HTTP server on specified port (default 8080)
-       --user <user>      login user id (default 'test')
-       --password <pass>  login password (default 'testXXX', XXX random number)
+       --user <user>      login user id
+       --password <pass>  login password
        --verbose          more detailed console output

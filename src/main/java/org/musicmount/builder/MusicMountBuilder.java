@@ -175,9 +175,9 @@ public class MusicMountBuilder {
 		System.err.println("       --unknownGenre     report missing genre as 'Unknown'");
 		System.err.println("       --noVariousArtists exclude 'Various Artists' from album artist index");
 		System.err.println("       --directoryIndex   use 'path/' instead of 'path/index.ext'");
+		System.err.println("       --normalize <form> normalize asset paths, 'NFC'|'NFD' (experimental)");
 		System.err.println("       --pretty           pretty-print JSON documents");
 		System.err.println("       --verbose          more detailed console output");
-//		System.err.println("       --normalize <form> normalize asset paths, 'NFC'|'NFD'");
 //		System.err.println("       --noImages         do not generate images");
 //		System.err.println("       --xml              generate XML instead of JSON");
 		System.err.close();
