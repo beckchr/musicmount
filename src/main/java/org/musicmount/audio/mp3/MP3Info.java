@@ -55,7 +55,7 @@ public class MP3Info extends AudioInfo {
 			tracks = info.getTracks();
 			year = info.getYear();
 		}
-		if (duration == 0) {
+		if (duration <= 0 || duration >= 3600000L) { // don't trust strange durations (e.g. old lame versions always write TLEN 97391548)
 			try {					
 				duration = calculateDuration(data, fileLength, new StopReadCondition() {
 					final long stopPosition = fileLength - 128;
