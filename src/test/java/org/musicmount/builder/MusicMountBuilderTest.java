@@ -31,13 +31,15 @@ import org.musicmount.builder.impl.SimpleAssetLocator;
 import org.musicmount.builder.impl.SimpleAssetParser;
 import org.musicmount.builder.impl.SimpleResourceLocator;
 import org.musicmount.builder.model.Library;
+import org.musicmount.io.ResourceProvider;
+import org.musicmount.io.file.FileResourceProvider;
 
 /*
  * TODO test doesn't assert anything
  */
 public class MusicMountBuilderTest {
-    @Rule
-    public TemporaryFolder outputFolder = new TemporaryFolder();
+	@Rule
+	public TemporaryFolder outputFolder = new TemporaryFolder();
 
 	@Test
 	public void testMain() throws Exception {
@@ -55,13 +57,14 @@ public class MusicMountBuilderTest {
 
 	@Test
 	public void testGenerateResponseFiles() throws Exception {
+		ResourceProvider resourceProvider = new FileResourceProvider();
 		File inputFolder = new File(getClass().getResource("/sample-library").toURI());
 		AssetStore assetStore = new AssetStore(MusicMountBuilder.API_VERSION);
-		assetStore.update(inputFolder, new SimpleAssetParser());
+		assetStore.update(resourceProvider.newResource(inputFolder.toPath()), new SimpleAssetParser());
 		Library library = new LibraryParser().parse(assetStore.assets());
-		ResourceLocator resourceLocator = new SimpleResourceLocator(outputFolder.getRoot(), false, false);
+		ResourceLocator resourceLocator = new SimpleResourceLocator(resourceProvider.newResource(outputFolder.getRoot().toPath()), false, false);
 		ResponseFormatter<?> formatter = new ResponseFormatter.JSON(MusicMountBuilder.API_VERSION, new LocalStrings(), false, false, false, true);
-		AssetLocator assetLocator = new SimpleAssetLocator(inputFolder, "music", null);
-		MusicMountBuilder.generateResponseFiles(library, outputFolder.getRoot(), formatter, resourceLocator, assetLocator);
+		AssetLocator assetLocator = new SimpleAssetLocator(resourceProvider.newResource(inputFolder.toPath()), "music", null);
+		MusicMountBuilder.generateResponseFiles(library, formatter, resourceLocator, assetLocator);
 	}
 }

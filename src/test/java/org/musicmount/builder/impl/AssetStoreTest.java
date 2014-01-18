@@ -18,20 +18,25 @@ package org.musicmount.builder.impl;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Test;
 import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.Library;
+import org.musicmount.io.ResourceProvider;
+import org.musicmount.io.file.FileResourceProvider;
 
 public class AssetStoreTest {
 	@Test
 	public void test() throws Exception {
+		ResourceProvider resourceProvider = new FileResourceProvider();
+
 		File assetDir = new File(getClass().getResource("/sample-album/sample.mp3").toURI()).getParentFile();
-		AssetLocator assetLocator = new SimpleAssetLocator(assetDir, null, null);
+		AssetLocator assetLocator = new SimpleAssetLocator(resourceProvider.newResource(assetDir.toPath()), null, null);
 		AssetStore assetStore = new AssetStore("test");
-		assetStore.update(assetDir, new SimpleAssetParser());
+		assetStore.update(resourceProvider.newResource(assetDir.toPath()), new SimpleAssetParser());
 		Library library = new LibraryParser().parse(assetStore.assets());
 
 		Assert.assertEquals(1, library.getAlbumArtists().size());
@@ -52,7 +57,7 @@ public class AssetStoreTest {
 		input.close();
 		
 		Assert.assertEquals(3, assetStore.getEntities().size());
-		assetStore.update(assetDir, new SimpleAssetParser());
+		assetStore.update(resourceProvider.newResource(assetDir.toPath()), new SimpleAssetParser());
 
 		library = new LibraryParser().parse(assetStore.assets());
 		Assert.assertEquals(1, library.getAlbumArtists().size());
@@ -63,9 +68,9 @@ public class AssetStoreTest {
 		changedAlbums = assetStore.sync(library.getAlbums());
 		Assert.assertEquals(0, changedAlbums.size());
 
-		Asset asset = assetStore.getAsset(new File(getClass().getResource("/sample-album/sample.mp3").toURI()));
+		Asset asset = assetStore.getAsset(resourceProvider.newResource(Paths.get(getClass().getResource("/sample-album/sample.mp3").toURI())));
 		Assert.assertEquals("Sample Album", asset.getAlbum());
 		Assert.assertEquals("Sample - MP3", asset.getName());
-		Assert.assertTrue(asset.getFile().exists());
+		Assert.assertTrue(asset.getResource().exists());
 	}
 }

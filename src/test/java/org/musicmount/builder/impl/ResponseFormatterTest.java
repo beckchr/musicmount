@@ -23,6 +23,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.musicmount.builder.model.ArtistType;
 import org.musicmount.builder.model.Library;
+import org.musicmount.io.ResourceProvider;
+import org.musicmount.io.file.FileResourceProvider;
 
 /*
  * TODO test doesn't assert anything
@@ -33,15 +35,17 @@ public class ResponseFormatterTest {
 
 	@Test
 	public void test() throws Exception {
-		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(outputFolder.getRoot(), false, false);
+		ResourceProvider resourceProvider = new FileResourceProvider();
+
+		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(resourceProvider.newResource(outputFolder.getRoot().toPath()), false, false);
 		ResponseFormatter.JSON responseFormatter = new ResponseFormatter.JSON("test", new LocalStrings(), false, false, false, true);
 
 		File inputFolder = new File(getClass().getResource("/sample-library").toURI());
 		AssetStore assetStore = new AssetStore("test");
-		assetStore.update(inputFolder, new SimpleAssetParser());
+		assetStore.update(resourceProvider.newResource(inputFolder.toPath()), new SimpleAssetParser());
 		Library library = new LibraryParser().parse(assetStore.assets());
 
-		SimpleAssetLocator assetLocator = new SimpleAssetLocator(outputFolder.getRoot(), "music", null);
+		SimpleAssetLocator assetLocator = new SimpleAssetLocator(resourceProvider.newResource(outputFolder.getRoot().toPath()), "music", null);
 		ByteArrayOutputStream output;
 		
 		output = new ByteArrayOutputStream();

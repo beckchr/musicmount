@@ -201,7 +201,13 @@ public class MusicMountTestServer {
 			if (!mountBase.equals(musicBase)) {
 				throw new IllegalArgumentException("Missing music path");
 			}
-		} else {			
+		} else {
+			if (musicPath.startsWith("../")) { // ../music --> /music
+				musicPath = musicPath.substring(2);
+			}
+			if (musicPath.indexOf("..") >= 0) {
+				throw new IllegalArgumentException("Illegal music path");
+			}
 			musicContext = addContext(tomcat, musicPath.startsWith("/") ? musicPath : "/" + musicPath, musicBase);
 			musicContext.addMimeMapping("m4a", "audio/mp4");
 			musicContext.addMimeMapping("mp3", "audio/mpeg");

@@ -17,12 +17,12 @@ package org.musicmount.builder.impl;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.InputStream;
 
 import javax.imageio.ImageIO;
 
 import org.musicmount.audio.AudioInfo;
+import org.musicmount.io.Resource;
 
 /**
  * Generic asset parser based on. 
@@ -30,17 +30,17 @@ import org.musicmount.audio.AudioInfo;
 public abstract class AudioInfoAssetParser implements AssetParser {
 	/**
 	 * Do the magic...
-	 * @param file audio file
+	 * @param resource audio file
 	 * @param imageOnly <code>true</code> if only interested in cover image
 	 * @return audio info
 	 * @throws Exception
 	 */
-	protected abstract AudioInfo getAudioInfo(File file, boolean imageOnly) throws Exception;
+	protected abstract AudioInfo getAudioInfo(Resource resource, boolean imageOnly) throws Exception;
 
 	@Override
-	public Asset parse(File file) throws Exception {
-		AudioInfo info = getAudioInfo(file, false);
-		Asset asset = new Asset(file);
+	public Asset parse(Resource resource) throws Exception {
+		AudioInfo info = getAudioInfo(resource, false);
+		Asset asset = new Asset(resource);
 		asset.setAlbum(info.getAlbum());
 		asset.setAlbumArtist(info.getAlbumArtist());
 		asset.setArtist(info.getArtist());
@@ -58,8 +58,8 @@ public abstract class AudioInfoAssetParser implements AssetParser {
 	}
 
 	@Override
-	public BufferedImage extractArtwork(File file) throws Exception {
-		byte[] cover = getAudioInfo(file, true).getCover();
+	public BufferedImage extractArtwork(Resource resource) throws Exception {
+		byte[] cover = getAudioInfo(resource, true).getCover();
 		if (cover != null) {
 			try (InputStream data = new ByteArrayInputStream(cover)) {
 				return ImageIO.read(data);

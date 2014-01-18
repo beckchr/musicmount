@@ -15,18 +15,17 @@
  */
 package org.musicmount.builder.impl;
 
-import java.io.File;
-
 import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.Artist;
 import org.musicmount.builder.model.ArtistType;
+import org.musicmount.io.Resource;
 
 public class SimpleResourceLocator implements ResourceLocator {
-	private final File outputFolder;
+	private final Resource outputFolder;
 	private final String extension;
 	private final boolean noImages;
 	
-	public SimpleResourceLocator(File outputFolder, boolean xml, boolean noImages) {
+	public SimpleResourceLocator(Resource outputFolder, boolean xml, boolean noImages) {
 		this.outputFolder = outputFolder;
 		this.extension = xml ? "xml" : "json";
 		this.noImages = noImages;
@@ -53,8 +52,8 @@ public class SimpleResourceLocator implements ResourceLocator {
 	}
 
 	@Override
-	public File getFile(String path) {
-		return new File(outputFolder, path);
+	public Resource getResource(String path) {
+		return outputFolder.resolve(path);
 	}
 
 	@Override
@@ -79,7 +78,7 @@ public class SimpleResourceLocator implements ResourceLocator {
 
 	@Override
 	public String getAlbumImagePath(Album album, ImageType type) {
-		if (noImages || album.artworkAssetFile() == null) {
+		if (noImages || album.artworkAssetResource() == null) {
 			return null;
 		}
 		return String.format("albums/%s/%s", getIdPath(album.getAlbumId()), type.getFileName());

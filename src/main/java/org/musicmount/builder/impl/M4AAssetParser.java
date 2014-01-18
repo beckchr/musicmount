@@ -16,25 +16,25 @@
 package org.musicmount.builder.impl;
 
 import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
+import java.nio.file.Path;
 
 import org.musicmount.audio.AudioInfo;
 import org.musicmount.audio.m4a.M4AInfo;
+import org.musicmount.io.Resource;
 
 /**
  * M4A (MP4 audio) asset parser. 
  */
 public class M4AAssetParser extends AudioInfoAssetParser {
 	@Override
-	public boolean isAssetFile(File file) {
-		return file.getName().toLowerCase().endsWith(".m4a");
+	public boolean isAssetPath(Path path) {
+		return path.getFileName().toString().toLowerCase().endsWith(".m4a");
 	}
 
 	@Override
-	protected AudioInfo getAudioInfo(File file, boolean imageOnly) throws Exception {
-		try (InputStream input = new BufferedInputStream(new FileInputStream(file))) {
+	protected AudioInfo getAudioInfo(Resource resource, boolean imageOnly) throws Exception {
+		try (InputStream input = new BufferedInputStream(resource.getInputStream())) {
 			return new M4AInfo(input);
 		}
 	}

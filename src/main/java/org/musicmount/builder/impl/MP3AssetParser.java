@@ -16,27 +16,27 @@
 package org.musicmount.builder.impl;
 
 import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
+import java.nio.file.Path;
 
 import org.musicmount.audio.AudioInfo;
 import org.musicmount.audio.mp3.ID3v2Info;
 import org.musicmount.audio.mp3.MP3Info;
+import org.musicmount.io.Resource;
 
 /**
  * MP3 asset parser. 
  */
 public class MP3AssetParser extends AudioInfoAssetParser {
 	@Override
-	public boolean isAssetFile(File file) {
-		return file.getName().toLowerCase().endsWith(".mp3");
+	public boolean isAssetPath(Path resource) {
+		return resource.getFileName().toString().toLowerCase().endsWith(".mp3");
 	}
 
 	@Override
-	protected AudioInfo getAudioInfo(File file, boolean imageOnly) throws Exception {
-		try (InputStream input = new BufferedInputStream(new FileInputStream(file))) {
-			return imageOnly ? new ID3v2Info(input) : new MP3Info(input, file.length());
+	protected AudioInfo getAudioInfo(Resource resource, boolean imageOnly) throws Exception {
+		try (InputStream input = new BufferedInputStream(resource.getInputStream())) {
+			return imageOnly ? new ID3v2Info(input) : new MP3Info(input, resource.length());
 		}
 	}
 }

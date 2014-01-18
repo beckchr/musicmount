@@ -24,8 +24,13 @@ import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.AlbumArtist;
 import org.musicmount.builder.model.ArtistType;
 import org.musicmount.builder.model.Track;
+import org.musicmount.io.Resource;
+import org.musicmount.io.ResourceProvider;
+import org.musicmount.io.file.FileResourceProvider;
 
 public class SimpleResourceLocatorTest {
+	ResourceProvider resourceProvider = new FileResourceProvider();
+
 	@Test
 	public void testGetAlbumCollectionPath() {
 		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
@@ -33,7 +38,8 @@ public class SimpleResourceLocatorTest {
 	}
 
 	Album createAlbum(long albumId, AlbumArtist artist, boolean artworkAvailable) {
-		Track track = new Track(null, new File(String.format("%d.mp3", albumId)), artworkAvailable, false, null, null, null, null, null, null, null);
+		Resource dummyFile = resourceProvider.newResource(String.format("%d.mp3", albumId));
+		Track track = new Track(null, dummyFile, artworkAvailable, false, null, null, null, null, null, null, null);
 		Album album = new Album(null);
 		album.setAlbumId(albumId);
 		album.getTracks().add(track);
@@ -90,9 +96,9 @@ public class SimpleResourceLocatorTest {
 
 	@Test
 	public void testFile() throws URISyntaxException {
-		File outputFolder = new File(getClass().getResource("/sample-assets").toURI());
+		Resource outputFolder = resourceProvider.newResource(new File(getClass().getResource("/sample-assets").toURI()).toPath());
 		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(outputFolder, false, false);
-		Assert.assertEquals(new File(outputFolder, "foo/bar.json"), resourceLocator.getFile("foo/bar.json"));
+		Assert.assertEquals(outputFolder.resolve("foo/bar.json"), resourceLocator.getResource("foo/bar.json"));
 	}
 
 	@Test

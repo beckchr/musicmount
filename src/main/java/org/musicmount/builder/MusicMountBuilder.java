@@ -17,12 +17,13 @@ package org.musicmount.builder;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.FileSystems;
+import java.nio.file.Paths;
 import java.text.Normalizer;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -51,6 +52,11 @@ import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.Artist;
 import org.musicmount.builder.model.ArtistType;
 import org.musicmount.builder.model.Library;
+import org.musicmount.io.Resource;
+import org.musicmount.io.ResourceProvider;
+import org.musicmount.io.file.FileResourceProvider;
+import org.musicmount.io.server.dav.DAVResourceProvider;
+import org.musicmount.io.server.smb.SMBResourceProvider;
 import org.musicmount.util.LoggingUtil;
 
 public class MusicMountBuilder {
@@ -75,7 +81,6 @@ public class MusicMountBuilder {
 
 	public static void generateResponseFiles(
 			Library library,
-			File outputFolder,
 			ResponseFormatter<?> formatter,
 			ResourceLocator resourceLocator,
 			AssetLocator assetLocator) throws Exception {
@@ -91,14 +96,14 @@ public class MusicMountBuilder {
 			if (LOGGER.isLoggable(Level.FINEST)) {
 				LOGGER.finest("Generating album collection for album artist: " + artist.getTitle());
 			}
-			try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getAlbumCollectionPath(artist)))) {
+			try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getAlbumCollectionPath(artist)))) {
 				representativeAlbums.put(artist, formatter.formatAlbumCollection(artist, output, resourceLocator));
 			}
 		}
 		if (LOGGER.isLoggable(Level.FINEST)) {
 			LOGGER.finest("Generating album artist index");
 		}
-		try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getArtistIndexPath(ArtistType.AlbumArtist)))) {
+		try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getArtistIndexPath(ArtistType.AlbumArtist)))) {
 			formatter.formatArtistIndex(library.getAlbumArtists().values(), ArtistType.AlbumArtist, output, resourceLocator, representativeAlbums);
 		}
 
@@ -113,14 +118,14 @@ public class MusicMountBuilder {
 			if (LOGGER.isLoggable(Level.FINEST)) {
 				LOGGER.finest("Generating album collection for artist: " + artist.getTitle());
 			}
-			try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getAlbumCollectionPath(artist)))) {
+			try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getAlbumCollectionPath(artist)))) {
 				representativeAlbums.put(artist, formatter.formatAlbumCollection(artist, output, resourceLocator));
 			}
 		}
 		if (LOGGER.isLoggable(Level.FINEST)) {
 			LOGGER.finest("Generating artist index");
 		}
-		try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getArtistIndexPath(ArtistType.TrackArtist)))) {
+		try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getArtistIndexPath(ArtistType.TrackArtist)))) {
 			formatter.formatArtistIndex(library.getTrackArtists().values(), ArtistType.TrackArtist, output, resourceLocator, representativeAlbums);
 		}
 
@@ -134,14 +139,14 @@ public class MusicMountBuilder {
 			if (LOGGER.isLoggable(Level.FINEST)) {
 				LOGGER.finest("Generating album: " + album.getTitle());
 			}
-			try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getAlbumPath(album)))) {
+			try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getAlbumPath(album)))) {
 				formatter.formatAlbum(album, output, resourceLocator, assetLocator);
 			}
 		}
 		if (LOGGER.isLoggable(Level.FINEST)) {
 			LOGGER.finest("Generating album index");
 		}
-		try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getAlbumIndexPath()))) {
+		try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getAlbumIndexPath()))) {
 			formatter.formatAlbumIndex(library.getAlbums(), output, resourceLocator);
 		}
 
@@ -151,39 +156,113 @@ public class MusicMountBuilder {
 		if (LOGGER.isLoggable(Level.FINER)) {
 			LOGGER.finer("Generating service index...");
 		}
-		try (OutputStream output = createOutputStream(resourceLocator.getFile(resourceLocator.getServiceIndexPath()))) {
+		try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getServiceIndexPath()))) {
 			formatter.formatServiceIndex(resourceLocator, output);
 		}
+	}
+
+	static ResourceProvider getResourceProvider(String string) throws IOException, URISyntaxException {
+		String uriString = string.trim();
+
+		/*
+		 * convert file separators to URI slashes
+		 */
+		uriString.replace(FileSystems.getDefault().getSeparator(), "/");
+
+		/*
+		 * make sure base ends with '/'and is absolute
+		 */
+		if (!uriString.endsWith("/")) {
+			uriString += "/";
+		}
+
+		/*
+		 * create URI and switch by scheme...
+		 */
+		URI uri = new URI(uriString.replace(" ", "%20")); // TODO URI encoding
+		if (uri.isAbsolute()) {
+			switch (uri.getScheme()) {
+			case "file":
+				return new FileResourceProvider(Paths.get(uri).toString());
+			case "http":
+			case "https":
+				return new DAVResourceProvider(uri);
+			case "smb":
+				return new SMBResourceProvider(uri);
+			default:
+				throw new IOException("unsupported scheme: " + uri.getScheme());
+			}
+		}
+
+		/*
+		 * assume simple file path
+		 */
+		return new FileResourceProvider(string);
+	}
+
+	static Resource getResource(String base, String path) throws IOException, URISyntaxException {
+		if (base == null) {
+			return getResourceProvider(path).getBaseDirectory();
+		}
+
+		/*
+		 * absolute base directory
+		 */
+		Resource baseDirectory = getResourceProvider(base).getBaseDirectory();
+		
+		/*
+		 * replace file separator
+		 */
+		String fileSeparator = baseDirectory.getPath().getFileSystem().getSeparator();
+		path.replace(FileSystems.getDefault().getSeparator(), fileSeparator);
+
+		/*
+		 * make path relative + directory
+		 */
+		while (path.startsWith(fileSeparator)) {
+			path = path.substring(1);
+		}
+		if (!path.endsWith(fileSeparator)) {
+			path += fileSeparator;
+		}
+
+		/*
+		 * resolve (i.e. append) path and normalize
+		 */
+		return baseDirectory.getProvider().newResource(baseDirectory.getPath().resolve(path).normalize());
 	}
 	
 	static void exitWithError(String command, String error) {
 		System.err.println();
 		System.err.println("*** " + (error == null ? "internal error" : error));
 		System.err.println();
-		System.err.println(String.format("Usage: %s [options] [<music_folder>] <mount_folder>", command));
+		System.err.println(String.format("Usage: %s [options] [<musicFolder>] <mountFolder>", command));
 		System.err.println();
-		System.err.println("Generate MusicMount site from music in <music_folder> into <mount_folder>");
+		System.err.println("Generate MusicMount site from music in <musicFolder> into <mountFolder>");
 		System.err.println();
-		System.err.println("         <music_folder>   input folder, default is <mount_folder>/<value of --music option>");
+		System.err.println("         <music_folder>   input folder, default is <mountFolder>/<value of --music option>");
 		System.err.println("         <mount_folder>   output folder to contain the generated site");
+		System.err.println();
+		System.err.println("Folders may be local directory paths or smb|http|https URLs, e.g. smb://user:pass@host/path/");
 		System.err.println();
 		System.err.println("Options:");
 		System.err.println("       --music <path>     music path prefix, default is 'music'");
+		System.err.println("       --base <folder>    base folder, <musicFolder> and <mountFolder> are relative to this folder");
 		System.err.println("       --retina           double image resolution");
 		System.err.println("       --full             full parse, don't use asset store");
 		System.err.println("       --grouping         use grouping tag to group album tracks");
 		System.err.println("       --unknownGenre     report missing genre as 'Unknown'");
 		System.err.println("       --noVariousArtists exclude 'Various Artists' from album artist index");
 		System.err.println("       --directoryIndex   use 'path/' instead of 'path/index.ext'");
-		System.err.println("       --normalize <form> normalize asset paths, 'NFC'|'NFD' (experimental)");
 		System.err.println("       --pretty           pretty-print JSON documents");
 		System.err.println("       --verbose          more detailed console output");
+//		System.err.println("       --normalize <form> normalize asset paths, 'NFC'|'NFD' (experimental)");
 //		System.err.println("       --noImages         do not generate images");
 //		System.err.println("       --xml              generate XML instead of JSON");
 		System.err.close();
 		System.exit(1);	
 	}
-    
+
 	/**
 	 * Generate JSON + images
 	 * @param args inputFolder, outputFolder, baseURL
@@ -191,6 +270,7 @@ public class MusicMountBuilder {
 	 */
 	public static void execute(String command, String[] args) throws Exception {
 		String optionMusic = "music";
+		String optionBase = null;
 		boolean optionRetina = false;
 		boolean optionPretty = false;
 		boolean optionFull = false;
@@ -212,6 +292,12 @@ public class MusicMountBuilder {
 					exitWithError(command, "invalid arguments");
 				}
 				optionMusic = args[optionsLength];
+				break;
+			case "--base":
+				if (++optionsLength == args.length) {
+					exitWithError(command, "invalid arguments");
+				}
+				optionBase = args[optionsLength];
 				break;
 			case "--retina":
 				optionRetina = true;
@@ -272,33 +358,50 @@ public class MusicMountBuilder {
 			}
 		}
 		
-		File musicFolder = null;
-		File mountFolder = null;
+		Resource musicFolder = null;
+		Resource mountFolder = null;
+		
 		switch (args.length - optionsLength) {
 		case 0:
 			exitWithError(command, "missing arguments");
 			break;
 		case 1:
-			mountFolder = new File(args[optionsLength]);
-			musicFolder = new File(mountFolder, optionMusic);
+			mountFolder = getResource(optionBase, args[optionsLength]);
+			musicFolder = getResource(mountFolder.getPath().toUri().toString(), optionMusic);
 			break;
 		case 2:
-			musicFolder = new File(args[optionsLength]);
-			mountFolder = new File(args[optionsLength + 1]);
+			musicFolder = getResource(optionBase, args[optionsLength]);
+			mountFolder = getResource(optionBase, args[optionsLength + 1]);
 			break;
 		default:
 			exitWithError(command, "bad arguments");
 		}
-		if (mountFolder.exists()) {
+
+		boolean mountFolderExists = false;
+		try {
+			mountFolderExists = mountFolder.exists();
+		} catch (IOException e) {
+			exitWithError(command, "cannot connect to mount folder \"" + mountFolder.getPath().toUri() + "\": " + e.getMessage());
+		}
+		if (mountFolderExists) {
 			if (!mountFolder.isDirectory()) {
 				exitWithError(command, "mount folder is not a directory: " + mountFolder);
 			}
 		} else {
-			if (!mountFolder.mkdirs()) {
+			try {
+				mountFolder.mkdirs();
+			} catch (IOException e) {
 				exitWithError(command, "cannot create mount folder " + mountFolder);
 			}
 		}
-		if (musicFolder.exists()) {
+
+		boolean musicFolderExists = false;
+		try {
+			musicFolderExists = musicFolder.exists();
+		} catch (IOException e) {
+			exitWithError(command, "cannot connect to music folder \"" + musicFolder.getPath().toUri() + "\": " + e.getMessage());
+		}
+		if (musicFolderExists) {
 			if (!musicFolder.isDirectory()) {
 				exitWithError(command, "music folder is not a directory: " + musicFolder);
 			}
@@ -311,8 +414,15 @@ public class MusicMountBuilder {
 		 */
 		LoggingUtil.configure(MusicMountBuilder.class.getPackage().getName(), optionVerbose ? Level.FINER : Level.FINE);
 
+		LOGGER.info("Music folder: " + musicFolder.getPath().toUri());
+		LOGGER.info("Mount folder: " + mountFolder.getPath().toUri());
+
+		if (!"file".equals(musicFolder.getPath().toUri().getScheme()) || !"file".equals(mountFolder.getPath().toUri().getScheme())) {
+			LOGGER.warning("Remote file system support is experimental/alpha!");
+		}
+
 		LocalStrings localStrings = new LocalStrings(Locale.ENGLISH);
-		File assetStoreFile = new File(mountFolder, ASSET_STORE);
+		Resource assetStoreFile = mountFolder.resolve(ASSET_STORE);
 
 		AssetLocator assetStoreAssetLocator = new SimpleAssetLocator(musicFolder, null, null); // no prefix, no normalization
 		AssetStore assetStore = new AssetStore(API_VERSION);
@@ -357,7 +467,7 @@ public class MusicMountBuilder {
 			formatter.formatImages(library, resourceLocator, retinaChange || optionFull ? new HashSet<>(library.getAlbums()) : changedAlbums);
 			assetStore.setRetina(optionRetina);
 		}
-
+		
 		ResponseFormatter<?> responseFormatter;
 		if (optionXML) {
 			responseFormatter = new ResponseFormatter.XML(API_VERSION, localStrings, optionDirectoryIndex, optionUnknownGenre, optionGrouping, optionPretty);
@@ -366,36 +476,33 @@ public class MusicMountBuilder {
 		}
 		AssetLocator responseAssetLocator = new SimpleAssetLocator(musicFolder, optionMusic, optionNormalize);
 		LOGGER.info("Generating JSON...");
-		generateResponseFiles(library, mountFolder, responseFormatter, resourceLocator, responseAssetLocator);
+		generateResponseFiles(library, responseFormatter, resourceLocator, responseAssetLocator);
 
 		LOGGER.info("Saving asset store...");
 		try (OutputStream assetStoreOutput = createOutputStream(assetStoreFile)) {
 			assetStore.save(assetStoreOutput, assetStoreAssetLocator);
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to save asset store", e);
-			assetStoreFile.deleteOnExit();
+			assetStoreFile.delete();
 		}
 
 		LOGGER.info(String.format("Done (%d albums).", library.getAlbums().size()));
 	}
 	
-	private static InputStream createInputStream(File file) throws IOException {
+	private static InputStream createInputStream(Resource file) throws IOException {
 		if (!file.exists()) {
 			return null;
 		}
-		InputStream input = new FileInputStream(file);
+		InputStream input = file.getInputStream();
 		if (file.getName().endsWith(".gz")) {
 			input = new GZIPInputStream(input);
 		}
 		return new BufferedInputStream(input);
 	}
 
-	private static OutputStream createOutputStream(File file) throws IOException {
-		File folder = file.getParentFile();
-		if (!folder.exists() && !folder.mkdirs()) {
-			throw new IOException("Could not create directory: " + folder.getAbsolutePath());
-		}
-		OutputStream output = new BufferedOutputStream(new FileOutputStream(file));
+	private static OutputStream createOutputStream(Resource file) throws IOException {
+		file.getParent().mkdirs();
+		OutputStream output = new BufferedOutputStream(file.getOutputStream());
 		if (file.getName().endsWith(".gz")) {
 			output = new GZIPOutputStream(output);
 		}

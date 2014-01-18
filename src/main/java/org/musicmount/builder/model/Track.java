@@ -15,11 +15,11 @@
  */
 package org.musicmount.builder.model;
 
-import java.io.File;
+import org.musicmount.io.Resource;
 
 public class Track implements Titled {
 	private final String title;
-	private final File assetFile;
+	private final Resource resource;
 	private final boolean artworkAvailable;
 	private final boolean compilation;
 	private final String composer;
@@ -35,7 +35,7 @@ public class Track implements Titled {
 
 	public Track(
 			String title,
-			File assetFile,
+			Resource resource,
 			boolean artworkAvailable,
 			boolean compilation,
 			String composer,
@@ -47,7 +47,7 @@ public class Track implements Titled {
 			Integer year
 	) {
 		this.title = title;
-		this.assetFile = assetFile;
+		this.resource = resource;
 		this.artworkAvailable = artworkAvailable;
 		this.compilation = compilation;
 		this.composer = composer;
@@ -59,8 +59,8 @@ public class Track implements Titled {
 		this.year = year;
 	}
 	
-	public File getAssetFile() {
-		return assetFile;
+	public Resource getResource() {
+		return resource;
 	}
 	
 	@Override

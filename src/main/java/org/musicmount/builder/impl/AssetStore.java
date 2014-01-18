@@ -15,11 +15,11 @@
  */
 package org.musicmount.builder.impl;
 
-import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -36,6 +36,7 @@ import javax.xml.stream.XMLStreamReader;
 
 import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.Track;
+import org.musicmount.io.Resource;
 
 import de.odysseus.staxon.json.JsonXMLConfigBuilder;
 import de.odysseus.staxon.json.JsonXMLInputFactory;
@@ -65,7 +66,7 @@ public class AssetStore {
 		}
 	}
 	
-	final Map<File, AssetEntity> entities = new LinkedHashMap<File, AssetEntity>();
+	final Map<Resource, AssetEntity> entities = new LinkedHashMap<Resource, AssetEntity>();
 	final Set<Long> deletedAlbumIds = new HashSet<Long>();
 
 	final String version;
@@ -80,8 +81,8 @@ public class AssetStore {
 	/*
 	 * visible for testing
 	 */
-	public Asset getAsset(File assetFile) {
-		return entities.containsKey(assetFile) ? entities.get(assetFile).asset : null;
+	public Asset getAsset(Resource resource) {
+		return entities.containsKey(resource) ? entities.get(resource).asset : null;
 	}
 	
 	/*
@@ -99,7 +100,7 @@ public class AssetStore {
 		this.retina = retina;
 	}
 	
-	public Map<File, AssetEntity> getEntities() {
+	public Map<Resource, AssetEntity> getEntities() {
 		return Collections.unmodifiableMap(entities);
 	}
 	
@@ -169,7 +170,7 @@ public class AssetStore {
 			 */
 			Long albumId = null;
 			for (Track track : album.getTracks()) {
-				AssetEntity entity = entities.get(track.getAssetFile());
+				AssetEntity entity = entities.get(track.getResource());
 				if (entity != null && entity.albumId != null && !bookedAlbumIds.contains(entity.albumId)) {
 					albumId = entity.albumId;
 					bookedAlbumIds.add(albumId);
@@ -197,7 +198,7 @@ public class AssetStore {
 			 */
 			boolean albumChanged = deletedAlbumIds.contains(albumId);
 			for (Track track : album.getTracks()) {
-				AssetEntity entity = entities.get(track.getAssetFile());
+				AssetEntity entity = entities.get(track.getResource());
 				if (entity != null) {
 					if (entity.albumId == null || entity.albumId.longValue() != albumId.longValue() || entity.state != AssetEntity.State.Synced) {
 						albumChanged = true;
@@ -266,7 +267,7 @@ public class AssetStore {
 			}
 			writer.writeProcessingInstruction(JsonXMLStreamConstants.MULTIPLE_PI_TARGET);
 			for (AssetEntity entity : entities.values()) {
-				String assetPath = assetLocator.getAssetPath(entity.asset.getFile());
+				String assetPath = assetLocator.getAssetPath(entity.asset.getResource());
 				if (assetPath != null) {
 					writer.writeStartElement("asset");
 					writeNumberProperty(writer, "albumId", entity.albumId);
@@ -294,53 +295,59 @@ public class AssetStore {
 		}
 	}
 
-	void updateEntities(File directory, final AssetParser assetParser, FileFilter assetFilter, Set<AssetEntity> updatedEntities) throws IOException, XMLStreamException {
-		for (File file : directory.listFiles(assetFilter)) {
-			if (file.isDirectory()) {
-				updateEntities(file, assetParser, assetFilter, updatedEntities);
-			} else {
-				AssetEntity entity = entities.get(file);
-				if (entity != null) { // modified asset -> parse
-					if (file.lastModified() > timestamp) {
+	void updateEntities(Resource directory, final AssetParser assetParser, DirectoryStream.Filter<Path> assetFilter, Set<AssetEntity> updatedEntities) throws IOException, XMLStreamException {
+		try (DirectoryStream<Resource> directoryStream = directory.newResourceDirectoryStream(assetFilter)) {
+			for (Resource resource : directoryStream) {
+				if (resource.isDirectory()) {
+					updateEntities(resource, assetParser, assetFilter, updatedEntities);
+				} else {
+					AssetEntity entity = entities.get(resource);
+					if (entity != null) { // modified asset -> parse
+						if (resource.lastModified() > timestamp) {
+							if (LOGGER.isLoggable(Level.FINER)) {
+								LOGGER.finer("Asset has been modified: " + resource.getPath());
+							}
+							try {
+								entities.put(resource, entity = new AssetEntity(entity.albumId, assetParser.parse(resource), AssetEntity.State.Modified));
+							} catch (Exception e) {
+								LOGGER.log(Level.WARNING, "Could not parse asset: " + resource.getPath(), e);
+							}
+						}
+					} else { // unknown asset -> parse
 						if (LOGGER.isLoggable(Level.FINER)) {
-							LOGGER.finer("Asset has been modified: " + file.getAbsolutePath());
+							LOGGER.finer("Asset has been added: " + resource.getPath());
 						}
 						try {
-							entities.put(file, entity = new AssetEntity(entity.albumId, assetParser.parse(file), AssetEntity.State.Modified));
+							entities.put(resource, entity = new AssetEntity(null, assetParser.parse(resource), AssetEntity.State.Created));
 						} catch (Exception e) {
-							LOGGER.log(Level.WARNING, "Could not parse asset: " + file.getAbsolutePath(), e);
+							LOGGER.log(Level.WARNING, "Could not parse asset: " + resource.getPath(), e);
 						}
 					}
-				} else { // unknown asset -> parse
-					if (LOGGER.isLoggable(Level.FINER)) {
-						LOGGER.finer("Asset has been added: " + file.getAbsolutePath());
-					}
-					try {
-						entities.put(file, entity = new AssetEntity(null, assetParser.parse(file), AssetEntity.State.Created));
-					} catch (Exception e) {
-						LOGGER.log(Level.WARNING, "Could not parse asset: " + file.getAbsolutePath(), e);
-					}
-				}
-				if (entity != null) {
-					updatedEntities.add(entity);
-					if (LOGGER.isLoggable(Level.FINE) && updatedEntities.size() % 1000 == 0) {
-						LOGGER.fine(String.format("Progress: #assets = %5d", updatedEntities.size()));
+					if (entity != null) {
+						updatedEntities.add(entity);
+						if (LOGGER.isLoggable(Level.FINE) && updatedEntities.size() % 1000 == 0) {
+							LOGGER.fine(String.format("Progress: #assets = %5d", updatedEntities.size()));
+						}
 					}
 				}
 			}
 		}
 	}
-	
-	public void update(File directory, final AssetParser assetParser) throws IOException, XMLStreamException {
+
+	public void update(final Resource directory, final AssetParser assetParser) throws IOException, XMLStreamException {
 		long updateTimestamp = System.currentTimeMillis();
 
 		/*
 		 * parse directory
 		 */
 		Set<AssetEntity> updatedEntities = new HashSet<AssetEntity>();
-		updateEntities(directory.getAbsoluteFile(), assetParser, new FileFilter() {
-			public boolean accept(File file) {
-				return !file.getName().startsWith(".") && (file.isDirectory() || assetParser.isAssetFile(file));
+		updateEntities(directory, assetParser, new DirectoryStream.Filter<Path>() {
+			public boolean accept(Path path) {
+				try {
+					return !path.getFileName().toString().startsWith(".") && (assetParser.isAssetPath(path) || directory.getProvider().isDirectory(path));
+				} catch (IOException e) {
+					return false;
+				}
 			}
 		}, updatedEntities);
 		
@@ -352,7 +359,7 @@ public class AssetStore {
 			AssetEntity entity = iterator.next();
 			if (!updatedEntities.contains(entity)) {
 				if (LOGGER.isLoggable(Level.FINER)) {
-					LOGGER.finer("Asset has been deleted: " + entity.asset.getFile().getAbsolutePath());
+					LOGGER.finer("Asset has been deleted: " + entity.asset.getResource().getPath().toAbsolutePath());
 				}
 				if (entity.albumId != null) {
 					deletedAlbumIds.add(entity.albumId);
@@ -364,7 +371,7 @@ public class AssetStore {
 		timestamp = updateTimestamp;
 	}
 
-	private AssetEntity loadEntity(XMLStreamReader reader, AssetLocator assetLocator) throws XMLStreamException {
+	private AssetEntity loadEntity(XMLStreamReader reader, AssetLocator assetLocator) throws IOException, XMLStreamException {
 		reader.require(XMLStreamConstants.START_ELEMENT, null, "asset");
 		reader.nextTag();
 
@@ -442,9 +449,9 @@ public class AssetStore {
 			throw new XMLStreamException("Missing 'assetPath'");
 		}
 		
-		File file = assetLocator.getAssetFile(assetPath);
-		if (file != null) {
-			Asset asset = new Asset(file);
+		Resource resource = assetLocator.getAssetResource(assetPath);
+		if (resource != null) {
+			Asset asset = new Asset(resource);
 			asset.setAlbum(album);
 			asset.setAlbumArtist(albumArtist);
 			asset.setArtist(artist);
@@ -489,9 +496,9 @@ public class AssetStore {
 				case "asset":
 					AssetEntity entity = loadEntity(reader, assetLocator);
 					if (entity != null) {
-						entities.put(entity.asset.getFile(), entity);
+						entities.put(entity.asset.getResource(), entity);
 						if (LOGGER.isLoggable(Level.FINEST)) {
-							LOGGER.finest("Asset has been loaded: " + entity.asset.getFile().getAbsolutePath());
+							LOGGER.finest("Asset has been loaded: " + entity.asset.getResource().getPath().toAbsolutePath());
 						}
 					}
 					break;

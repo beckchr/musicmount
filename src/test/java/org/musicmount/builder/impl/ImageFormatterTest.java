@@ -26,6 +26,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.musicmount.builder.model.Library;
+import org.musicmount.io.Resource;
+import org.musicmount.io.ResourceProvider;
+import org.musicmount.io.file.FileResourceProvider;
 
 public class ImageFormatterTest {
     @Rule
@@ -33,17 +36,19 @@ public class ImageFormatterTest {
 
     @Test
 	public void test() throws Exception {
+		ResourceProvider resourceProvider = new FileResourceProvider();
+
 		File input = new File(getClass().getResource("/sample-album").toURI()); // has a square image
 		AssetStore assetStore = new AssetStore("test");
 		AssetParser assetParser = new SimpleAssetParser();
-		assetStore.update(input, assetParser);
+		assetStore.update(resourceProvider.newResource(input.toPath()), assetParser);
 		Library library = new LibraryParser().parse(assetStore.assets());
 		File output = outputFolder.getRoot();
-		ResourceLocator resourceLocator = new SimpleResourceLocator(output, false, false);
+		ResourceLocator resourceLocator = new SimpleResourceLocator(resourceProvider.newResource(output.toPath()), false, false);
 		ImageFormatter imageFormatter = new ImageFormatter(assetParser, false);
 		imageFormatter.formatImages(library, resourceLocator, library.getAlbums());
 		
-		BufferedImage originalImage = assetParser.extractArtwork(library.getAlbums().iterator().next().artworkAssetFile());
+		BufferedImage originalImage = assetParser.extractArtwork(library.getAlbums().iterator().next().artworkAssetResource());
 
 		/*
 		 * verify dimensions of written images
@@ -51,9 +56,9 @@ public class ImageFormatterTest {
 		for (ImageType imageType : ImageType.values()) {
 			double scaleFactor = imageType.getScaleFactor(originalImage.getWidth(), originalImage.getHeight());
 			String imagePath = resourceLocator.getAlbumImagePath(library.getAlbums().get(0), imageType);
-			File imageFile = resourceLocator.getFile(imagePath);
+			Resource imageFile = resourceLocator.getResource(imagePath);
 			Assert.assertTrue(imageFile.exists());
-			BufferedImage image = ImageIO.read(imageFile);
+			BufferedImage image = ImageIO.read(imageFile.getInputStream());
 			if (scaleFactor < 1.0) {
 				Assert.assertEquals(Math.round(originalImage.getWidth() * scaleFactor), image.getWidth());
 				Assert.assertEquals(Math.round(originalImage.getHeight() * scaleFactor), image.getHeight());

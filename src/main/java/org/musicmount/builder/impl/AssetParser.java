@@ -16,10 +16,12 @@
 package org.musicmount.builder.impl;
 
 import java.awt.image.BufferedImage;
-import java.io.File;
+import java.nio.file.Path;
+
+import org.musicmount.io.Resource;
 
 public interface AssetParser {
-	boolean isAssetFile(File file);
-	Asset parse(File file) throws Exception;
-	BufferedImage extractArtwork(File file) throws Exception;
+	boolean isAssetPath(Path path);
+	Asset parse(Resource resource) throws Exception;
+	BufferedImage extractArtwork(Resource resource) throws Exception;
 }

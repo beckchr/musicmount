@@ -8,15 +8,18 @@ to a web server.
 Build Site
 ----------
 
-Usage: java -jar musicmount-${project.version}.jar build [options] <music_folder> <mount_folder>
+Usage: java -jar musicmount-${project.version}.jar build [options] <musicFolder> <mountFolder>
 
-Generate MusicMount site from music in [<music_folder>] into <mount_folder>
+Generate MusicMount site from music in [<musicFolder>] into <mountFolder>
 
-         <music_folder>   input folder, default is <mount_folder>/<value of --music option>
-         <mount_folder>   output folder to contain the generated site
+         <musicFolder>   input folder, default is <mountFolder>/<value of --music option>
+         <mountFolder>   output folder to contain the generated site
+
+Folders may be local directory paths or smb|http|https URLs, e.g. smb://user:pass@host/path/
 
 Options:
        --music <path>     music path prefix, default is 'music'
+       --base <folder>    base folder, <musicFolder> and <mountFolder> are relative to this folder
        --retina           double image resolution
        --full             full parse, don't use track store
        --grouping         use grouping tag to group album tracks
@@ -30,12 +33,12 @@ Options:
 Test Site
 ---------
 
-Usage: java -jar musicmount-${project.version}.jar test [options] [<music_folder>] <mount_folder>
+Usage: java -jar musicmount-${project.version}.jar test [options] [<musicFolder>] <mountFolder>
 
-Launch MusicMount site in <mount_folder> with music from <music_folder>
+Launch MusicMount site in <mountFolder> with music from <musicFolder>
 
-         <music_folder>   input folder, default is <mount_folder>/<value of --music option>
-         <mount_folder>   output folder to contain the generated site
+         <musicFolder>   input folder, default is <mountFolder>/<value of --music option>
+         <mountFolder>   output folder to contain the generated site
 
 Options:
        --music <path>     music path prefix, default is 'music'

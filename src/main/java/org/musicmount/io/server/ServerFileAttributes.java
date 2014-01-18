@@ -13,13 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.musicmount.builder.impl;
+package org.musicmount.io.server;
 
-import java.io.IOException;
+import java.nio.file.attribute.BasicFileAttributes;
 
-import org.musicmount.io.Resource;
-
-public interface AssetLocator {
-	public String getAssetPath(Resource assetResource) throws IOException;
-	public Resource getAssetResource(String assetPath) throws IOException;
+public interface ServerFileAttributes extends BasicFileAttributes {
+	public String getPath();
 }

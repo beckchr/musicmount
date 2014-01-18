@@ -15,10 +15,11 @@
  */
 package org.musicmount.builder.model;
 
-import java.io.File;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+
+import org.musicmount.io.Resource;
 
 public class Album extends Playlist implements Titled {
 	private final String title;
@@ -59,10 +60,10 @@ public class Album extends Playlist implements Titled {
 		return getTracks().get(0).isCompilation();
 	}
 
-	public File artworkAssetFile() {
+	public Resource artworkAssetResource() {
 		for (Track track : getTracks()) {
 			if (track.isArtworkAvailable()) {
-				return track.getAssetFile();
+				return track.getResource();
 			}
 		}
 		return null;

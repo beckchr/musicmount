@@ -184,13 +184,13 @@ public class LibraryParser {
 
 		if (trackArtistName == null && albumArtistName != null) { // derive missing artist from album artist
 			if (LOGGER.isLoggable(Level.FINE)) {
-				LOGGER.fine("Will use album-artist for missing artist in file: " + asset.getFile().getAbsolutePath());
+				LOGGER.fine("Will use album-artist for missing artist in file: " + asset.getResource().getPath().toAbsolutePath());
 			}
 			trackArtistName = albumArtistName;
 		}
 
 		if (trackName == null || albumName == null && trackArtistName == null) { // unusable
-			LOGGER.info("Will skip poorly tagged asset file: " + asset.getFile().getAbsolutePath());
+			LOGGER.info("Will skip poorly tagged asset file: " + asset.getResource().getPath().toAbsolutePath());
 			return;
 		}
 		
@@ -229,7 +229,7 @@ public class LibraryParser {
 		 */
 		Track track = new Track(
 				trackName,
-				asset.getFile(),
+				asset.getResource(),
 				asset.isArtworkAvailable(),
 				asset.isCompilation(),
 				trimToNonEmptyStringOrNull(asset.getComposer()),

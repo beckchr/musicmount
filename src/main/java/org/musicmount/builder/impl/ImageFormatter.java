@@ -19,8 +19,8 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Transparency;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,6 +36,7 @@ import net.coobird.thumbnailator.Thumbnails;
 
 import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.Library;
+import org.musicmount.io.Resource;
 
 public class ImageFormatter {
 	static final Logger LOGGER = Logger.getLogger(ImageFormatter.class.getName());
@@ -48,7 +49,7 @@ public class ImageFormatter {
 		this.retina = retina;
 	}
 	
-	private void writeImage(BufferedImage image, ImageType type, File targetFile, boolean retina) throws IOException {
+	private void writeImage(BufferedImage image, ImageType type, Resource resource, boolean retina) throws IOException {
 		double scaleFactor = type.getScaleFactor(image.getWidth(), image.getHeight());
 		if (retina) {
 			scaleFactor = scaleFactor + scaleFactor;
@@ -57,8 +58,8 @@ public class ImageFormatter {
 		if (scaleFactor < 1.0) { // scale down only
 			scaledImage = Thumbnails.of(image).scale(scaleFactor).asBufferedImage();
 		}
-		try {
-	        ImageIO.write(scaledImage != null ? scaledImage : image, type.getFileType(), targetFile);
+		try (OutputStream output = resource.getOutputStream()) {
+			ImageIO.write(scaledImage != null ? scaledImage : image, type.getFileType(), output);
 		} finally {
 			if (scaledImage != null) {
 				scaledImage.flush();
@@ -66,63 +67,71 @@ public class ImageFormatter {
 		}
 	}
 
-	private void formatImages(BufferedImage image, Map<ImageType, File> targets) {
-		for (Map.Entry<ImageType, File> targetEntry : targets.entrySet()) {
+	private void formatImages(BufferedImage image, Map<ImageType, Resource> targets) {
+		for (Map.Entry<ImageType, Resource> targetEntry : targets.entrySet()) {
 			ImageType imageType = targetEntry.getKey();
-			File imageFile = targetEntry.getValue();
-			imageFile.getParentFile().mkdirs();
+			Resource imageResource = targetEntry.getValue();
 			try {
-				writeImage(image, imageType, imageFile, retina);
+				imageResource.getParent().mkdirs();
+				writeImage(image, imageType, imageResource, retina);
 			} catch (IOException e) {
-				LOGGER.warning("Could not write image file: " + imageFile.getAbsolutePath());
-				if (imageFile.exists()) {
-					imageFile.delete();
+				LOGGER.warning("Could not write image file: " + imageResource.getPath().toAbsolutePath());
+				try {
+					if (imageResource.exists()) {
+						imageResource.delete();
+					}
+				} catch (IOException e1) {
+					LOGGER.warning("Could not delete image file: " + imageResource.getPath().toAbsolutePath());
 				}
 			}
 		}
 	}
 
 	private void formatAlbumImages(Album album, ResourceLocator resourceLocator, boolean overwrite) {
-		File artworkAssetFile = album.artworkAssetFile();
-		if (artworkAssetFile != null) {
-			Map<ImageType, File> targets = new HashMap<ImageType, File>();
+		Resource artworkAssetResource = album.artworkAssetResource();
+		if (artworkAssetResource != null) {
+			Map<ImageType, Resource> targets = new HashMap<ImageType, Resource>();
 			for (ImageType type : ImageType.values()) {
 				String imagePath = resourceLocator.getAlbumImagePath(album, type);
 				if (imagePath != null) {
-					File file = resourceLocator.getFile(imagePath);
-					if (overwrite || !file.exists()) {
-						targets.put(type, file);
+					Resource resource = resourceLocator.getResource(imagePath);
+					try {
+						if (overwrite || !resource.exists()) {
+							targets.put(type, resource);
+						}
+					} catch (IOException e) {
+						LOGGER.warning("Could not write image file: " + resource.getPath().toAbsolutePath());
 					}
 				}
 			}
 			if (!targets.isEmpty()) {
 				if (LOGGER.isLoggable(Level.FINER)) {
-					LOGGER.finer("Formatting images from assset: " + artworkAssetFile);
+					LOGGER.finer("Formatting images from assset: " + artworkAssetResource);
 				}
-		    	BufferedImage image;
-		        try {
-		        	image = assetParser.extractArtwork(artworkAssetFile);
-		    		if (image.getTransparency() != Transparency.OPAQUE) {
-		    			BufferedImage tmpImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
-		    			Graphics2D graphics = tmpImage.createGraphics();
-		    			graphics.drawImage(image, 0, 0, Color.WHITE, null);
-		    			graphics.dispose();
-		    			image.flush();
-		    			image = tmpImage;
-		    		}
-		        } catch(Exception e) {
-		        	LOGGER.log(Level.WARNING, "Could not extract image from " + artworkAssetFile, e);
-		        	return;
-		        }
-		        formatImages(image, targets);
+				BufferedImage image;
+				try {
+					image = assetParser.extractArtwork(artworkAssetResource);
+					if (image.getTransparency() != Transparency.OPAQUE) {
+						BufferedImage tmpImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
+						Graphics2D graphics = tmpImage.createGraphics();
+						graphics.drawImage(image, 0, 0, Color.WHITE, null);
+						graphics.dispose();
+						image.flush();
+						image = tmpImage;
+					}
+				} catch (Exception e) {
+					LOGGER.log(Level.WARNING, "Could not extract image from " + artworkAssetResource, e);
+					return;
+				}
+				formatImages(image, targets);
 				image.flush();
 			}
 		}
 	}
 	
-	public void formatImages(Library library, final ResourceLocator resourceLocator, final Collection<Album> overwriteAlbums) {
+	public void formatImages(Library library, final ResourceLocator resourceLocator, final Collection<Album> changedAlbums) {
 		int numberOfAlbumsPerTask = 100;
-		int numberOfAlbums = library.getAlbums().size();
+		int numberOfAlbums = changedAlbums.size(); // expect to write only these...
 		int numberOfThreads = Math.min(1 + (numberOfAlbums - 1) / numberOfAlbumsPerTask, Runtime.getRuntime().availableProcessors());
 		if (numberOfThreads > 1) { // run on multiple threads
 			if (LOGGER.isLoggable(Level.FINE)) {
@@ -135,7 +144,7 @@ public class ImageFormatter {
 					@Override
 					public void run() {
 						for (Album album : albums) {
-							formatAlbumImages(album, resourceLocator, overwriteAlbums.contains(album));
+							formatAlbumImages(album, resourceLocator, changedAlbums.contains(album));
 						}
 						if (LOGGER.isLoggable(Level.FINE)) {
 							LOGGER.fine(String.format("Progress: #albums += %3d", albums.size()));
@@ -152,7 +161,7 @@ public class ImageFormatter {
 		} else { // run on current thread
 			int count = 0;
 			for (Album album : library.getAlbums()) {
-				formatAlbumImages(album, resourceLocator, overwriteAlbums.contains(album));
+				formatAlbumImages(album, resourceLocator, changedAlbums.contains(album));
 				if (++count % 100 == 0 && LOGGER.isLoggable(Level.FINE)) {
 					LOGGER.fine(String.format("Progress: #albums = %4d", count));
 				}

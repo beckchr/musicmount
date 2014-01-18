@@ -13,13 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.musicmount.builder.impl;
+package org.musicmount.io;
 
 import java.io.IOException;
+import java.nio.file.Path;
 
-import org.musicmount.io.Resource;
+public interface ResourceProvider {
+	
+	/**
+	 * @param path
+	 * @return new resource
+	 */
+	public Resource newResource(Path path);
 
-public interface AssetLocator {
-	public String getAssetPath(Resource assetResource) throws IOException;
-	public Resource getAssetResource(String assetPath) throws IOException;
+	/**
+	 * @param path
+	 * @return new resource
+	 */
+	public Resource newResource(String first, String... more);
+
+	/**
+	 * @return absolute and normalized base directory
+	 */
+	public Resource getBaseDirectory();
+	
+	/**
+	 * @param path
+	 * @return <true> if directory
+	 * @throws IOException
+	 */
+	public boolean isDirectory(Path path) throws IOException;
 }

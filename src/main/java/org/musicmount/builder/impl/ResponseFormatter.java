@@ -243,7 +243,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 				writeStringProperty(writer, "title", item.getTitle() == null ? getDefaultArtistTitle(artistType) : item.getTitle());
 				Album representativeAlbum = representativeAlbums != null ? representativeAlbums.get(item) : null;
 				String imagePath = representativeAlbum != null ? resourceLocator.getAlbumImagePath(representativeAlbum, imageType) : null;
-				if (imagePath != null && resourceLocator.getFile(imagePath).exists()) {
+				if (imagePath != null && resourceLocator.getResource(imagePath).exists()) {
 					writeStringProperty(writer, "imagePath", imagePath);
 				}
 				writeStringProperty(writer, "albumCollectionPath", getDocumentPath(resourceLocator.getAlbumCollectionPath(item)));
@@ -273,7 +273,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 				writer.writeStartElement("item");
 				writeStringProperty(writer, "title", item.getTitle() == null ? getDefaultAlbumTitle() : item.getTitle());
 				String imagePath = resourceLocator.getAlbumImagePath(item, imageType);
-				if (imagePath != null && resourceLocator.getFile(imagePath).exists()) {
+				if (imagePath != null && resourceLocator.getResource(imagePath).exists()) {
 					writeStringProperty(writer, "imagePath", imagePath);
 				}
 				if (writeCompilationInfo && item.isCompilation() && item.getArtist().getTitle() != null) {
@@ -442,7 +442,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 			writeNumberProperty(writer, "year", year);					
 		}
 		String albumImagePath = resourceLocator.getAlbumImagePath(album, ImageType.Artwork);
-		if (albumImagePath != null && resourceLocator.getFile(albumImagePath).exists()) {
+		if (albumImagePath != null && resourceLocator.getResource(albumImagePath).exists()) {
 			writeStringProperty(writer, "imagePath", albumImagePath);
 		}
 
@@ -450,7 +450,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		 * format tracks
 		 */
 		String trackImagePath = resourceLocator.getAlbumImagePath(album, ImageType.Thumbnail);
-		if (trackImagePath != null && !resourceLocator.getFile(trackImagePath).exists()) {
+		if (trackImagePath != null && !resourceLocator.getResource(trackImagePath).exists()) {
 			trackImagePath = null;
 		}
 		writer.writeStartElement("trackCollection");
@@ -503,7 +503,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 				if (item.getDuration() != null) {
 					writeNumberProperty(writer, "duration", item.getDuration());
 				}
-				String assetPath = assetLocator.getAssetPath(item.getAssetFile());
+				String assetPath = assetLocator.getAssetPath(item.getResource());
 				if (assetPath != null) {
 					writeStringProperty(writer, "assetPath", assetPath);
 				}

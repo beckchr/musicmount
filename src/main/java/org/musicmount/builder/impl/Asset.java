@@ -15,7 +15,7 @@
  */
 package org.musicmount.builder.impl;
 
-import java.io.File;
+import org.musicmount.io.Resource;
 
 public class Asset {
 	private String name;
@@ -32,14 +32,14 @@ public class Asset {
 	private boolean compilation;
 	private boolean artworkAvailable;
 
-	private final File file;
+	private final Resource resource;
 
-	public Asset(File file) {
-		this.file = file;
+	public Asset(Resource resource) {
+		this.resource = resource;
 	}
 	
-	public File getFile() {
-		return file;
+	public Resource getResource() {
+		return resource;
 	}
 	
 	public String getName() {
@@ -135,6 +135,6 @@ public class Asset {
 	
 	@Override
 	public String toString() {
-		return "Asset(" + getFile() + ")";
+		return "Asset(" + getResource() + ")";
 	}
 }

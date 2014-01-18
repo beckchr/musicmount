@@ -54,6 +54,38 @@
 			<artifactId>tomcat-embed-logging-juli</artifactId>
 			<version>7.0.42</version>
 		</dependency>
+ 		<dependency>
+			<groupId>com.github.lookfirst</groupId>
+			<artifactId>sardine</artifactId>
+			<version>5.0.1</version>
+			<exclusions>
+				<exclusion>
+					<groupId>commons-logging</groupId>
+					<artifactId>commons-logging</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>jcifs</groupId>
+			<artifactId>jcifs</artifactId>
+			<version>1.3.17</version>
+			<exclusions>
+				<exclusion>
+					<groupId>javax.servlet</groupId>
+					<artifactId>servlet-api</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-nop</artifactId>
+			<version>1.7.5</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>jcl-over-slf4j</artifactId>
+			<version>1.7.5</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.eclipse.jetty.aggregate</groupId>
@@ -206,21 +238,31 @@
 					<localCheckout>true</localCheckout>
 				</configuration>
 			</plugin>
-		</plugins>
-
+<!-- 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.10</version>
+				<configuration>
+					<systemPropertyVariables>
+						<file.encoding>UTF-8</file.encoding>
+					</systemPropertyVariables>
+				</configuration>
+			</plugin>
+ -->
+ 		</plugins>
 		<extensions>
 			<extension>
 				<groupId>org.apache.maven.wagon</groupId>
 				<artifactId>wagon-ssh-external</artifactId>
 				<version>2.4</version>
 			</extension>
-    	</extensions>
+		</extensions>
 	</build>
 
 	<distributionManagement>
-       	<repository>
-            <id>diskstation-deploy</id>
-            <url>scpexe://diskstation/var/services/homes/maven/repository</url>
-        </repository>
-    </distributionManagement>
+		<repository>
+			<id>diskstation-deploy</id>
+			<url>scpexe://diskstation/var/services/homes/maven/repository</url>
+		</repository>
+	</distributionManagement>
 </project>

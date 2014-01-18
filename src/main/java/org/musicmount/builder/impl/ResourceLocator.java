@@ -15,14 +15,13 @@
  */
 package org.musicmount.builder.impl;
 
-import java.io.File;
-
 import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.Artist;
 import org.musicmount.builder.model.ArtistType;
+import org.musicmount.io.Resource;
 
 public interface ResourceLocator {
-	public File getFile(String path);
+	public Resource getResource(String path);
 	
 	public String getServiceIndexPath();	
 	public String getArtistIndexPath(ArtistType artistType);	

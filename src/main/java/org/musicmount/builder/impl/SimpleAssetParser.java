@@ -16,9 +16,11 @@
 package org.musicmount.builder.impl;
 
 import java.awt.image.BufferedImage;
-import java.io.File;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+
+import org.musicmount.io.Resource;
 
 /**
  * Delegating asset parser. 
@@ -37,9 +39,9 @@ public class SimpleAssetParser implements AssetParser {
 		this.delegates = Arrays.asList(delegates);
 	}
 	
-	protected AssetParser getDelegate(File file) {
+	protected AssetParser getDelegate(Path path) {
 		for (AssetParser delegate : delegates) {
-			if (delegate.isAssetFile(file)) {
+			if (delegate.isAssetPath(path)) {
 				return delegate;
 			}
 		}
@@ -47,22 +49,22 @@ public class SimpleAssetParser implements AssetParser {
 	}
 	
 	@Override
-	public boolean isAssetFile(File file) {
-		return getDelegate(file) != null;
+	public boolean isAssetPath(Path path) {
+		return getDelegate(path) != null;
 	}
 
-	public Asset parse(File file) throws Exception {
-		AssetParser delegate = getDelegate(file);
+	public Asset parse(Resource resource) throws Exception {
+		AssetParser delegate = getDelegate(resource.getPath());
 		if (delegate != null) {
-			return delegate.parse(file);
+			return delegate.parse(resource);
 		} else {
-			throw new IllegalArgumentException("Not an asset: " + file);
+			throw new IllegalArgumentException("Not an asset: " + resource);
 		}
 	}
 	
 	@Override
-	public BufferedImage extractArtwork(File file) throws Exception {
-		AssetParser delegate = getDelegate(file);
+	public BufferedImage extractArtwork(Resource file) throws Exception {
+		AssetParser delegate = getDelegate(file.getPath());
 		if (delegate != null) {
 			return delegate.extractArtwork(file);
 		} else {
