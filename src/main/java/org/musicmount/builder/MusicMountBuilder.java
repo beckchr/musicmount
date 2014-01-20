@@ -401,36 +401,28 @@ public class MusicMountBuilder {
 			exitWithError(command, "bad arguments");
 		}
 
-		boolean mountFolderExists = false;
 		try {
-			mountFolderExists = mountFolder.exists();
+			if (mountFolder.exists()) {
+				if (!mountFolder.isDirectory()) {
+					exitWithError(command, "mount folder is not a directory: " + mountFolder);
+				}
+			} else {
+				exitWithError(command, "mount folder doesn't exist: " + mountFolder);
+			}
 		} catch (IOException e) {
 			exitWithError(command, "cannot connect to mount folder \"" + mountFolder.getPath().toUri() + "\": " + e.getMessage());
 		}
-		if (mountFolderExists) {
-			if (!mountFolder.isDirectory()) {
-				exitWithError(command, "mount folder is not a directory: " + mountFolder);
-			}
-		} else {
-			try {
-				mountFolder.mkdirs();
-			} catch (IOException e) {
-				exitWithError(command, "cannot create mount folder " + mountFolder);
-			}
-		}
 
-		boolean musicFolderExists = false;
 		try {
-			musicFolderExists = musicFolder.exists();
+			if (musicFolder.exists()) {
+				if (!musicFolder.isDirectory()) {
+					exitWithError(command, "music folder is not a directory: " + musicFolder);
+				}
+			} else {			
+				exitWithError(command, "music folder doesn't exist: " + musicFolder);
+			}
 		} catch (IOException e) {
 			exitWithError(command, "cannot connect to music folder \"" + musicFolder.getPath().toUri() + "\": " + e.getMessage());
-		}
-		if (musicFolderExists) {
-			if (!musicFolder.isDirectory()) {
-				exitWithError(command, "music folder is not a directory: " + musicFolder);
-			}
-		} else {			
-			exitWithError(command, "music folder doesn't exist: " + musicFolder);
 		}
 
 		/**
