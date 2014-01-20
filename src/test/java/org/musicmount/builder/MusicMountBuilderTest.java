@@ -16,7 +16,6 @@
 package org.musicmount.builder;
 
 import java.io.File;
-import java.nio.file.Files;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,16 +42,10 @@ public class MusicMountBuilderTest {
 
 	@Test
 	public void testMain() throws Exception {
-		File input = new File(getClass().getResource("/sample-library").toURI());
+		String input = new File(getClass().getResource("/sample-library").toURI()).getAbsolutePath();
 		String output = outputFolder.getRoot().getAbsolutePath();
-		MusicMountBuilder.main(new String[]{ "--pretty", "--full", input.getAbsolutePath(), output });
-		MusicMountBuilder.main(new String[]{ "--pretty", input.getAbsolutePath(), output }); // use asset store
-
-		Files.createSymbolicLink(new File(output, "myMusic").toPath(), input.toPath());
-		MusicMountBuilder.main(new String[]{ "--music", "myMusic", output }); // again, with existing link
-
-		Files.createSymbolicLink(new File(output, "music").toPath(), input.toPath());
-		MusicMountBuilder.main(new String[]{ output }); // again, with existing (default) link
+		MusicMountBuilder.main(new String[]{ "--pretty", "--full", input, output });
+		MusicMountBuilder.main(new String[]{ "--pretty", input, output }); // use asset store
 	}
 
 	@Test
