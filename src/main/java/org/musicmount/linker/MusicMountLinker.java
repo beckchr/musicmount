@@ -34,11 +34,13 @@ public class MusicMountLinker {
 		System.err.println();
 		System.err.println("Link MusicMount site in <mount_folder> to music from <music_folder>");
 		System.err.println();
-		System.err.println("         <music_folder>   target folder (containing the music library)");
-		System.err.println("         <mount_folder>   source folder (to contain the generated site)");
+		System.err.println("         <music_folder>   input folder (containing the music library)");
+		System.err.println("         <mount_folder>   output folder (to contain the generated site)");
+		System.err.println();
+		System.err.println("Folders must be local.");
 		System.err.println();
 		System.err.println("Options:");
-		System.err.println("       --music <path>     music link name, default is 'music'");
+		System.err.println("       --music <name>     music link name, default is 'music'");
 		System.err.println("       --relativize       relativize path from <mount_folder> to <music_folder>");
 		System.err.println("       --force            overwrite link if it already exists");
 		System.err.println("       --verbose          more detailed console output");

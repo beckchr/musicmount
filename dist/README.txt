@@ -10,16 +10,17 @@ Build Site
 
 Usage: java -jar musicmount-${project.version}.jar build [options] <musicFolder> <mountFolder>
 
-Generate MusicMount site from music in [<musicFolder>] into <mountFolder>
+Generate MusicMount site from music in <musicFolder> into <mountFolder>
 
-         <musicFolder>   input folder, default is <mountFolder>/<value of --music option>
-         <mountFolder>   output folder to contain the generated site
+         <musicFolder>   input folder (containing the music library)
+         <mountFolder>   output folder (to contain the generated site)
 
 Folders may be local directory paths or smb|http|https URLs, e.g. smb://user:pass@host/path/
 
 Options:
        --music <path>     music path prefix, default is 'music'
        --base <folder>    base folder, <musicFolder> and <mountFolder> are relative to this folder
+                          <musicFolder> if the --base <folder> option is set, 'music' otherwise
        --retina           double image resolution
        --full             full parse, don't use track store
        --grouping         use grouping tag to group album tracks
@@ -37,12 +38,14 @@ Usage: java -jar musicmount-${project.version}.jar test [options] [<musicFolder>
 
 Launch MusicMount site in <mountFolder> with music from <musicFolder>
 
-         <musicFolder>   input folder, default is <mountFolder>/<value of --music option>
-         <mountFolder>   output folder to contain the generated site
+         <musicFolder>   input folder (containing the music library)
+         <mountFolder>   output folder (to contain the generated site)
+
+Folders must be local.
 
 Options:
-       --music <path>     music path prefix, default is 'music'
-       --port <port>      launch HTTP server on specified port (default 8080)
-       --user <user>      login user id
-       --password <pass>  login password
-       --verbose          more detailed console output
+       --music <path>    music path prefix, default is 'music'
+       --port <port>     launch HTTP server on specified port (default 8080)
+       --user <user>     login user id
+       --password <pass> login password
+       --verbose         more detailed console output

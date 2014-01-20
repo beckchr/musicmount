@@ -114,12 +114,14 @@ public class MusicMountTestServer {
 		System.err.println();
 		System.err.println("*** " + (error == null ? "internal error" : error));
 		System.err.println();
-		System.err.println(String.format("Usage: %s [options] [<music_folder>] <mount_folder>", command));
+		System.err.println(String.format("Usage: %s [options] <music_folder> <mount_folder>", command));
 		System.err.println();
 		System.err.println("Launch MusicMount site in <mount_folder> with music from <music_folder>");
 		System.err.println();
-		System.err.println("         <music_folder>   input folder, default is <mount_folder>/<value of --music option>");
-		System.err.println("         <mount_folder>   output folder to contain the generated site");
+		System.err.println("         <music_folder>   input folder (containing the music library)");
+		System.err.println("         <mount_folder>   output folder (to contain the generated site)");
+		System.err.println();
+		System.err.println("Folders must be local.");
 		System.err.println();
 		System.err.println("Options:");
 		System.err.println("       --music <path>     music path prefix, default is 'music'");
@@ -333,11 +335,8 @@ public class MusicMountTestServer {
 		File mountFolder = null;
 		switch (args.length - optionsLength) {
 		case 0:
-			exitWithError(command, "missing arguments");
-			break;
 		case 1:
-			mountFolder = new File(args[optionsLength]);
-			musicFolder = new File(mountFolder, optionMusic);
+			exitWithError(command, "missing arguments");
 			break;
 		case 2:
 			musicFolder = new File(args[optionsLength]);

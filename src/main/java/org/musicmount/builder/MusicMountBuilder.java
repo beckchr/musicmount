@@ -236,18 +236,19 @@ public class MusicMountBuilder {
 		System.err.println();
 		System.err.println("*** " + (error == null ? "internal error" : error));
 		System.err.println();
-		System.err.println(String.format("Usage: %s [options] [<musicFolder>] <mountFolder>", command));
+		System.err.println(String.format("Usage: %s [options] <musicFolder> <mountFolder>", command));
 		System.err.println();
 		System.err.println("Generate MusicMount site from music in <musicFolder> into <mountFolder>");
 		System.err.println();
-		System.err.println("         <music_folder>   input folder, default is <mountFolder>/<value of --music option>");
-		System.err.println("         <mount_folder>   output folder to contain the generated site");
+		System.err.println("         <music_folder>   input folder (containing the music library)");
+		System.err.println("         <mount_folder>   output folder (to contain the generated site)");
 		System.err.println();
 		System.err.println("Folders may be local directory paths or smb|http|https URLs, e.g. smb://user:pass@host/path/");
 		System.err.println();
 		System.err.println("Options:");
-		System.err.println("       --music <path>     music path prefix, default is 'music'");
 		System.err.println("       --base <folder>    base folder, <musicFolder> and <mountFolder> are relative to this folder");
+		System.err.println("       --music <path>     music path prefix, default is relative path from <mountFolder> to");
+		System.err.println("                          <musicFolder> if the --base <folder> option is set, 'music' otherwise");
 		System.err.println("       --retina           double image resolution");
 		System.err.println("       --full             full parse, don't use asset store");
 		System.err.println("       --grouping         use grouping tag to group album tracks");
@@ -269,7 +270,7 @@ public class MusicMountBuilder {
 	 * @throws Exception
 	 */
 	public static void execute(String command, String[] args) throws Exception {
-		String optionMusic = "music";
+		String optionMusic = null;
 		String optionBase = null;
 		boolean optionRetina = false;
 		boolean optionPretty = false;
@@ -363,15 +364,19 @@ public class MusicMountBuilder {
 		
 		switch (args.length - optionsLength) {
 		case 0:
-			exitWithError(command, "missing arguments");
-			break;
 		case 1:
-			mountFolder = getResource(optionBase, args[optionsLength]);
-			musicFolder = getResource(mountFolder.getPath().toUri().toString(), optionMusic);
+			exitWithError(command, "missing arguments");
 			break;
 		case 2:
 			musicFolder = getResource(optionBase, args[optionsLength]);
 			mountFolder = getResource(optionBase, args[optionsLength + 1]);
+			if (optionMusic == null) {
+				if (optionBase != null) {
+					optionMusic = mountFolder.getPath().relativize(musicFolder.getPath()).toString();
+				} else {
+					optionMusic = "music";
+				}
+			}
 			break;
 		default:
 			exitWithError(command, "bad arguments");
