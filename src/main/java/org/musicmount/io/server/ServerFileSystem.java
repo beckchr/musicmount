@@ -70,7 +70,7 @@ public class ServerFileSystem extends FileSystem {
 	}
 	
 	public URI getServerUri(ServerPath path) throws URISyntaxException {
-		return new URI(scheme, userInfo, host, port, path.toAbsolutePath().normalize().toString(), null, null);
+		return new URI(scheme, null, host, port, path.toAbsolutePath().normalize().toString(), null, null);
 	}
 	
 	public ServerPath getBaseDirectory() {

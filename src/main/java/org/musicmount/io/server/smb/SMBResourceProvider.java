@@ -50,7 +50,7 @@ public class SMBResourceProvider extends ServerResourceProvider {
 	}
 	
 	SmbFile getFile(ServerPath path) throws IOException {
-		return new SmbFile(String.format("smb://%s/%s", host, path.toAbsolutePath().normalize()), auth);
+		return new SmbFile(String.format("smb://%s/%s", host, path.toAbsolutePath().normalize()), auth); // UNC path
 	}
 
 	@Override

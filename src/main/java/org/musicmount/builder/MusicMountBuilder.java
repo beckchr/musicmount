@@ -161,6 +161,25 @@ public class MusicMountBuilder {
 		}
 	}
 
+	private static Map<String, String> userProvidedPasswords = new HashMap<>();
+	
+	static URI getServerURI(URI uri) throws URISyntaxException {
+		if (uri.getUserInfo() != null && uri.getUserInfo().indexOf(":") < 0) {
+			String password;
+			if (userProvidedPasswords.containsKey(uri.getAuthority())) {
+				password = userProvidedPasswords.get(uri.getAuthority());
+			} else {
+				password = String.valueOf(System.console().readPassword("%s's password:", uri.getAuthority()));
+				userProvidedPasswords.put(uri.getAuthority(), password);
+			}
+			if (password != null) {
+				uri = new URI(uri.getScheme(), uri.getUserInfo() + ":" + password, uri.getHost(), uri.getPort(), uri.getPath(), null, null);
+			}
+		}
+		return uri;
+	}
+	
+
 	static ResourceProvider getResourceProvider(String string) throws IOException, URISyntaxException {
 		String uriString = string.trim();
 
@@ -186,9 +205,9 @@ public class MusicMountBuilder {
 				return new FileResourceProvider(Paths.get(uri).toString());
 			case "http":
 			case "https":
-				return new DAVResourceProvider(uri);
+				return new DAVResourceProvider(getServerURI(uri));
 			case "smb":
-				return new SMBResourceProvider(uri);
+				return new SMBResourceProvider(getServerURI(uri));
 			default:
 				throw new IOException("unsupported scheme: " + uri.getScheme());
 			}
