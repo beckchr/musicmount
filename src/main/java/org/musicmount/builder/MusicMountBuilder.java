@@ -100,8 +100,8 @@ public class MusicMountBuilder {
 				representativeAlbums.put(artist, formatter.formatAlbumCollection(artist, output, resourceLocator));
 			}
 		}
-		if (LOGGER.isLoggable(Level.FINEST)) {
-			LOGGER.finest("Generating album artist index");
+		if (LOGGER.isLoggable(Level.FINER)) {
+			LOGGER.finer("Generating album artist index");
 		}
 		try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getArtistIndexPath(ArtistType.AlbumArtist)))) {
 			formatter.formatArtistIndex(library.getAlbumArtists().values(), ArtistType.AlbumArtist, output, resourceLocator, representativeAlbums);
@@ -122,8 +122,8 @@ public class MusicMountBuilder {
 				representativeAlbums.put(artist, formatter.formatAlbumCollection(artist, output, resourceLocator));
 			}
 		}
-		if (LOGGER.isLoggable(Level.FINEST)) {
-			LOGGER.finest("Generating artist index");
+		if (LOGGER.isLoggable(Level.FINER)) {
+			LOGGER.finer("Generating artist index");
 		}
 		try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getArtistIndexPath(ArtistType.TrackArtist)))) {
 			formatter.formatArtistIndex(library.getTrackArtists().values(), ArtistType.TrackArtist, output, resourceLocator, representativeAlbums);
@@ -143,8 +143,8 @@ public class MusicMountBuilder {
 				formatter.formatAlbum(album, output, resourceLocator, assetLocator);
 			}
 		}
-		if (LOGGER.isLoggable(Level.FINEST)) {
-			LOGGER.finest("Generating album index");
+		if (LOGGER.isLoggable(Level.FINER)) {
+			LOGGER.finer("Generating album index");
 		}
 		try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getAlbumIndexPath()))) {
 			formatter.formatAlbumIndex(library.getAlbums(), output, resourceLocator);
