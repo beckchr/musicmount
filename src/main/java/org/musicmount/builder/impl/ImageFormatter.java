@@ -21,8 +21,10 @@ import java.awt.Transparency;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -87,51 +89,64 @@ public class ImageFormatter {
 		}
 	}
 
-	private void formatAlbumImages(Album album, ResourceLocator resourceLocator, boolean overwrite) {
-		Resource artworkAssetResource = album.artworkAssetResource();
-		if (artworkAssetResource != null) {
-			Map<ImageType, Resource> targets = new HashMap<ImageType, Resource>();
-			for (ImageType type : ImageType.values()) {
-				String imagePath = resourceLocator.getAlbumImagePath(album, type);
-				if (imagePath != null) {
-					Resource resource = resourceLocator.getResource(imagePath);
-					try {
-						if (overwrite || !resource.exists()) {
-							targets.put(type, resource);
-						}
-					} catch (IOException e) {
-						LOGGER.warning("Could not write image file: " + resource.getPath().toAbsolutePath());
-					}
-				}
+	private void formatImages(Resource source, Map<ImageType, Resource> targets) {
+		if (!targets.isEmpty()) {
+			if (LOGGER.isLoggable(Level.FINER)) {
+				LOGGER.finer("Formatting images from: " + source);
 			}
-			if (!targets.isEmpty()) {
-				if (LOGGER.isLoggable(Level.FINER)) {
-					LOGGER.finer("Formatting images from assset: " + artworkAssetResource);
+			BufferedImage image;
+			try {
+				image = assetParser.extractArtwork(source);
+				if (image.getTransparency() != Transparency.OPAQUE) {
+					BufferedImage tmpImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
+					Graphics2D graphics = tmpImage.createGraphics();
+					graphics.drawImage(image, 0, 0, Color.WHITE, null);
+					graphics.dispose();
+					image.flush();
+					image = tmpImage;
 				}
-				BufferedImage image;
-				try {
-					image = assetParser.extractArtwork(artworkAssetResource);
-					if (image.getTransparency() != Transparency.OPAQUE) {
-						BufferedImage tmpImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
-						Graphics2D graphics = tmpImage.createGraphics();
-						graphics.drawImage(image, 0, 0, Color.WHITE, null);
-						graphics.dispose();
-						image.flush();
-						image = tmpImage;
-					}
-				} catch (Exception e) {
-					LOGGER.log(Level.WARNING, "Could not extract image from " + artworkAssetResource, e);
-					return;
-				}
-				formatImages(image, targets);
-				image.flush();
+			} catch (Exception e) {
+				LOGGER.log(Level.WARNING, "Could not extract image from: " + source, e);
+				return;
 			}
+			formatImages(image, targets);
+			image.flush();
 		}
 	}
 	
-	public void formatImages(Library library, final ResourceLocator resourceLocator, final Collection<Album> changedAlbums) {
+	private Map<Album, Map<ImageType, Resource>> collectAlbumTargets(Library library, final ResourceLocator resourceLocator, Collection<Album> changedAlbums) {
+		Map<Album, Map<ImageType, Resource>> result = new HashMap<>();
+		for (Album album : library.getAlbums()) {
+			Resource artworkAssetResource = album.artworkAssetResource();
+			if (artworkAssetResource != null) {
+				Map<ImageType, Resource> targets = new HashMap<ImageType, Resource>();
+				for (ImageType type : ImageType.values()) {
+					String imagePath = resourceLocator.getAlbumImagePath(album, type);
+					if (imagePath != null) {
+						Resource resource = resourceLocator.getResource(imagePath);
+						try {
+							if (changedAlbums.contains(album) || !resource.exists()) {
+								targets.put(type, resource);
+							}
+						} catch (IOException e) {
+							LOGGER.warning("Could not write image file: " + resource.getPath().toAbsolutePath());
+						}
+					}
+				}
+				if (!targets.isEmpty()) {
+					result.put(album, targets);
+				}
+			}
+		}
+		return result;
+	}
+	
+	public void formatImages(Library library, ResourceLocator resourceLocator, Collection<Album> changedAlbums) {
+		final Map<Album, Map<ImageType, Resource>> albumTargets = collectAlbumTargets(library, resourceLocator, changedAlbums);
+		List<Album> albums = new ArrayList<>(albumTargets.keySet());
+
 		int numberOfAlbumsPerTask = 100;
-		int numberOfAlbums = changedAlbums.size(); // expect to write only these...
+		int numberOfAlbums = albums.size();
 		int numberOfThreads = Math.min(1 + (numberOfAlbums - 1) / numberOfAlbumsPerTask, Runtime.getRuntime().availableProcessors());
 		if (numberOfThreads > 1) { // run on multiple threads
 			if (LOGGER.isLoggable(Level.FINE)) {
@@ -139,15 +154,15 @@ public class ImageFormatter {
 			}
 			ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
 			for (int start = 0; start < numberOfAlbums; start += numberOfAlbumsPerTask) {
-				final Collection<Album> albums = library.getAlbums().subList(start, Math.min(numberOfAlbums, start + numberOfAlbumsPerTask));
+				final Collection<Album> albumsSlice = albums.subList(start, Math.min(numberOfAlbums, start + numberOfAlbumsPerTask));
 				executor.execute(new Runnable() {
 					@Override
 					public void run() {
-						for (Album album : albums) {
-							formatAlbumImages(album, resourceLocator, changedAlbums.contains(album));
+						for (Album album : albumsSlice) {
+							formatImages(album.artworkAssetResource(), albumTargets.get(album));
 						}
 						if (LOGGER.isLoggable(Level.FINE)) {
-							LOGGER.fine(String.format("Progress: #albums += %3d", albums.size()));
+							LOGGER.fine(String.format("Progress: #albums += %3d", albumsSlice.size()));
 						}
 					}
 				});
@@ -160,8 +175,8 @@ public class ImageFormatter {
 			}
 		} else { // run on current thread
 			int count = 0;
-			for (Album album : library.getAlbums()) {
-				formatAlbumImages(album, resourceLocator, changedAlbums.contains(album));
+			for (Album album : albums) {
+				formatImages(album.artworkAssetResource(), albumTargets.get(album));
 				if (++count % 100 == 0 && LOGGER.isLoggable(Level.FINE)) {
 					LOGGER.fine(String.format("Progress: #albums = %4d", count));
 				}
