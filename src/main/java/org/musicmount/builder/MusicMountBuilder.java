@@ -201,15 +201,15 @@ public class MusicMountBuilder {
 		URI uri = new URI(uriString.replace(" ", "%20")); // TODO URI encoding
 		if (uri.isAbsolute()) {
 			switch (uri.getScheme()) {
-			case "file":
-				return new FileResourceProvider(Paths.get(uri).toString());
 			case "http":
 			case "https":
 				return new DAVResourceProvider(getServerURI(uri));
 			case "smb":
 				return new SMBResourceProvider(getServerURI(uri));
 			default:
-				throw new IOException("unsupported scheme: " + uri.getScheme());
+				if (uri.getScheme().length() > 1) { // beware windows drive letters, e.g. C:\foo
+					return new FileResourceProvider(Paths.get(uri).toString());
+				}
 			}
 		}
 
