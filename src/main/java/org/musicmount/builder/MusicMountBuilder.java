@@ -88,8 +88,8 @@ public class MusicMountBuilder {
 		/*
 		 * album artists
 		 */
-		if (LOGGER.isLoggable(Level.FINER)) {
-			LOGGER.finer("Generating album artists...");
+		if (LOGGER.isLoggable(Level.FINE)) {
+			LOGGER.fine(String.format("%4d album artists...", library.getAlbumArtists().size()));
 		}
 		Map<Artist, Album> representativeAlbums = new HashMap<Artist, Album>();
 		for (Artist artist : library.getAlbumArtists().values()) {
@@ -110,8 +110,8 @@ public class MusicMountBuilder {
 		/*
 		 * artists
 		 */
-		if (LOGGER.isLoggable(Level.FINER)) {
-			LOGGER.finer("Generating artists...");
+		if (LOGGER.isLoggable(Level.FINE)) {
+			LOGGER.fine(String.format("%4d artists...", library.getTrackArtists().size()));
 		}
 		representativeAlbums.clear();
 		for (Artist artist : library.getTrackArtists().values()) {
@@ -132,8 +132,8 @@ public class MusicMountBuilder {
 		/*
 		 * albums
 		 */
-		if (LOGGER.isLoggable(Level.FINER)) {
-			LOGGER.finer("Generating albums...");
+		if (LOGGER.isLoggable(Level.FINE)) {
+			LOGGER.fine(String.format("%4d albums...", library.getAlbums().size()));
 		}
 		for (Album album : library.getAlbums()) {
 			if (LOGGER.isLoggable(Level.FINEST)) {
@@ -502,7 +502,7 @@ public class MusicMountBuilder {
 			assetStoreFile.delete();
 		}
 
-		LOGGER.info(String.format("Done (%d albums).", library.getAlbums().size()));
+		LOGGER.info("Done.");
 	}
 	
 	private static InputStream createInputStream(Resource file) throws IOException {
