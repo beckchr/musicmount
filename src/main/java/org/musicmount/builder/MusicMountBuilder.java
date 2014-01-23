@@ -165,11 +165,14 @@ public class MusicMountBuilder {
 	
 	static URI getServerURI(URI uri) throws URISyntaxException {
 		if (uri.getUserInfo() != null && uri.getUserInfo().indexOf(":") < 0) {
-			String password;
+			String password = null;
 			if (userProvidedPasswords.containsKey(uri.getAuthority())) {
 				password = userProvidedPasswords.get(uri.getAuthority());
 			} else {
-				password = String.valueOf(System.console().readPassword("%s's password:", uri.getAuthority()));
+				char[] passwordChars = System.console().readPassword("%s's password:", uri.getAuthority());
+				if (passwordChars != null && passwordChars.length > 0) {
+					password = String.valueOf(passwordChars);
+				}
 				userProvidedPasswords.put(uri.getAuthority(), password);
 			}
 			if (password != null) {
@@ -186,7 +189,9 @@ public class MusicMountBuilder {
 		/*
 		 * convert file separators to URI slashes
 		 */
-		uriString.replace(FileSystems.getDefault().getSeparator(), "/");
+		uriString = uriString.replace(FileSystems.getDefault().getSeparator(), "/");
+
+		uriString = uriString.replace(" ", "%20"); // TODO URI encoding
 
 		/*
 		 * make sure base ends with '/'and is absolute
@@ -194,22 +199,22 @@ public class MusicMountBuilder {
 		if (!uriString.endsWith("/")) {
 			uriString += "/";
 		}
-
+		
 		/*
 		 * create URI and switch by scheme...
 		 */
-		URI uri = new URI(uriString.replace(" ", "%20")); // TODO URI encoding
-		if (uri.isAbsolute()) {
+		URI uri = new URI(uriString);
+		if (uri.isAbsolute() && uri.getScheme().length() > 1) { // beware windows drive letters, e.g. C:\foo
 			switch (uri.getScheme()) {
+			case "file":
+				return new FileResourceProvider(Paths.get(uri).toString());
 			case "http":
 			case "https":
 				return new DAVResourceProvider(getServerURI(uri));
 			case "smb":
 				return new SMBResourceProvider(getServerURI(uri));
 			default:
-				if (uri.getScheme().length() > 1) { // beware windows drive letters, e.g. C:\foo
-					return new FileResourceProvider(Paths.get(uri).toString());
-				}
+				throw new IOException("unsupported scheme: " + uri.getScheme());
 			}
 		}
 
@@ -233,7 +238,7 @@ public class MusicMountBuilder {
 		 * replace file separator
 		 */
 		String fileSeparator = baseDirectory.getPath().getFileSystem().getSeparator();
-		path.replace(FileSystems.getDefault().getSeparator(), fileSeparator);
+		path = path.replace(FileSystems.getDefault().getSeparator(), fileSeparator);
 
 		/*
 		 * make path relative + directory
@@ -265,9 +270,8 @@ public class MusicMountBuilder {
 		System.err.println("Folders may be local directory paths or smb|http|https URLs, e.g. smb://user:pass@host/path/");
 		System.err.println();
 		System.err.println("Options:");
+		System.err.println("       --music <path>     music path, default is relative path from <mountFolder> to <musicFolder>");
 		System.err.println("       --base <folder>    base folder, <musicFolder> and <mountFolder> are relative to this folder");
-		System.err.println("       --music <path>     music path prefix, default is relative path from <mountFolder> to");
-		System.err.println("                          <musicFolder> if the --base <folder> option is set, 'music' otherwise");
 		System.err.println("       --retina           double image resolution");
 		System.err.println("       --full             full parse, don't use asset store");
 		System.err.println("       --grouping         use grouping tag to group album tracks");
@@ -389,12 +393,15 @@ public class MusicMountBuilder {
 		case 2:
 			musicFolder = getResource(optionBase, args[optionsLength]);
 			mountFolder = getResource(optionBase, args[optionsLength + 1]);
-			if (optionMusic == null) {
-				if (optionBase != null) {
+			if (optionMusic == null && musicFolder.getPath().getRoot().equals(mountFolder.getPath().getRoot())) {
+				try { // calculate relative path from mountFolder to musicFolder
 					optionMusic = mountFolder.getPath().relativize(musicFolder.getPath()).toString();
-				} else {
-					optionMusic = "music";
+				} catch (IllegalArgumentException e) {
+					// cannot relativize
 				}
+			}
+			if (optionMusic == null) {
+				exitWithError(command, "could not calculate music path as relative path from <mountFolder> to <musicFolder>, use --music <path>");
 			}
 			break;
 		default:
@@ -432,6 +439,7 @@ public class MusicMountBuilder {
 
 		LOGGER.info("Music folder: " + musicFolder.getPath().toUri());
 		LOGGER.info("Mount folder: " + mountFolder.getPath().toUri());
+		LOGGER.info("Music path  : " + optionMusic);
 
 		if (!"file".equals(musicFolder.getPath().toUri().getScheme()) || !"file".equals(mountFolder.getPath().toUri().getScheme())) {
 			LOGGER.warning("Remote file system support is experimental/alpha!");

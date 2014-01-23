@@ -18,9 +18,8 @@ Generate MusicMount site from music in <musicFolder> into <mountFolder>
 Folders may be local directory paths or smb|http|https URLs, e.g. smb://user:pass@host/path/
 
 Options:
-       --music <path>     music path prefix, default is 'music'
+       --music <path>     music path, default is relative path from <mountFolder> to <musicFolder>
        --base <folder>    base folder, <musicFolder> and <mountFolder> are relative to this folder
-                          <musicFolder> if the --base <folder> option is set, 'music' otherwise
        --retina           double image resolution
        --full             full parse, don't use track store
        --grouping         use grouping tag to group album tracks
