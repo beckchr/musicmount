@@ -158,4 +158,59 @@ public class ServerFileSystem extends FileSystem {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((host == null) ? 0 : host.hashCode());
+		result = prime * result + port;
+		result = prime * result + ((scheme == null) ? 0 : scheme.hashCode());
+		result = prime * result + ((userInfo == null) ? 0 : userInfo.hashCode());
+		return result;
+	}
+
+	/**
+	 * This server path is equal to other <code>ServerFileSystem</code>
+	 * if scheme, host, unserInfo, port and path match,
+	 * i.e <code>getRootDirectory().toUri().equals(other.getRootDirectory().toUri())</code>
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		ServerFileSystem other = (ServerFileSystem) obj;
+		if (host == null) {
+			if (other.host != null) {
+				return false;
+			}
+		} else if (!host.equals(other.host)) {
+			return false;
+		}
+		if (port != other.port) {
+			return false;
+		}
+		if (scheme == null) {
+			if (other.scheme != null) {
+				return false;
+			}
+		} else if (!scheme.equals(other.scheme)) {
+			return false;
+		}
+		if (userInfo == null) {
+			if (other.userInfo != null) {
+				return false;
+			}
+		} else if (!userInfo.equals(other.userInfo)) {
+			return false;
+		}
+		return true;
+	}
 }

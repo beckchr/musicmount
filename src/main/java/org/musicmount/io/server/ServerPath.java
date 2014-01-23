@@ -244,7 +244,7 @@ public class ServerPath implements Path {
 	@Override
 	public Path relativize(Path other) {
 		if (absolute != other.isAbsolute()) {
-			return null;
+			throw new IllegalArgumentException("cannot relativize between absolute and relative path");
 		}
 		if (elems.size() == 0 && !other.isAbsolute()) {
 			return other;
@@ -363,6 +363,7 @@ public class ServerPath implements Path {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + (absolute ? 1231 : 1237);
+		result = prime * result + (directory ? 1231 : 1237);
 		result = prime * result + ((elems == null) ? 0 : elems.hashCode());
 		result = prime * result + ((fileSystem == null) ? 0 : fileSystem.hashCode());
 		return result;
@@ -381,6 +382,9 @@ public class ServerPath implements Path {
 		}
 		ServerPath other = (ServerPath) obj;
 		if (absolute != other.absolute) {
+			return false;
+		}
+		if (directory != other.directory) {
 			return false;
 		}
 		if (elems == null) {
