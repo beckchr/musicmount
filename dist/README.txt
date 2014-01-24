@@ -43,7 +43,7 @@ Launch MusicMount site in <mountFolder> with music from <musicFolder>
 Folders must be local.
 
 Options:
-       --music <path>    music path prefix, default is 'music'
+       --music <path>    music path, default is relative path from <mountFolder> to <musicFolder>
        --port <port>     launch HTTP server on specified port (default 8080)
        --user <user>     login user id
        --password <pass> login password

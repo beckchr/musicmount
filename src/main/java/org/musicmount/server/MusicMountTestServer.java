@@ -19,6 +19,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -124,7 +126,7 @@ public class MusicMountTestServer {
 		System.err.println("Folders must be local.");
 		System.err.println();
 		System.err.println("Options:");
-		System.err.println("       --music <path>     music path prefix, default is 'music'");
+		System.err.println("       --music <path>     music path, default is relative path from <mountFolder> to <musicFolder>");
 		System.err.println("       --port <port>      launch HTTP server on specified port (default 8080)");
 		System.err.println("       --user <user>      login user");
 		System.err.println("       --password <pass>  login password");
@@ -194,7 +196,7 @@ public class MusicMountTestServer {
 		tomcat.getConnector().setURIEncoding("UTF-8");
 		tomcat.setSilent(true);
 
-		Context mountContext = addContext(tomcat, "/", mountBase);
+		Context mountContext = addContext(tomcat, "/musicmount", mountBase);
 		mountContext.addWelcomeFile("index.json");
 		mountContext.addMimeMapping("json", "text/json");
 
@@ -203,14 +205,21 @@ public class MusicMountTestServer {
 			if (!mountBase.equals(musicBase)) {
 				throw new IllegalArgumentException("Missing music path");
 			}
-		} else {
-			if (musicPath.startsWith("../")) { // ../music --> /music
-				musicPath = musicPath.substring(2);
+		} else { // calculate music context path and add context
+			if (!musicPath.startsWith("/")) {
+				if (musicPath.startsWith("../")) { // ../music --> /music
+					musicPath = musicPath.substring(2);
+				} else { // music or ./music --> /musicmount/music
+					if (musicPath.startsWith("./")) {
+						musicPath = musicPath.substring(2);
+					}
+					musicPath = "/musicmount/" + musicPath;
+				}
 			}
 			if (musicPath.indexOf("..") >= 0) {
-				throw new IllegalArgumentException("Illegal music path");
+				throw new IllegalArgumentException("Unsupported music path");
 			}
-			musicContext = addContext(tomcat, musicPath.startsWith("/") ? musicPath : "/" + musicPath, musicBase);
+			musicContext = addContext(tomcat, musicPath, musicBase);
 			musicContext.addMimeMapping("m4a", "audio/mp4");
 			musicContext.addMimeMapping("mp3", "audio/mpeg");
 		}
@@ -277,7 +286,7 @@ public class MusicMountTestServer {
 	 * @throws Exception
 	 */
 	public static void execute(String command, String[] args) throws Exception {
-		String optionMusic = "music";
+		String optionMusic = null;
 		int optionPort = 8080;
 		String optionUser = null;
 		String optionPassword = null;
@@ -350,9 +359,7 @@ public class MusicMountTestServer {
 				exitWithError(command, "mount folder is not a directory: " + mountFolder);
 			}
 		} else {
-			if (!mountFolder.mkdirs()) {
-				exitWithError(command, "cannot create mount folder " + mountFolder);
-			}
+			exitWithError(command, "mount folder doesn't exist: " + musicFolder);
 		}
 		if (musicFolder.exists()) {
 			if (!musicFolder.isDirectory()) {
@@ -372,6 +379,18 @@ public class MusicMountTestServer {
 		LoggingUtil.configure("org.apache", Level.INFO);
 		LoggingUtil.configure(DigesterFactory.class.getName(), Level.SEVERE); // get rid of warnings on missing jsp schema files		
 		
+		if (optionMusic == null) {
+			Path mountFolderPath = mountFolder.toPath().toAbsolutePath().normalize();
+			Path musicFolderPath = musicFolder.toPath().toAbsolutePath().normalize();
+			optionMusic = mountFolderPath.relativize(musicFolderPath).toString();
+		}
+		optionMusic = optionMusic.replace(FileSystems.getDefault().getSeparator(), "/");
+
+		LOGGER.info("Music folder: " + musicFolder.getPath());
+		LOGGER.info("Mount folder: " + mountFolder.getPath());
+		LOGGER.info("Music path  : " + optionMusic);
+		LOGGER.info("");
+
 		String hostname = InetAddress.getLoopbackAddress().getHostName();
 		try {
 			hostname = InetAddress.getLocalHost().getHostName();
@@ -381,7 +400,7 @@ public class MusicMountTestServer {
 
 		LOGGER.info(String.format("Mount Settings"));
 		LOGGER.info(String.format("--------------"));
-		LOGGER.info(String.format("Site: http://%s:%d", hostname, optionPort));
+		LOGGER.info(String.format("Site: http://%s:%d/musicmount/", hostname, optionPort));
 		if (optionUser != null) {
 			LOGGER.info(String.format("User: %s", optionUser));
 			LOGGER.info(String.format("Pass: %s", optionPassword));
