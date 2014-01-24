@@ -53,6 +53,23 @@ public class SimpleAssetLocator implements AssetLocator {
 		return builder.toString();
 	}
 
+	private final String filePrefix; // asset folder
+	private final String pathPrefix; // asset link
+	private final Normalizer.Form normalizerForm;
+	private final FileSystem fileSystem;
+	private final ResourceProvider fileProvider;
+	
+	public SimpleAssetLocator(Resource baseFolder, String pathPrefix, Normalizer.Form normalizerForm) {
+		// avoid URI.toASCIIString() because it does normalization -> may not be able to restore files
+		// avoid File.getCanonicalPath() because Java 7 (Mac) replaces non-ASCII with '?'
+//		this.basePrefix = baseFolder.getAbsoluteFile().toURI().toString(); // ends with "/"
+		this.fileSystem = baseFolder.getPath().getFileSystem();
+		this.fileProvider = baseFolder.getProvider();
+		this.filePrefix = filePrefix(baseFolder); // ends with fileSystem.separator
+		this.pathPrefix = pathPrefix(pathPrefix); // ends with "/"
+		this.normalizerForm = normalizerForm;
+	}
+
 	private String pathPrefix(String path) {
 		if (path == null) {
 			return "";
@@ -74,23 +91,6 @@ public class SimpleAssetLocator implements AssetLocator {
 			path += fileSystem.getSeparator();
 		}
 		return path;
-	}
-
-	private final String filePrefix; // asset folder
-	private final String pathPrefix; // asset link
-	private final Normalizer.Form normalizerForm;
-	private final FileSystem fileSystem;
-	private final ResourceProvider fileProvider;
-	
-	public SimpleAssetLocator(Resource baseFolder, String pathPrefix, Normalizer.Form normalizerForm) {
-		// avoid URI.toASCIIString() because it does normalization -> may not be able to restore files
-		// avoid File.getCanonicalPath() because Java 7 (Mac) replaces non-ASCII with '?'
-//		this.basePrefix = baseFolder.getAbsoluteFile().toURI().toString(); // ends with "/"
-		this.fileSystem = baseFolder.getPath().getFileSystem();
-		this.fileProvider = baseFolder.getProvider();
-		this.filePrefix = filePrefix(baseFolder); // ends with fileSystem.separator
-		this.pathPrefix = pathPrefix(pathPrefix); // ends with "/"
-		this.normalizerForm = normalizerForm;
 	}
 
 	@Override

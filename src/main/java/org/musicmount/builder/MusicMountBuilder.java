@@ -403,6 +403,7 @@ public class MusicMountBuilder {
 			if (optionMusic == null) {
 				exitWithError(command, "could not calculate music path as relative path from <mountFolder> to <musicFolder>, use --music <path>");
 			}
+			optionMusic = optionMusic.replace(FileSystems.getDefault().getSeparator(), "/");
 			break;
 		default:
 			exitWithError(command, "bad arguments");
