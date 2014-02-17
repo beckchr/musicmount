@@ -26,7 +26,6 @@ Options:
        --unknownGenre     report missing genre as 'Unknown'
        --noVariousArtists exclude 'Various Artists' from album artist index
        --directoryIndex   use 'path/' instead of 'path/index.json'
-       --normalize <form> normalize asset paths, 'NFC'|'NFD' (experimental)
        --pretty           pretty-print JSON documents
        --verbose          more detailed console output
 
