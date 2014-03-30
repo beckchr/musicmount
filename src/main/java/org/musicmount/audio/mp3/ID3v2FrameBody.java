@@ -22,6 +22,36 @@ import java.io.UnsupportedEncodingException;
 import org.musicmount.util.PositionLengthInputStream;
 
 public class ID3v2FrameBody {
+	/**
+	 * Dynamically growing buffer 
+	 */
+	static final class Buffer {
+		byte[] bytes;
+		Buffer(int initialLength) {
+			bytes = new byte[initialLength];
+		}
+		byte[] bytes(int minLength) {
+			if (minLength > bytes.length) {
+				int length = bytes.length * 2;
+				while (minLength > length) {
+					length *= 2;
+				}
+				bytes = new byte[length];
+			}
+			return bytes;
+		}
+	}
+	
+	/*
+	 * To avoid creation of a buffer for each frame, store it in a thread local variable.
+	 */
+	static final ThreadLocal<Buffer> textBuffer = new ThreadLocal<Buffer>() {
+		@Override
+		protected Buffer initialValue() {
+			return new Buffer(4096);
+		}
+	};
+	
 	private final PositionLengthInputStream input;
 	private final ID3v2TagHeader tagHeader;
 	private final ID3v2FrameHeader frameHeader;
@@ -76,9 +106,10 @@ public class ID3v2FrameBody {
 		return string;
 	}
 
-	public String readZeroTerminatedString(byte[] bytes, int maxLength, ID3v2Encoding encoding) throws IOException, ID3v2Exception {
+	public String readZeroTerminatedString(int maxLength, ID3v2Encoding encoding) throws IOException, ID3v2Exception {
 		int zeros = 0;
 		int length = Math.min(maxLength, (int)getRemainingLength());
+		byte[] bytes = textBuffer.get().bytes(length);
 		for (int i = 0; i < length; i++) {
 			// UTF-16LE may have a zero byte as second byte of a 2-byte character -> skip first zero at odd index
 			if ((bytes[i] = data.readByte()) == 0 && (encoding != ID3v2Encoding.UTF_16 || zeros != 0 || i % 2 == 0)) {
@@ -92,10 +123,11 @@ public class ID3v2FrameBody {
 		throw new ID3v2Exception("Could not read zero-termiated string");
 	}
 
-	public String readFixedLengthString(byte[] bytes, int length, ID3v2Encoding encoding) throws IOException, ID3v2Exception {
+	public String readFixedLengthString(int length, ID3v2Encoding encoding) throws IOException, ID3v2Exception {
 		if (length > getRemainingLength()) {
 			throw new ID3v2Exception("Could not read fixed-length string of length: " + length);
 		}
+		byte[] bytes = textBuffer.get().bytes(length);
 		data.readFully(bytes, 0, length);
 		return extractString(bytes, 0, length, encoding, true);
 	}

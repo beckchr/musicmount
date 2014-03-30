@@ -64,7 +64,6 @@ public class ID3v2Info extends AudioInfo {
 	}
 	
 	private final Level debugLevel;
-	private final byte[] textBuffer = new byte[1024];
 
 	private byte coverPictureType;
 
@@ -303,14 +302,14 @@ public class ID3v2Info extends AudioInfo {
 
 	String parseTextFrame(ID3v2FrameBody frame) throws IOException, ID3v2Exception {
 		ID3v2Encoding encoding = frame.readEncoding();
-		return frame.readFixedLengthString(textBuffer, (int)frame.getRemainingLength(), encoding);
+		return frame.readFixedLengthString((int)frame.getRemainingLength(), encoding);
 	}
 	
 	CommentOrUnsynchronizedLyrics parseCommentOrUnsynchronizedLyricsFrame(ID3v2FrameBody data) throws IOException, ID3v2Exception {
 		ID3v2Encoding encoding = data.readEncoding();
-		String language = data.readFixedLengthString(textBuffer, 3, ID3v2Encoding.ISO_8859_1);
-		String description = data.readZeroTerminatedString(textBuffer, 200, encoding);
-		String text = data.readFixedLengthString(textBuffer, (int)data.getRemainingLength(), encoding);
+		String language = data.readFixedLengthString(3, ID3v2Encoding.ISO_8859_1);
+		String description = data.readZeroTerminatedString(200, encoding);
+		String text = data.readFixedLengthString((int)data.getRemainingLength(), encoding);
 		return new CommentOrUnsynchronizedLyrics(language, description, text);
 	}
 
@@ -318,7 +317,7 @@ public class ID3v2Info extends AudioInfo {
 		ID3v2Encoding encoding = data.readEncoding();
 		String imageType;
 		if (data.getTagHeader().getVersion() == 2) { // file type, e.g. "JPG"
-			String fileType = data.readFixedLengthString(textBuffer, 3, ID3v2Encoding.ISO_8859_1);
+			String fileType = data.readFixedLengthString(3, ID3v2Encoding.ISO_8859_1);
 			switch (fileType.toUpperCase()) {
 			case "PNG":
 				imageType = "image/png";
@@ -330,10 +329,10 @@ public class ID3v2Info extends AudioInfo {
 				imageType = "image/unknown";
 			}
 		} else { // mime type, e.g. "image/jpeg"
-			imageType = data.readZeroTerminatedString(textBuffer, 20, ID3v2Encoding.ISO_8859_1);
+			imageType = data.readZeroTerminatedString(20, ID3v2Encoding.ISO_8859_1);
 		}
 		byte pictureType = data.getData().readByte();
-		String description = data.readZeroTerminatedString(textBuffer, 200, encoding);
+		String description = data.readZeroTerminatedString(200, encoding);
 		byte[] imageData = data.getData().readFully((int)data.getRemainingLength());
 		return new AttachedPicture(pictureType, description, imageType, imageData);
 	}
