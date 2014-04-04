@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -39,6 +40,7 @@ import net.coobird.thumbnailator.Thumbnails;
 import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.Library;
 import org.musicmount.io.Resource;
+import org.musicmount.util.ProgressHandler;
 
 public class ImageFormatter {
 	static final Logger LOGGER = Logger.getLogger(ImageFormatter.class.getName());
@@ -77,7 +79,7 @@ public class ImageFormatter {
 				imageResource.getParent().mkdirs();
 				writeImage(image, imageType, imageResource, retina);
 			} catch (IOException e) {
-				LOGGER.warning("Could not write image file: " + imageResource.getPath().toAbsolutePath());
+				LOGGER.log(Level.WARNING, "Could not write image file: " + imageResource.getPath().toAbsolutePath(), e);
 				try {
 					if (imageResource.exists()) {
 						imageResource.delete();
@@ -141,18 +143,20 @@ public class ImageFormatter {
 		return result;
 	}
 	
-	public void formatImages(Library library, ResourceLocator resourceLocator, Collection<Album> changedAlbums) {
+	public void formatImages(Library library, ResourceLocator resourceLocator, Collection<Album> changedAlbums, int maxThreads, final ProgressHandler progressHandler) {
 		final Map<Album, Map<ImageType, Resource>> albumTargets = collectAlbumTargets(library, resourceLocator, changedAlbums);
 		List<Album> albums = new ArrayList<>(albumTargets.keySet());
 
-		int numberOfAlbumsPerTask = 100;
+		int numberOfAlbumsPerTask = 10;
 		int numberOfAlbums = albums.size();
-		int numberOfThreads = Math.min(1 + (numberOfAlbums - 1) / numberOfAlbumsPerTask, Runtime.getRuntime().availableProcessors());
+		int numberOfThreads = Math.min(1 + (numberOfAlbums - 1) / numberOfAlbumsPerTask, Math.min(maxThreads, Runtime.getRuntime().availableProcessors()));
+		progressHandler.beginTask(numberOfAlbums, null);
 		if (numberOfThreads > 1) { // run on multiple threads
-			if (LOGGER.isLoggable(Level.FINE)) {
-				LOGGER.fine("Parallel: #threads = " + numberOfThreads);
+			if (LOGGER.isLoggable(Level.FINER)) {
+				LOGGER.finer("Parallel: #threads = " + numberOfThreads);
 			}
 			ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
+			final AtomicInteger atomicCount = new AtomicInteger();
 			for (int start = 0; start < numberOfAlbums; start += numberOfAlbumsPerTask) {
 				final Collection<Album> albumsSlice = albums.subList(start, Math.min(numberOfAlbums, start + numberOfAlbumsPerTask));
 				executor.execute(new Runnable() {
@@ -160,9 +164,10 @@ public class ImageFormatter {
 					public void run() {
 						for (Album album : albumsSlice) {
 							formatImages(album.artworkAssetResource(), albumTargets.get(album));
-						}
-						if (LOGGER.isLoggable(Level.FINE)) {
-							LOGGER.fine(String.format("Progress: #albums += %3d", albumsSlice.size()));
+							int count = atomicCount.getAndIncrement() + 1;
+							if (progressHandler != null && count % 100 == 0) {
+								progressHandler.progress(count, String.format("#albums = %4d", count));
+							}
 						}
 					}
 				});
@@ -177,10 +182,12 @@ public class ImageFormatter {
 			int count = 0;
 			for (Album album : albums) {
 				formatImages(album.artworkAssetResource(), albumTargets.get(album));
-				if (++count % 100 == 0 && LOGGER.isLoggable(Level.FINE)) {
-					LOGGER.fine(String.format("Progress: #albums = %4d", count));
+				count++;
+				if (progressHandler != null && count % 100 == 0) {
+					progressHandler.progress(count, String.format("#albums = %4d", count));
 				}
 			}
 		}
+		progressHandler.endTask();
 	}
 }

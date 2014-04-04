@@ -58,13 +58,14 @@ import org.musicmount.io.file.FileResourceProvider;
 import org.musicmount.io.server.dav.DAVResourceProvider;
 import org.musicmount.io.server.smb.SMBResourceProvider;
 import org.musicmount.util.LoggingUtil;
+import org.musicmount.util.ProgressHandler;
 
 public class MusicMountBuilder {
 	static final Logger LOGGER = Logger.getLogger(MusicMountBuilder.class.getName());
 
-    /**
-     * prevent ImageIO from using file cache
-     */
+	/**
+	 * prevent ImageIO from using file cache
+	 */
 	static {
 		ImageIO.setUseCache(false); // TODO not sure if this is really useful...
 	}
@@ -79,11 +80,306 @@ public class MusicMountBuilder {
 	 */
 	static final String ASSET_STORE = ".musicmount.gz";	
 
-	public static void generateResponseFiles(
-			Library library,
-			ResponseFormatter<?> formatter,
-			ResourceLocator resourceLocator,
-			AssetLocator assetLocator) throws Exception {
+	static final Map<String, String> userProvidedPasswords = new HashMap<>();
+	
+	static URI getServerURI(URI uri) throws URISyntaxException {
+		if (uri.getUserInfo() != null && uri.getUserInfo().indexOf(":") < 0) {
+			String password = null;
+			if (userProvidedPasswords.containsKey(uri.getAuthority())) {
+				password = userProvidedPasswords.get(uri.getAuthority());
+			} else {
+				char[] passwordChars = System.console().readPassword("%s's password:", uri.getAuthority());
+				if (passwordChars != null && passwordChars.length > 0) {
+					password = String.valueOf(passwordChars);
+				}
+				userProvidedPasswords.put(uri.getAuthority(), password);
+			}
+			if (password != null) {
+				uri = new URI(uri.getScheme(), uri.getUserInfo() + ":" + password, uri.getHost(), uri.getPort(), uri.getPath(), null, null);
+			}
+		}
+		return uri;
+	}
+
+	static ResourceProvider getResourceProvider(String string) throws IOException, URISyntaxException {
+		String uriString = string.trim();
+
+		/*
+		 * convert file separators to URI slashes
+		 */
+		uriString = uriString.replace(FileSystems.getDefault().getSeparator(), "/");
+
+		uriString = uriString.replace(" ", "%20"); // TODO URI encoding
+
+		/*
+		 * make sure base ends with '/'and is absolute
+		 */
+		if (!uriString.endsWith("/")) {
+			uriString += "/";
+		}
+		
+		/*
+		 * create URI and switch by scheme...
+		 */
+		URI uri = new URI(uriString);
+		if (uri.isAbsolute() && uri.getScheme().length() > 1) { // beware windows drive letters, e.g. C:\foo
+			switch (uri.getScheme()) {
+			case "file":
+				return new FileResourceProvider(Paths.get(uri).toString());
+			case "http":
+			case "https":
+				return new DAVResourceProvider(getServerURI(uri));
+			case "smb":
+				return new SMBResourceProvider(getServerURI(uri));
+			default:
+				throw new IOException("unsupported scheme: " + uri.getScheme());
+			}
+		}
+
+		/*
+		 * assume simple file path
+		 */
+		return new FileResourceProvider(string);
+	}
+
+	/**
+	 * Resolve base/path to resource.
+	 * @param base base resource (URL or file path, may be <code>null</code>)
+	 * @param path resource path, resolved relative to base.
+	 * @return resource
+	 * @throws IOException
+	 * @throws URISyntaxException
+	 */
+	public static Resource getResource(String base, String path) throws IOException, URISyntaxException {
+		if (base == null) {
+			return getResourceProvider(path).getBaseDirectory();
+		}
+
+		/*
+		 * absolute base directory
+		 */
+		Resource baseDirectory = getResourceProvider(base).getBaseDirectory();
+		
+		/*
+		 * replace file separator
+		 */
+		String fileSeparator = baseDirectory.getPath().getFileSystem().getSeparator();
+		path = path.replace(FileSystems.getDefault().getSeparator(), fileSeparator);
+
+		/*
+		 * make path relative + directory
+		 */
+		while (path.startsWith(fileSeparator)) {
+			path = path.substring(1);
+		}
+		if (!path.endsWith(fileSeparator)) {
+			path += fileSeparator;
+		}
+
+		/*
+		 * resolve (i.e. append) path and normalize
+		 */
+		return baseDirectory.getProvider().newResource(baseDirectory.getPath().resolve(path).normalize());
+	}
+
+	private boolean retina = false;
+	private boolean pretty = false;
+	private boolean full = false;
+	private boolean noImages = false;
+	private boolean xml = false;
+	private boolean grouping = false;
+	private boolean unknownGenre = false;
+	private boolean noVariousArtists = false;
+	private boolean directoryIndex = false;
+	private Normalizer.Form normalizer = null;
+
+	private ProgressHandler progressHandler;
+
+	public MusicMountBuilder() {
+		this(ProgressHandler.NOOP);
+	}
+
+	public MusicMountBuilder(ProgressHandler progressHandler) {
+		this.progressHandler = progressHandler;
+	}
+
+	public ProgressHandler getProgressHandler() {
+		return progressHandler;
+	}
+	public void setProgressHandler(ProgressHandler progressHandler) {
+		this.progressHandler = progressHandler;
+	}
+
+	public boolean isRetina() {
+		return retina;
+	}
+	public void setRetina(boolean retina) {
+		this.retina = retina;
+	}
+
+	public boolean isPretty() {
+		return pretty;
+	}
+	public void setPretty(boolean pretty) {
+		this.pretty = pretty;
+	}
+
+	public boolean isFull() {
+		return full;
+	}
+	public void setFull(boolean full) {
+		this.full = full;
+	}
+
+	public boolean isNoImages() {
+		return noImages;
+	}
+	public void setNoImages(boolean noImages) {
+		this.noImages = noImages;
+	}
+
+	public boolean isXml() {
+		return xml;
+	}
+	public void setXml(boolean xml) {
+		this.xml = xml;
+	}
+
+	public boolean isGrouping() {
+		return grouping;
+	}
+	public void setGrouping(boolean grouping) {
+		this.grouping = grouping;
+	}
+
+	public boolean isUnknownGenre() {
+		return unknownGenre;
+	}
+
+	public void setUnknownGenre(boolean unknownGenre) {
+		this.unknownGenre = unknownGenre;
+	}
+
+	public boolean isNoVariousArtists() {
+		return noVariousArtists;
+	}
+	public void setNoVariousArtists(boolean noVariousArtists) {
+		this.noVariousArtists = noVariousArtists;
+	}
+
+	public boolean isDirectoryIndex() {
+		return directoryIndex;
+	}
+	public void setDirectoryIndex(boolean directoryIndex) {
+		this.directoryIndex = directoryIndex;
+	}
+
+	public Normalizer.Form getNormalizer() {
+		return normalizer;
+	}
+	public void setNormalizer(Normalizer.Form normalizer) {
+		this.normalizer = normalizer;
+	}
+
+	private InputStream createInputStream(Resource file) throws IOException {
+		if (!file.exists()) {
+			return null;
+		}
+		InputStream input = file.getInputStream();
+		if (file.getName().endsWith(".gz")) {
+			input = new GZIPInputStream(input);
+		}
+		return new BufferedInputStream(input);
+	}
+
+	private OutputStream createOutputStream(Resource file) throws IOException {
+		file.getParent().mkdirs();
+		OutputStream output = new BufferedOutputStream(file.getOutputStream());
+		if (file.getName().endsWith(".gz")) {
+			output = new GZIPOutputStream(output);
+		}
+		return output;
+	}
+
+	public void build(Resource musicFolder, Resource mountFolder, String musicPath) throws Exception {
+		LOGGER.info("Music folder: " + musicFolder.getPath().toUri());
+		LOGGER.info("Mount folder: " + mountFolder.getPath().toUri());
+		LOGGER.info("Music path  : " + musicPath);
+
+		if (!"file".equals(musicFolder.getPath().toUri().getScheme()) || !"file".equals(mountFolder.getPath().toUri().getScheme())) {
+			LOGGER.warning("Remote file system support is experimental/alpha!");
+		}
+		
+		Resource assetStoreFile = mountFolder.resolve(ASSET_STORE);
+
+		AssetLocator assetStoreAssetLocator = new SimpleAssetLocator(musicFolder, null, null); // no prefix, no normalization
+		AssetStore assetStore = new AssetStore(API_VERSION);
+		boolean assetStoreLoaded = false;
+		if (!full && assetStoreFile.exists()) {
+			LOGGER.info("Loading asset store...");
+			try (InputStream assetStoreInput = createInputStream(assetStoreFile)) {
+				assetStore.load(assetStoreInput, assetStoreAssetLocator);
+				assetStoreLoaded = true;
+			} catch (Exception e) {
+				LOGGER.log(Level.WARNING, "Failed to load asset store", e);
+				assetStore = new AssetStore(API_VERSION);
+			}
+		}
+
+		AssetParser assetParser = new SimpleAssetParser();
+
+		LOGGER.info(assetStoreLoaded ? "Updating asset store..." : "Creating asset store...");
+		assetStore.update(musicFolder, assetParser, 1, progressHandler);
+
+		LOGGER.info("Building music libary...");
+		Library library = new LibraryParser().parse(assetStore.assets());
+		if (noVariousArtists) { // remove "various artists" album artist (hack)
+			library.getAlbumArtists().remove(null);
+		}
+		Set<Album> changedAlbums = assetStore.sync(library.getAlbums());
+		if (LOGGER.isLoggable(Level.FINE) && assetStoreLoaded) {
+			LOGGER.fine(String.format("Number of albums changed: %d", changedAlbums.size()));
+		}
+
+		if (noImages) {
+			assetStore.setRetina(null);
+		} else {
+			LOGGER.info(assetStoreLoaded ? "Updating images..." : "Generating images...");
+			ImageFormatter formatter = new ImageFormatter(assetParser, retina);
+			final boolean retinaChange = !Boolean.valueOf(retina).equals(assetStore.getRetina());
+			if (LOGGER.isLoggable(Level.FINE) && retinaChange && assetStoreLoaded) {
+				LOGGER.fine(String.format("Retina state %s", assetStore.getRetina() == null ? "unknown" : "changed"));
+			}
+			ResourceLocator resourceLocator = new SimpleResourceLocator(mountFolder, xml, noImages);
+			Set<Album> imageAlbums = retinaChange || full ? new HashSet<>(library.getAlbums()) : changedAlbums;
+			formatter.formatImages(library, resourceLocator, imageAlbums, Integer.MAX_VALUE, progressHandler);
+			assetStore.setRetina(retina);
+		}
+		
+		LOGGER.info("Generating JSON...");
+		generateResponseFiles(library, musicFolder, mountFolder, musicPath);
+
+		LOGGER.info("Saving asset store...");
+		try (OutputStream assetStoreOutput = createOutputStream(assetStoreFile)) {
+			assetStore.save(assetStoreOutput, assetStoreAssetLocator);
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "Failed to save asset store", e);
+			assetStoreFile.delete();
+		}
+
+		LOGGER.info("Done.");
+	}
+
+	void generateResponseFiles(Library library, Resource musicFolder, Resource mountFolder, String musicPath) throws Exception {
+		LocalStrings localStrings = new LocalStrings(Locale.ENGLISH);
+		ResponseFormatter<?> formatter;
+		if (xml) {
+			formatter = new ResponseFormatter.XML(API_VERSION, localStrings, directoryIndex, unknownGenre, grouping, pretty);
+		} else {
+			formatter = new ResponseFormatter.JSON(API_VERSION, localStrings, directoryIndex, unknownGenre, grouping, pretty);
+		}
+		AssetLocator assetLocator = new SimpleAssetLocator(musicFolder, musicPath, normalizer);
+		ResourceLocator resourceLocator = new SimpleResourceLocator(mountFolder, xml, noImages);
 
 		/*
 		 * album artists
@@ -161,101 +457,6 @@ public class MusicMountBuilder {
 		}
 	}
 
-	private static Map<String, String> userProvidedPasswords = new HashMap<>();
-	
-	static URI getServerURI(URI uri) throws URISyntaxException {
-		if (uri.getUserInfo() != null && uri.getUserInfo().indexOf(":") < 0) {
-			String password = null;
-			if (userProvidedPasswords.containsKey(uri.getAuthority())) {
-				password = userProvidedPasswords.get(uri.getAuthority());
-			} else {
-				char[] passwordChars = System.console().readPassword("%s's password:", uri.getAuthority());
-				if (passwordChars != null && passwordChars.length > 0) {
-					password = String.valueOf(passwordChars);
-				}
-				userProvidedPasswords.put(uri.getAuthority(), password);
-			}
-			if (password != null) {
-				uri = new URI(uri.getScheme(), uri.getUserInfo() + ":" + password, uri.getHost(), uri.getPort(), uri.getPath(), null, null);
-			}
-		}
-		return uri;
-	}
-	
-
-	static ResourceProvider getResourceProvider(String string) throws IOException, URISyntaxException {
-		String uriString = string.trim();
-
-		/*
-		 * convert file separators to URI slashes
-		 */
-		uriString = uriString.replace(FileSystems.getDefault().getSeparator(), "/");
-
-		uriString = uriString.replace(" ", "%20"); // TODO URI encoding
-
-		/*
-		 * make sure base ends with '/'and is absolute
-		 */
-		if (!uriString.endsWith("/")) {
-			uriString += "/";
-		}
-		
-		/*
-		 * create URI and switch by scheme...
-		 */
-		URI uri = new URI(uriString);
-		if (uri.isAbsolute() && uri.getScheme().length() > 1) { // beware windows drive letters, e.g. C:\foo
-			switch (uri.getScheme()) {
-			case "file":
-				return new FileResourceProvider(Paths.get(uri).toString());
-			case "http":
-			case "https":
-				return new DAVResourceProvider(getServerURI(uri));
-			case "smb":
-				return new SMBResourceProvider(getServerURI(uri));
-			default:
-				throw new IOException("unsupported scheme: " + uri.getScheme());
-			}
-		}
-
-		/*
-		 * assume simple file path
-		 */
-		return new FileResourceProvider(string);
-	}
-
-	static Resource getResource(String base, String path) throws IOException, URISyntaxException {
-		if (base == null) {
-			return getResourceProvider(path).getBaseDirectory();
-		}
-
-		/*
-		 * absolute base directory
-		 */
-		Resource baseDirectory = getResourceProvider(base).getBaseDirectory();
-		
-		/*
-		 * replace file separator
-		 */
-		String fileSeparator = baseDirectory.getPath().getFileSystem().getSeparator();
-		path = path.replace(FileSystems.getDefault().getSeparator(), fileSeparator);
-
-		/*
-		 * make path relative + directory
-		 */
-		while (path.startsWith(fileSeparator)) {
-			path = path.substring(1);
-		}
-		if (!path.endsWith(fileSeparator)) {
-			path += fileSeparator;
-		}
-
-		/*
-		 * resolve (i.e. append) path and normalize
-		 */
-		return baseDirectory.getProvider().newResource(baseDirectory.getPath().resolve(path).normalize());
-	}
-	
 	static void exitWithError(String command, String error) {
 		System.err.println();
 		System.err.println("*** " + (error == null ? "internal error" : error));
@@ -293,22 +494,15 @@ public class MusicMountBuilder {
 	 * @throws Exception
 	 */
 	public static void execute(String command, String[] args) throws Exception {
-		String optionMusic = null;
+		MusicMountBuilder builder = new MusicMountBuilder();
+
 		String optionBase = null;
-		boolean optionRetina = false;
-		boolean optionPretty = false;
-		boolean optionFull = false;
+		String optionMusic = null;
 		boolean optionVerbose = false;
-		boolean optionNoImages = false;
-		boolean optionXML = false;
-		boolean optionGrouping = false;
-		boolean optionUnknownGenre = false;
-		boolean optionNoVariousArtists = false;
-		boolean optionDirectoryIndex = false;
-		Normalizer.Form optionNormalize = null;
 
 		int optionsLength = 0;
 		boolean optionsDone = false;
+
 		while (optionsLength < args.length && !optionsDone) {
 			switch (args[optionsLength]) {
 			case "--music":
@@ -324,43 +518,43 @@ public class MusicMountBuilder {
 				optionBase = args[optionsLength];
 				break;
 			case "--retina":
-				optionRetina = true;
+				builder.setRetina(true);
 				break;
 			case "--pretty":
-				optionPretty = true;
+				builder.setPretty(true);
 				break;
 			case "--full":
-				optionFull = true;
+				builder.setFull(true);
 				break;
 			case "--verbose":
 				optionVerbose = true;
 				break;
 			case "--unknownGenre":
-				optionUnknownGenre = true;
+				builder.setUnknownGenre(true);
 				break;
 			case "--noVariousArtists":
-				optionNoVariousArtists = true;
+				builder.setNoVariousArtists(true);
 				break;
 			case "--noImages":
-				optionNoImages = true;
+				builder.setNoImages(true);
 				break;
 			case "--noDirectoryIndex": // deprecated
 				break;
 			case "--directoryIndex":
-				optionDirectoryIndex = true;
+				builder.setDirectoryIndex(true);
 				break;
 			case "--xml":
-				optionXML = true;
+				builder.setXml(true);
 				break;
 			case "--grouping":
-				optionGrouping = true;
+				builder.setGrouping(true);
 				break;
 			case "--normalize":
 				if (++optionsLength == args.length) {
 					exitWithError(command, "invalid arguments");
 				}
 				try {
-					optionNormalize = Normalizer.Form.valueOf(args[optionsLength]);
+					builder.setNormalizer(Normalizer.Form.valueOf(args[optionsLength]));
 				} catch (IllegalArgumentException e) {
 					exitWithError(command, "invalid normalize form: " + args[optionsLength]);
 				}
@@ -437,101 +631,31 @@ public class MusicMountBuilder {
 		 * Configure logging
 		 */
 		LoggingUtil.configure(MusicMountBuilder.class.getPackage().getName(), optionVerbose ? Level.FINER : Level.FINE);
-
-		LOGGER.info("Music folder: " + musicFolder.getPath().toUri());
-		LOGGER.info("Mount folder: " + mountFolder.getPath().toUri());
-		LOGGER.info("Music path  : " + optionMusic);
-
-		if (!"file".equals(musicFolder.getPath().toUri().getScheme()) || !"file".equals(mountFolder.getPath().toUri().getScheme())) {
-			LOGGER.warning("Remote file system support is experimental/alpha!");
-		}
-
-		LocalStrings localStrings = new LocalStrings(Locale.ENGLISH);
-		Resource assetStoreFile = mountFolder.resolve(ASSET_STORE);
-
-		AssetLocator assetStoreAssetLocator = new SimpleAssetLocator(musicFolder, null, null); // no prefix, no normalization
-		AssetStore assetStore = new AssetStore(API_VERSION);
-		boolean assetStoreLoaded = false;
-		if (!optionFull && assetStoreFile.exists()) {
-			LOGGER.info("Loading asset store...");
-			try (InputStream assetStoreInput = createInputStream(assetStoreFile)) {
-				assetStore.load(assetStoreInput, assetStoreAssetLocator);
-				assetStoreLoaded = true;
-			} catch (Exception e) {
-				LOGGER.log(Level.WARNING, "Failed to load asset store", e);
-				assetStore = new AssetStore(API_VERSION);
+		builder.setProgressHandler(new ProgressHandler() {
+			@Override
+			public void beginTask(int totalWork, String title) {
+				if (LOGGER.isLoggable(Level.FINE)) {
+					if (title != null) {
+						LOGGER.fine(String.format("Progress: %s", title));
+					}
+				}
 			}
-		}
-
-		AssetParser assetParser = new SimpleAssetParser();
-
-		LOGGER.info(assetStoreLoaded ? "Updating asset store..." : "Creating asset store...");
-		assetStore.update(musicFolder, assetParser);
-
-		LOGGER.info("Building music libary...");
-		Library library = new LibraryParser().parse(assetStore.assets());
-		if (optionNoVariousArtists) { // remove "various artists" album artist (hack)
-			library.getAlbumArtists().remove(null);
-		}
-		Set<Album> changedAlbums = assetStore.sync(library.getAlbums());
-		if (LOGGER.isLoggable(Level.FINE) && assetStoreLoaded) {
-			LOGGER.fine(String.format("Number of albums changed: %d", changedAlbums.size()));
-		}
-
-		ResourceLocator resourceLocator = new SimpleResourceLocator(mountFolder, optionXML, optionNoImages);
-
-		if (optionNoImages) {
-			assetStore.setRetina(null);
-		} else {
-			LOGGER.info(assetStoreLoaded ? "Updating images..." : "Generating images...");
-			ImageFormatter formatter = new ImageFormatter(assetParser, optionRetina);
-			final boolean retinaChange = !Boolean.valueOf(optionRetina).equals(assetStore.getRetina());
-			if (LOGGER.isLoggable(Level.FINE) && retinaChange && assetStoreLoaded) {
-				LOGGER.fine(String.format("Retina state %s", assetStore.getRetina() == null ? "unknown" : "changed"));
+			@Override
+			public void progress(int workDone, String message) {
+				if (LOGGER.isLoggable(Level.FINE)) {
+					LOGGER.fine(String.format("Progress: %s", message));
+				}
 			}
-			formatter.formatImages(library, resourceLocator, retinaChange || optionFull ? new HashSet<>(library.getAlbums()) : changedAlbums);
-			assetStore.setRetina(optionRetina);
-		}
-		
-		ResponseFormatter<?> responseFormatter;
-		if (optionXML) {
-			responseFormatter = new ResponseFormatter.XML(API_VERSION, localStrings, optionDirectoryIndex, optionUnknownGenre, optionGrouping, optionPretty);
-		} else {
-			responseFormatter = new ResponseFormatter.JSON(API_VERSION, localStrings, optionDirectoryIndex, optionUnknownGenre, optionGrouping, optionPretty);
-		}
-		AssetLocator responseAssetLocator = new SimpleAssetLocator(musicFolder, optionMusic, optionNormalize);
-		LOGGER.info("Generating JSON...");
-		generateResponseFiles(library, responseFormatter, resourceLocator, responseAssetLocator);
+			@Override
+			public void endTask() {
+			}
+		});
 
-		LOGGER.info("Saving asset store...");
-		try (OutputStream assetStoreOutput = createOutputStream(assetStoreFile)) {
-			assetStore.save(assetStoreOutput, assetStoreAssetLocator);
-		} catch (Exception e) {
-			LOGGER.log(Level.WARNING, "Failed to save asset store", e);
-			assetStoreFile.delete();
-		}
 
-		LOGGER.info("Done.");
-	}
-	
-	private static InputStream createInputStream(Resource file) throws IOException {
-		if (!file.exists()) {
-			return null;
-		}
-		InputStream input = file.getInputStream();
-		if (file.getName().endsWith(".gz")) {
-			input = new GZIPInputStream(input);
-		}
-		return new BufferedInputStream(input);
-	}
-
-	private static OutputStream createOutputStream(Resource file) throws IOException {
-		file.getParent().mkdirs();
-		OutputStream output = new BufferedOutputStream(file.getOutputStream());
-		if (file.getName().endsWith(".gz")) {
-			output = new GZIPOutputStream(output);
-		}
-		return output;
+		/**
+		 * Run builder
+		 */
+		builder.build(musicFolder, mountFolder, optionMusic);
 	}
 	
 	public static void main(String[] args) throws Exception {

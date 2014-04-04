@@ -25,6 +25,7 @@ import org.musicmount.builder.model.ArtistType;
 import org.musicmount.builder.model.Library;
 import org.musicmount.io.ResourceProvider;
 import org.musicmount.io.file.FileResourceProvider;
+import org.musicmount.util.ProgressHandler;
 
 /*
  * TODO test doesn't assert anything
@@ -42,7 +43,7 @@ public class ResponseFormatterTest {
 
 		File inputFolder = new File(getClass().getResource("/sample-library").toURI());
 		AssetStore assetStore = new AssetStore("test");
-		assetStore.update(resourceProvider.newResource(inputFolder.toPath()), new SimpleAssetParser());
+		assetStore.update(resourceProvider.newResource(inputFolder.toPath()), new SimpleAssetParser(), 1, ProgressHandler.NOOP);
 		Library library = new LibraryParser().parse(assetStore.assets());
 
 		SimpleAssetLocator assetLocator = new SimpleAssetLocator(resourceProvider.newResource(outputFolder.getRoot().toPath()), "music", null);

@@ -27,6 +27,7 @@ import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.Library;
 import org.musicmount.io.ResourceProvider;
 import org.musicmount.io.file.FileResourceProvider;
+import org.musicmount.util.ProgressHandler;
 
 public class AssetStoreTest {
 	@Test
@@ -36,7 +37,7 @@ public class AssetStoreTest {
 		File assetDir = new File(getClass().getResource("/sample-album/sample.mp3").toURI()).getParentFile();
 		AssetLocator assetLocator = new SimpleAssetLocator(resourceProvider.newResource(assetDir.toPath()), null, null);
 		AssetStore assetStore = new AssetStore("test");
-		assetStore.update(resourceProvider.newResource(assetDir.toPath()), new SimpleAssetParser());
+		assetStore.update(resourceProvider.newResource(assetDir.toPath()), new SimpleAssetParser(), 1, ProgressHandler.NOOP);
 		Library library = new LibraryParser().parse(assetStore.assets());
 
 		Assert.assertEquals(1, library.getAlbumArtists().size());
@@ -57,7 +58,7 @@ public class AssetStoreTest {
 		input.close();
 		
 		Assert.assertEquals(3, assetStore.getEntities().size());
-		assetStore.update(resourceProvider.newResource(assetDir.toPath()), new SimpleAssetParser());
+		assetStore.update(resourceProvider.newResource(assetDir.toPath()), new SimpleAssetParser(), 4, ProgressHandler.NOOP);
 
 		library = new LibraryParser().parse(assetStore.assets());
 		Assert.assertEquals(1, library.getAlbumArtists().size());

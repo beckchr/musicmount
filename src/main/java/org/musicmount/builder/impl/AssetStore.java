@@ -20,12 +20,19 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,6 +44,7 @@ import javax.xml.stream.XMLStreamReader;
 import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.Track;
 import org.musicmount.io.Resource;
+import org.musicmount.util.ProgressHandler;
 
 import de.odysseus.staxon.json.JsonXMLConfigBuilder;
 import de.odysseus.staxon.json.JsonXMLInputFactory;
@@ -69,7 +77,7 @@ public class AssetStore {
 	final Map<Resource, AssetEntity> entities = new LinkedHashMap<Resource, AssetEntity>();
 	final Set<Long> deletedAlbumIds = new HashSet<Long>();
 
-	final String version;
+	final String version; // store format version
 	
 	long timestamp = System.currentTimeMillis();
 	Boolean retina = null; // null means "unknown"
@@ -295,62 +303,98 @@ public class AssetStore {
 		}
 	}
 
-	void updateEntities(Resource directory, final AssetParser assetParser, DirectoryStream.Filter<Path> assetFilter, Set<AssetEntity> updatedEntities) throws IOException, XMLStreamException {
-		try (DirectoryStream<Resource> directoryStream = directory.newResourceDirectoryStream(assetFilter)) {
-			for (Resource resource : directoryStream) {
-				if (resource.isDirectory()) {
-					updateEntities(resource, assetParser, assetFilter, updatedEntities);
-				} else {
-					AssetEntity entity = entities.get(resource);
-					if (entity != null) { // modified asset -> parse
-						if (resource.lastModified() > timestamp) {
-							if (LOGGER.isLoggable(Level.FINER)) {
-								LOGGER.finer("Asset has been modified: " + resource.getPath());
-							}
+	synchronized AssetEntity updateEntity(Resource resource, AssetParser assetParser) throws Exception {
+		AssetEntity entity = entities.remove(resource);
+		Asset asset = assetParser.parse(resource);
+		if (entity == null) { // new asset
+			entities.put(resource, entity = new AssetEntity(null, asset, AssetEntity.State.Created));
+		} else { // modified asset -> keep albumId
+			entities.put(resource, entity = new AssetEntity(entity.albumId, asset, AssetEntity.State.Modified));
+		}
+		return entity;
+	}
+	
+	void updateEntities(final AssetParser assetParser, Iterable<Resource> assetResources, int maxThreads, final ProgressHandler progressHandler) throws IOException, XMLStreamException {
+		final Set<AssetEntity> updatedEntities = Collections.synchronizedSet(new HashSet<AssetEntity>());
+		
+		/*
+		 * prepare parse list
+		 */
+		List<Resource> parseList = new ArrayList<>(); // new/modified resources
+		for (Resource resource : assetResources) {
+			AssetEntity entity = entities.get(resource);
+			if (entity != null) { // known asset
+				if (resource.lastModified() > timestamp) { // modified asset -> parse
+					if (LOGGER.isLoggable(Level.FINER)) {
+						LOGGER.finer("Asset has been modified: " + resource.getPath());
+					}
+					parseList.add(resource);
+				} else { // unmodified asset -> re-use
+					updatedEntities.add(entity);
+				}
+			} else { // unknown asset -> parse
+				if (LOGGER.isLoggable(Level.FINER)) {
+					LOGGER.finer("Asset has been added: " + resource.getPath());
+				}
+				parseList.add(resource);
+			}
+		}
+
+		/*
+		 * Parse new/modified entities
+		 */
+		int numberOfAssetsPerTask = 100;
+		int numberOfAssets = parseList.size();
+		int numberOfThreads = Math.min(1 + (numberOfAssets - 1) / numberOfAssetsPerTask, Math.min(maxThreads, Runtime.getRuntime().availableProcessors()));
+		progressHandler.beginTask(parseList.size(), "Parsing new/modified assets...");
+		if (numberOfThreads > 1) { // run on multiple threads
+			if (LOGGER.isLoggable(Level.FINER)) {
+				LOGGER.finer("Parallel: #threads = " + numberOfThreads);
+			}
+			ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
+			final AtomicInteger atomicCount = new AtomicInteger();
+			for (int start = 0; start < numberOfAssets; start += numberOfAssetsPerTask) {
+				final Collection<Resource> assetsSlice = parseList.subList(start, Math.min(numberOfAssets, start + numberOfAssetsPerTask));
+				executor.execute(new Runnable() {
+					@Override
+					public void run() {
+						for (Resource resource : assetsSlice) {
 							try {
-								entities.put(resource, entity = new AssetEntity(entity.albumId, assetParser.parse(resource), AssetEntity.State.Modified));
+								updatedEntities.add(updateEntity(resource, assetParser));
 							} catch (Exception e) {
 								LOGGER.log(Level.WARNING, "Could not parse asset: " + resource.getPath(), e);
 							}
-						}
-					} else { // unknown asset -> parse
-						if (LOGGER.isLoggable(Level.FINER)) {
-							LOGGER.finer("Asset has been added: " + resource.getPath());
-						}
-						try {
-							entities.put(resource, entity = new AssetEntity(null, assetParser.parse(resource), AssetEntity.State.Created));
-						} catch (Exception e) {
-							LOGGER.log(Level.WARNING, "Could not parse asset: " + resource.getPath(), e);
+							int count = atomicCount.getAndIncrement() + 1;
+							if (progressHandler != null && count % 100 == 0) {
+								progressHandler.progress(count, String.format("#assets = %5d", count));
+							}
 						}
 					}
-					if (entity != null) {
-						updatedEntities.add(entity);
-						if (LOGGER.isLoggable(Level.FINE) && updatedEntities.size() % 1000 == 0) {
-							LOGGER.fine(String.format("Progress: #assets = %5d", updatedEntities.size()));
-						}
-					}
+				});
+			}
+			executor.shutdown();
+			try {
+				executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+			} catch (InterruptedException e) {
+				LOGGER.warning("Interrupted: " + e.getMessage());
+			}
+		} else {
+			int count = 0;
+			for (Resource resource : parseList) {
+				try {
+					updatedEntities.add(updateEntity(resource, assetParser));
+				} catch (Exception e) {
+					LOGGER.log(Level.WARNING, "Could not parse asset: " + resource.getPath(), e);
+				}
+				count++;
+				if (progressHandler != null && count % 100 == 0) {
+					progressHandler.progress(count, String.format("#assets = %5d", count));
 				}
 			}
 		}
-	}
-
-	public void update(final Resource directory, final AssetParser assetParser) throws IOException, XMLStreamException {
-		long updateTimestamp = System.currentTimeMillis();
-
-		/*
-		 * parse directory
-		 */
-		Set<AssetEntity> updatedEntities = new HashSet<AssetEntity>();
-		updateEntities(directory, assetParser, new DirectoryStream.Filter<Path>() {
-			public boolean accept(Path path) {
-				try {
-					return !path.getFileName().toString().startsWith(".") && (assetParser.isAssetPath(path) || directory.getProvider().isDirectory(path));
-				} catch (IOException e) {
-					return false;
-				}
-			}
-		}, updatedEntities);
 		
+		progressHandler.endTask();
+
 		/*
 		 * remove deleted entities
 		 */
@@ -367,7 +411,55 @@ public class AssetStore {
 				iterator.remove();
 			}
 		}
-		
+	}
+
+	private void collectAssetResources(List<Resource> assetResources, final Resource directory, ProgressHandler progressHandler, DirectoryStream.Filter<Path> assetFilter) throws IOException {
+		try (DirectoryStream<Resource> directoryStream = directory.newResourceDirectoryStream(assetFilter)) {
+			for (Resource resource : directoryStream) {
+				if (resource.isDirectory()) {
+					collectAssetResources(assetResources, resource, progressHandler, assetFilter);
+				} else {
+					assetResources.add(resource);
+					if (progressHandler != null && assetResources.size() % 1000 == 0) {
+						progressHandler.progress(assetResources.size(), String.format("#assets = %5d", assetResources.size()));
+					}
+				}
+			}
+		}
+	}
+
+	List<Resource> collectAssetResources(Resource directory, ProgressHandler progressHandler, DirectoryStream.Filter<Path> assetFilter) throws IOException {
+		progressHandler.beginTask(-1, "Scanning directory for assets...");
+		List<Resource> assetResources = new ArrayList<>();
+		collectAssetResources(assetResources, directory, progressHandler, assetFilter);
+		progressHandler.endTask();
+		return assetResources;
+	}
+
+	public void update(final Resource directory, final AssetParser assetParser, int maxThreads, ProgressHandler progressHandler) throws IOException, XMLStreamException {
+		long updateTimestamp = System.currentTimeMillis();
+
+		/*
+		 * collect resources
+		 */
+		List<Resource> assetResources = collectAssetResources(directory, progressHandler, new DirectoryStream.Filter<Path>() {
+			public boolean accept(Path path) {
+				try {
+					return !path.getFileName().toString().startsWith(".") && (assetParser.isAssetPath(path) || directory.getProvider().isDirectory(path));
+				} catch (IOException e) {
+					return false;
+				}
+			}
+		});
+
+		/*
+		 * parse assets
+		 */
+		updateEntities(assetParser, assetResources, maxThreads, progressHandler);
+
+		/*
+		 * update timestamp
+		 */
 		timestamp = updateTimestamp;
 	}
 
@@ -484,7 +576,6 @@ public class AssetStore {
 			while (reader.getEventType() == XMLStreamConstants.START_ELEMENT) {
 				switch (reader.getLocalName()) {
 				case "version":
-				case "apiVersion": // FIXME renamed apiVersion to version, remove someday
 					String version = reader.getElementText();
 					if (!this.version.equals(version)) {
 						throw new IOException("incompatible store version");

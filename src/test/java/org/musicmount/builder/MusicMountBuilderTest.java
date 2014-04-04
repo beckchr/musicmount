@@ -16,22 +16,19 @@
 package org.musicmount.builder;
 
 import java.io.File;
+import java.net.URL;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.musicmount.builder.impl.AssetLocator;
 import org.musicmount.builder.impl.AssetStore;
 import org.musicmount.builder.impl.LibraryParser;
-import org.musicmount.builder.impl.LocalStrings;
-import org.musicmount.builder.impl.ResourceLocator;
-import org.musicmount.builder.impl.ResponseFormatter;
-import org.musicmount.builder.impl.SimpleAssetLocator;
 import org.musicmount.builder.impl.SimpleAssetParser;
-import org.musicmount.builder.impl.SimpleResourceLocator;
 import org.musicmount.builder.model.Library;
+import org.musicmount.io.Resource;
 import org.musicmount.io.ResourceProvider;
 import org.musicmount.io.file.FileResourceProvider;
+import org.musicmount.util.ProgressHandler;
 
 /*
  * TODO test doesn't assert anything
@@ -39,10 +36,28 @@ import org.musicmount.io.file.FileResourceProvider;
 public class MusicMountBuilderTest {
 	@Rule
 	public TemporaryFolder outputFolder = new TemporaryFolder();
+	URL inputFolder = getClass().getResource("/sample-library");
 
 	@Test
+	public void test() throws Exception {
+		ResourceProvider resourceProvider = new FileResourceProvider();
+		Resource musicFolder = resourceProvider.newResource(new File(inputFolder.toURI()).toPath());
+		Resource mountFolder = resourceProvider.newResource(outputFolder.getRoot().toPath());
+		String musicPath = mountFolder.getPath().relativize(musicFolder.getPath()).toString();
+
+		MusicMountBuilder builder = new MusicMountBuilder();
+		builder.setPretty(true);
+
+		builder.setFull(true);
+		builder.build(musicFolder, mountFolder, musicPath);
+
+		builder.setFull(false); // use asset store
+		builder.build(musicFolder, mountFolder, musicPath);
+	}
+	
+	@Test
 	public void testMain() throws Exception {
-		String input = new File(getClass().getResource("/sample-library").toURI()).getAbsolutePath();
+		String input = new File(inputFolder.toURI()).getAbsolutePath();
 		String output = outputFolder.getRoot().getAbsolutePath();
 		MusicMountBuilder.main(new String[]{ "--pretty", "--full", input, output });
 		MusicMountBuilder.main(new String[]{ "--pretty", input, output }); // use asset store
@@ -51,13 +66,13 @@ public class MusicMountBuilderTest {
 	@Test
 	public void testGenerateResponseFiles() throws Exception {
 		ResourceProvider resourceProvider = new FileResourceProvider();
-		File inputFolder = new File(getClass().getResource("/sample-library").toURI());
+		Resource musicFolder = resourceProvider.newResource(new File(inputFolder.toURI()).toPath());
+		Resource mountFolder = resourceProvider.newResource(outputFolder.getRoot().toPath());
+
 		AssetStore assetStore = new AssetStore(MusicMountBuilder.API_VERSION);
-		assetStore.update(resourceProvider.newResource(inputFolder.toPath()), new SimpleAssetParser());
+		assetStore.update(musicFolder, new SimpleAssetParser(), 4, ProgressHandler.NOOP);
 		Library library = new LibraryParser().parse(assetStore.assets());
-		ResourceLocator resourceLocator = new SimpleResourceLocator(resourceProvider.newResource(outputFolder.getRoot().toPath()), false, false);
-		ResponseFormatter<?> formatter = new ResponseFormatter.JSON(MusicMountBuilder.API_VERSION, new LocalStrings(), false, false, false, true);
-		AssetLocator assetLocator = new SimpleAssetLocator(resourceProvider.newResource(inputFolder.toPath()), "music", null);
-		MusicMountBuilder.generateResponseFiles(library, formatter, resourceLocator, assetLocator);
+
+		new MusicMountBuilder().generateResponseFiles(library, musicFolder, mountFolder, "music");
 	}
 }

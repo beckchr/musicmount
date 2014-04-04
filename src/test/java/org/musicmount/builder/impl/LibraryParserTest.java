@@ -25,6 +25,7 @@ import org.musicmount.builder.model.Library;
 import org.musicmount.builder.model.TrackArtist;
 import org.musicmount.io.ResourceProvider;
 import org.musicmount.io.file.FileResourceProvider;
+import org.musicmount.util.ProgressHandler;
 
 public class LibraryParserTest {
 	ResourceProvider resourceProvider = new FileResourceProvider();
@@ -33,7 +34,7 @@ public class LibraryParserTest {
 	public void testSampleAlbum() throws Exception {
 		File inputFolder = new File(getClass().getResource("/sample-album").toURI());
 		AssetStore assetStore = new AssetStore("test");
-		assetStore.update(resourceProvider.newResource(inputFolder.toPath()), new SimpleAssetParser());
+		assetStore.update(resourceProvider.newResource(inputFolder.toPath()), new SimpleAssetParser(), 1, ProgressHandler.NOOP);
 		Library library = new LibraryParser().parse(assetStore.assets());
 		
 		// aif and wav samples are skipped; expect one album with three tracks (m4a-aac, m4a-alac and mp3)
@@ -75,7 +76,7 @@ public class LibraryParserTest {
 	public void testSampleLibrary() throws Exception {
 		File inputFolder = new File(getClass().getResource("/sample-library").toURI());
 		AssetStore assetStore = new AssetStore("test");
-		assetStore.update(resourceProvider.newResource(inputFolder.toPath()), new SimpleAssetParser());
+		assetStore.update(resourceProvider.newResource(inputFolder.toPath()), new SimpleAssetParser(), 1, ProgressHandler.NOOP);
 		Library library = new LibraryParser().parse(assetStore.assets());
 
 		Assert.assertEquals(4, library.getAlbumArtists().size());

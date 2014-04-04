@@ -29,6 +29,7 @@ import org.musicmount.builder.model.Library;
 import org.musicmount.io.Resource;
 import org.musicmount.io.ResourceProvider;
 import org.musicmount.io.file.FileResourceProvider;
+import org.musicmount.util.ProgressHandler;
 
 public class ImageFormatterTest {
     @Rule
@@ -41,12 +42,12 @@ public class ImageFormatterTest {
 		File input = new File(getClass().getResource("/sample-album").toURI()); // has a square image
 		AssetStore assetStore = new AssetStore("test");
 		AssetParser assetParser = new SimpleAssetParser();
-		assetStore.update(resourceProvider.newResource(input.toPath()), assetParser);
+		assetStore.update(resourceProvider.newResource(input.toPath()), assetParser, 1, ProgressHandler.NOOP);
 		Library library = new LibraryParser().parse(assetStore.assets());
 		File output = outputFolder.getRoot();
 		ResourceLocator resourceLocator = new SimpleResourceLocator(resourceProvider.newResource(output.toPath()), false, false);
 		ImageFormatter imageFormatter = new ImageFormatter(assetParser, false);
-		imageFormatter.formatImages(library, resourceLocator, library.getAlbums());
+		imageFormatter.formatImages(library, resourceLocator, library.getAlbums(), 4, ProgressHandler.NOOP);
 		
 		BufferedImage originalImage = assetParser.extractArtwork(library.getAlbums().iterator().next().artworkAssetResource());
 
