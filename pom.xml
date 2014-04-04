@@ -3,7 +3,7 @@
 
 	<groupId>org.musicmount</groupId>
 	<artifactId>musicmount</artifactId>
-	<version>1.4.1</version>
+	<version>1.4.2-SNAPSHOT</version>
 	<name>MusicMount Tool</name>
 
 	<url>http://www.musicmount.org/</url>
@@ -25,7 +25,7 @@
 	<scm>
 		<connection>scm:git:https://github.com/beckchr/musicmount.git</connection>
 		<developerConnection>scm:git:git@github.com:beckchr/musicmount.git</developerConnection>
-		<tag>musicmount-1.4.1</tag>
+		<tag>HEAD</tag>
 		<url>https://github.com/beckchr/musicmount</url>
 	</scm>
 
