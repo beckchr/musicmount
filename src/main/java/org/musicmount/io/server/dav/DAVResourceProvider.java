@@ -41,10 +41,10 @@ import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.conn.scheme.SchemeRegistry;
-import org.apache.http.conn.scheme.SchemeSocketFactory;
-import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.util.EntityUtils;
 import org.musicmount.io.server.ServerFileAttributes;
 import org.musicmount.io.server.ServerFileSystem;
@@ -56,6 +56,7 @@ import com.github.sardine.DavResource;
 import com.github.sardine.Sardine;
 import com.github.sardine.impl.SardineImpl;
 import com.github.sardine.impl.handler.VoidResponseHandler;
+import com.github.sardine.impl.io.ContentLengthInputStream;
 
 public class DAVResourceProvider extends ServerResourceProvider {
 	/*
@@ -109,23 +110,19 @@ public class DAVResourceProvider extends ServerResourceProvider {
 		 */
 		return new SardineImpl(user, password, null) {
 			@Override
-			protected SchemeRegistry createDefaultSchemeRegistry() {
-				SchemeRegistry registry = new SchemeRegistry();
-				SchemeSocketFactory socketFactory;
-				if ("https".equals(fileSystem.getScheme())) {
+			protected Registry<ConnectionSocketFactory> createDefaultSchemeRegistry() {
+				ConnectionSocketFactory socketFactory;
+				if ("https".equalsIgnoreCase(fileSystem.getScheme())) {
 					socketFactory = createDefaultSecureSocketFactory();
 				} else {
 					socketFactory = createDefaultSocketFactory();
 				}
-				int port = fileSystem.getPort();
-				if (port < 0) { // use default port
-					port = "http".equals(fileSystem.getScheme()) ? 80 : 443;
-				}
-				registry.register(new Scheme(fileSystem.getScheme(), port, socketFactory));
-				return registry;
+				return RegistryBuilder.<ConnectionSocketFactory>create()
+						.register(fileSystem.getScheme(), socketFactory)
+						.build();
 			}
 			@Override
-			protected SSLSocketFactory createDefaultSecureSocketFactory() {
+			protected ConnectionSocketFactory createDefaultSecureSocketFactory() {
 				try { // trust anybody...
 					SSLContext context = SSLContext.getInstance("TLS");
 					X509TrustManager trustManager = new X509TrustManager() {
@@ -136,7 +133,7 @@ public class DAVResourceProvider extends ServerResourceProvider {
 						}
 					};
 					context.init(null, new TrustManager[]{ trustManager }, null);
-					return new SSLSocketFactory(context, SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+					return new SSLConnectionSocketFactory(context, SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
 				} catch (NoSuchAlgorithmException | KeyManagementException e) {
 					// should not happen...
 				}
@@ -153,7 +150,7 @@ public class DAVResourceProvider extends ServerResourceProvider {
 				return super.execute(request, responseHandler);
 			}
 			@Override
-			public InputStream get(String url, Map<String, String> headers) throws IOException {
+			public ContentLengthInputStream get(String url, Map<String, String> headers) throws IOException {
 				/*
 				 * abort rather than consume entity for better performance
 				 */
@@ -161,14 +158,13 @@ public class DAVResourceProvider extends ServerResourceProvider {
 				for (String header : headers.keySet()) {
 					get.addHeader(header, headers.get(header));
 				}
-				// Must use #execute without handler, otherwise the entity is consumed
-				// already after the handler exits.
+				// Must use #execute without handler, otherwise the entity is consumed already after the handler exits.
 				final HttpResponse response = this.execute(get);
 				VoidResponseHandler handler = new VoidResponseHandler();
 				try {
 					handler.handleResponse(response);
-					// Will consume the entity when the stream is closed.
-					return new PositionInputStream(response.getEntity().getContent()) {
+					// Will consume or abort the entity when the stream is closed.
+					PositionInputStream positionInputStream = new PositionInputStream(response.getEntity().getContent()) {
 						public void close() throws IOException {
 							if (getPosition() == response.getEntity().getContentLength()) {
 								EntityUtils.consume(response.getEntity());
@@ -177,6 +173,7 @@ public class DAVResourceProvider extends ServerResourceProvider {
 							}
 						}
 					};
+					return new ContentLengthInputStream(positionInputStream, response.getEntity().getContentLength());
 				} catch (IOException ex) {
 					get.abort();
 					throw ex;
@@ -188,7 +185,7 @@ public class DAVResourceProvider extends ServerResourceProvider {
 	protected Sardine getSardine() {
 		return sardine.get();
 	}
-	
+
 	@Override
 	protected BasicFileAttributes getFileAttributes(ServerPath path) throws IOException {
 		List<DavResource> list = getSardine().list(path.toUri().toString(), 0);
@@ -203,7 +200,7 @@ public class DAVResourceProvider extends ServerResourceProvider {
 		List<DavResource> resources = getSardine().list(folder.toUri().toString(), 1);
 		
 		/*
-		 * The lighthttpd server seems NOT to include the parent as first element!
+		 * Older lighttpd servers seems NOT to include the parent as first element!
 		 * We therefore check if the first resource matches the parent folder.
 		 */
 		if (resources.isEmpty()) {
