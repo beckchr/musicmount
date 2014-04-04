@@ -28,6 +28,12 @@ Documentation is available [here](http://musicmount.org/tool/).
 
 ## Change History
 
+#### Version 1.4.1 (2014/04/04)
+
+- upgrade dependencies to StAXON 1.3, Sardine 5.1
+- increased ID3 text buffer size for comments/lyrics
+- improved progress monitoring
+
 #### Version 1.4 (2014/01/24)
 
 - test server: root context is now `/musicmount`, support `--music ../music` (one level up only)
