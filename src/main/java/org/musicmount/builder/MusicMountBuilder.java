@@ -147,8 +147,8 @@ public class MusicMountBuilder {
 	 * @param base base resource (URL or file path, may be <code>null</code>)
 	 * @param path resource path, resolved relative to base.
 	 * @return resource
-	 * @throws IOException
-	 * @throws URISyntaxException
+	 * @throws IOException IO exception
+	 * @throws URISyntaxException URI syntax exception
 	 */
 	public static Resource getResource(String base, String path) throws IOException, URISyntaxException {
 		if (base == null) {
@@ -489,9 +489,10 @@ public class MusicMountBuilder {
 	}
 
 	/**
-	 * Generate JSON + images
+	 * Build a MusicMount site.
+	 * @param command command name (e.g. "build")
 	 * @param args inputFolder, outputFolder, baseURL
-	 * @throws Exception
+	 * @throws Exception something went wrong...
 	 */
 	public static void execute(String command, String[] args) throws Exception {
 		MusicMountBuilder builder = new MusicMountBuilder();

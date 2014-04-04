@@ -27,8 +27,8 @@ import java.util.logging.Logger;
 public class LoggingUtil {
 	/**
 	 * Setup simple console logging
-	 * @param loggerName
-	 * @param level
+	 * @param loggerName logger name
+	 * @param level log level
 	 */
 	public static void configure(String loggerName, Level level) {
 	    Handler handler = new ConsoleHandler();

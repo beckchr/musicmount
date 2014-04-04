@@ -23,7 +23,7 @@ import org.musicmount.builder.model.Titled;
 /**
  *Comparator for <code>Titled</code> objects.
  * 
- * @param <T>
+ * @param <T> titled type
  */
 public class TitledComparator<T extends Titled> implements Comparator<T> {
 	private final Collator collator;
@@ -32,8 +32,7 @@ public class TitledComparator<T extends Titled> implements Comparator<T> {
 	private final Comparator<? super T> secondaryItemComparator;
 
 	/**
-	 * 
-	 * @param localStrings
+	 * @param localStrings locale and sort title prefixes ('a', 'the', ...)
 	 * @param defaultTitle used when <code>titled.getTitle() == null</code>
 	 * @param secondaryItemComparator used to compare items with equal titles (may be <code>null</code>)
 	 */

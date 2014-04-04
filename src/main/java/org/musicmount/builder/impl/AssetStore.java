@@ -146,7 +146,7 @@ public class AssetStore {
 	 * <li>tracks have been removed from the album</li>
 	 * <li>tracks have been added to the album</li>
 	 * </ul>
-	 * @param albums
+	 * @param albums albums to sync
 	 * @return changed albums
 	 */
 	public Set<Album> sync(Iterable<Album> albums) {

@@ -33,7 +33,7 @@ public abstract class AudioInfoAssetParser implements AssetParser {
 	 * @param resource audio file
 	 * @param imageOnly <code>true</code> if only interested in cover image
 	 * @return audio info
-	 * @throws Exception
+	 * @throws Exception something went wrong
 	 */
 	protected abstract AudioInfo getAudioInfo(Resource resource, boolean imageOnly) throws Exception;
 

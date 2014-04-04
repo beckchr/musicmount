@@ -21,26 +21,31 @@ import java.nio.file.Path;
 public interface ResourceProvider {
 	
 	/**
-	 * @param path
+	 * Create resource
+	 * @param path resource path
 	 * @return new resource
 	 */
 	public Resource newResource(Path path);
 
 	/**
-	 * @param path
+	 * Create resource
+	 * @param first path
+	 * @param more more paths
 	 * @return new resource
 	 */
 	public Resource newResource(String first, String... more);
 
 	/**
+	 * Get base directory
 	 * @return absolute and normalized base directory
 	 */
 	public Resource getBaseDirectory();
 	
 	/**
-	 * @param path
-	 * @return <true> if directory
-	 * @throws IOException
+	 * Test whether resource is directory
+	 * @param path resource path
+	 * @return <code>true</code> if directory
+	 * @throws IOException IO exception
 	 */
 	public boolean isDirectory(Path path) throws IOException;
 }

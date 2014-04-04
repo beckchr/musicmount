@@ -50,8 +50,9 @@ public class MusicMountLinker {
 
 	/**
 	 * Launch HTTP Server
-	 * @param args inputFolder, outputFolder
-	 * @throws Exception
+	 * @param command command name (e.g. "link")
+	 * @param args musicFolder, mountFolder
+	 * @throws Exception something went wrong...
 	 */
 	public static void execute(String command, String[] args) throws Exception {
 		String optionMusic = "music";

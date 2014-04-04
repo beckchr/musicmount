@@ -30,8 +30,10 @@ public class CollectionSection<T extends Titled> implements Comparable<Collectio
 
 	/**
 	 * Partition items into index sections (capital letters plus '#').
+	 * @param <T> titled type
 	 * @param items items to be indexed
 	 * @param comparator used to compare items
+	 * @return sections ('A', ..., 'Z', '#', '?')
 	 */
 	public static <T extends Titled> Iterable<CollectionSection<T>> createIndex(Iterable<? extends T> items, TitledComparator<T> comparator) {
 		Map<Character, CollectionSection<T>> sectionMap = new HashMap<Character, CollectionSection<T>>();

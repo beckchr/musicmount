@@ -33,6 +33,9 @@ public class ID3v2TagHeader {
 
 	/**
 	 * Parse tag header and consume bytes up the first frame header
+	 * @param input input stream
+	 * @throws IOException IO exception
+	 * @throws ID3v2Exception ID3v2 exception
 	 */
 	public ID3v2TagHeader(InputStream input) throws IOException, ID3v2Exception {
 		this(new PositionInputStream(input));

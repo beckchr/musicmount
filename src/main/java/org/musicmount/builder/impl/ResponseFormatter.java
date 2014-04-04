@@ -392,14 +392,6 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		endResponse(writer);
 	}
 
-	/**
-	 * 
-	 * @param artist
-	 * @param output
-	 * @param resourceLocator
-	 * @return representative album
-	 * @throws Exception
-	 */
 	public Album formatAlbumCollection(Artist artist, OutputStream output, ResourceLocator resourceLocator) throws Exception {
 		String title = artist.getTitle() == null ? getDefaultArtistTitle(artist.getArtistType()) : artist.getTitle();
 		Iterable<CollectionSection<Album>> sections = createAlbumCollectionSections(artist);
