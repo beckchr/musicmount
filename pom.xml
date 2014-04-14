@@ -45,6 +45,7 @@
 	
 	<modules>
 		<module>core</module>
+		<module>ui</module>
 		<module>dist</module>
 	</modules>
 

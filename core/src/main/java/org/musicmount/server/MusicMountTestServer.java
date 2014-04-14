@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.FileSystems;
-import java.nio.file.Path;
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -49,11 +48,18 @@ import org.apache.catalina.realm.RealmBase;
 import org.apache.catalina.servlets.DefaultServlet;
 import org.apache.catalina.startup.DigesterFactory;
 import org.apache.catalina.startup.Tomcat;
+import org.musicmount.io.file.FileResource;
+import org.musicmount.io.file.FileResourceProvider;
 import org.musicmount.util.LoggingUtil;
 
 public class MusicMountTestServer {
 	static final Logger LOGGER = Logger.getLogger(MusicMountTestServer.class.getName());
 
+	static {
+		LoggingUtil.configure("org.apache", Level.INFO);
+		LoggingUtil.configure(DigesterFactory.class.getName(), Level.SEVERE); // get rid of warnings on missing jsp schema files		
+	}
+	
 	static final Filter AccessLogFilter = new Filter() {
 		@Override
 		public void init(FilterConfig filterConfig) throws ServletException {
@@ -178,8 +184,14 @@ public class MusicMountTestServer {
 		return parent.delete();
 	}
 
-	public static void startServer(int port, File mountBase, File musicBase, String musicPath, final String user, final String password) throws Exception {
-		Tomcat tomcat = new Tomcat();
+	Tomcat tomcat;
+
+	public void start(FileResource musicFolder, FileResource mountFolder, String musicPath, int port, final String user, final String password) throws Exception {
+		LOGGER.info("Music folder: " + musicFolder.getPath());
+		LOGGER.info("Mount folder: " + mountFolder.getPath());
+		LOGGER.info("Music path  : " + musicPath);
+
+		tomcat = new Tomcat();
 		final File workDir = File.createTempFile("musicmount-", null);
 		workDir.delete();
 		workDir.mkdir();
@@ -196,13 +208,13 @@ public class MusicMountTestServer {
 		tomcat.getConnector().setURIEncoding("UTF-8");
 		tomcat.setSilent(true);
 
-		Context mountContext = addContext(tomcat, "/musicmount", mountBase);
+		Context mountContext = addContext(tomcat, "/musicmount", mountFolder.getPath().toFile());
 		mountContext.addWelcomeFile("index.json");
 		mountContext.addMimeMapping("json", "text/json");
 
 		Context musicContext = null;
 		if (musicPath == null || musicPath.isEmpty()) {
-			if (!mountBase.equals(musicBase)) {
+			if (!mountFolder.equals(musicFolder)) {
 				throw new IllegalArgumentException("Missing music path");
 			}
 		} else { // calculate music context path and add context
@@ -219,7 +231,7 @@ public class MusicMountTestServer {
 			if (musicPath.indexOf("..") >= 0) {
 				throw new IllegalArgumentException("Unsupported music path");
 			}
-			musicContext = addContext(tomcat, musicPath, musicBase);
+			musicContext = addContext(tomcat, musicPath, musicFolder.getPath().toFile());
 			musicContext.addMimeMapping("m4a", "audio/mp4");
 			musicContext.addMimeMapping("mp3", "audio/mpeg");
 		}
@@ -278,6 +290,12 @@ public class MusicMountTestServer {
 
 		tomcat.start();
 		tomcat.getServer().await();
+	}
+	
+	public void stop() throws Exception {
+		tomcat.stop();
+		tomcat.destroy();
+		tomcat = null;
 	}
 
 	/**
@@ -341,16 +359,16 @@ public class MusicMountTestServer {
 			}
 		}
 
-		File musicFolder = null;
-		File mountFolder = null;
+		FileResource musicFolder = null;
+		FileResource mountFolder = null;
 		switch (args.length - optionsLength) {
 		case 0:
 		case 1:
 			exitWithError(command, "missing arguments");
 			break;
 		case 2:
-			musicFolder = new File(args[optionsLength]);
-			mountFolder = new File(args[optionsLength + 1]);
+			musicFolder = new FileResourceProvider(args[optionsLength]).getBaseDirectory();
+			mountFolder = new FileResourceProvider(args[optionsLength + 1]).getBaseDirectory();
 			break;
 		default:
 			exitWithError(command, "bad arguments");
@@ -377,13 +395,16 @@ public class MusicMountTestServer {
 		 * Configure logging
 		 */
 		LoggingUtil.configure(MusicMountTestServer.class.getPackage().getName(), optionVerbose ? Level.FINER : Level.FINE);
-		LoggingUtil.configure("org.apache", Level.INFO);
-		LoggingUtil.configure(DigesterFactory.class.getName(), Level.SEVERE); // get rid of warnings on missing jsp schema files		
 		
+		if (optionMusic == null && musicFolder.getPath().getRoot().equals(mountFolder.getPath().getRoot())) {
+			try { // calculate relative path from mountFolder to musicFolder
+				optionMusic = mountFolder.getPath().relativize(musicFolder.getPath()).toString();
+			} catch (IllegalArgumentException e) {
+				// cannot relativize
+			}
+		}
 		if (optionMusic == null) {
-			Path mountFolderPath = mountFolder.toPath().toAbsolutePath().normalize();
-			Path musicFolderPath = musicFolder.toPath().toAbsolutePath().normalize();
-			optionMusic = mountFolderPath.relativize(musicFolderPath).toString();
+			exitWithError(command, "could not calculate music path as relative path from <mountFolder> to <musicFolder>, use --music <path>");
 		}
 		optionMusic = optionMusic.replace(FileSystems.getDefault().getSeparator(), "/");
 
@@ -409,7 +430,7 @@ public class MusicMountTestServer {
 		LOGGER.info(String.format("--------------"));
 		LOGGER.info(String.format("Starting Server..."));
 		LOGGER.info("Press CTRL-C to exit...");
-		startServer(optionPort, mountFolder, musicFolder, optionMusic, optionUser, optionPassword);
+		new MusicMountTestServer().start(musicFolder, mountFolder, optionMusic, optionPort, optionUser, optionPassword);
 	}
 
 	public static void main(String[] args) throws Exception {

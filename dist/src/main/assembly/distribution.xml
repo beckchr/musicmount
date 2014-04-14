@@ -33,6 +33,14 @@
 	</fileSets>
 	<files>
 		<file>
+			<!--
+			<source>../ui/target/musicmount-ui-${project.version}.jar</source>
+			-->
+			<source>../ui/target/jfx/app/musicmount-ui-${project.version}-jfx.jar</source>
+			<outputDirectory>/</outputDirectory>
+			<destName>musicmount-ui.jar</destName>
+		</file>
+		<file>
 			<source>bin/musicmount</source>
 			<outputDirectory>/bin</outputDirectory>
 			<filtered>true</filtered>			

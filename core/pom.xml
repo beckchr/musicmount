@@ -8,9 +8,8 @@
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
-	<groupId>org.musicmount</groupId>
 	<artifactId>musicmount</artifactId>
-	<name>MusicMount Main</name>
+	<name>MusicMount Core</name>
 
 	<dependencies>
 		<dependency>

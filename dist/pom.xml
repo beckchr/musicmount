@@ -15,7 +15,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>org.musicmount</groupId>
-			<artifactId>musicmount</artifactId>
+			<artifactId>musicmount-ui</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 	</dependencies>

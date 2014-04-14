@@ -20,12 +20,11 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.musicmount.io.Resource;
 import org.musicmount.io.ResourceProvider;
 
 public class FileResourceProvider implements ResourceProvider {
 	private final FileSystem fileSystem;
-	private final Resource baseDirectory;
+	private final FileResource baseDirectory;
 	
 	public FileResourceProvider() {
 		this(FileSystems.getDefault(), System.getProperty("user.dir"));
@@ -46,12 +45,12 @@ public class FileResourceProvider implements ResourceProvider {
 	}
 	
 	@Override
-	public Resource getBaseDirectory() {
+	public FileResource getBaseDirectory() {
 		return baseDirectory;
 	}
 	
 	@Override
-	public Resource newResource(Path path) {
+	public FileResource newResource(Path path) {
 		if (!fileSystem.equals(path.getFileSystem())) {
 			throw new IllegalArgumentException("Invalid path");
 		}
@@ -59,7 +58,7 @@ public class FileResourceProvider implements ResourceProvider {
 	}
 	
 	@Override
-	public Resource newResource(String first, String... more) {
+	public FileResource newResource(String first, String... more) {
 		return new FileResource(this, fileSystem.getPath(first, more));
 	}
 }

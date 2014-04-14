@@ -1,0 +1,39 @@
+/*
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+*/
+/* 
+    Created on : Mar 30, 2014, 4:23:59 PM
+    Author     : christoph
+*/
+
+.tool-title {
+	-fx-font-size: 1.4em;
+	-fx-font-family: "Arial Black";
+	-fx-fill: #C0C0C0;
+}
+
+.run-button {
+    -fx-font-weight: bold;
+}
+
+.status-text {
+    -fx-font-size: 0.8em;
+}
+
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-image: url('logo.png');
+    -fx-background-position: right;
+    -fx-background-repeat: no-repeat;
+    -fx-background-color: #4F779F;
+}
+
+.progress-indicator {
+	-fx-progress-color: #4F779F;
+}
+
+.progress-indicator .percentage {
+    -fx-font-size: 0.8em;
+    -fx-fill: -fx-text-background-color;
+}

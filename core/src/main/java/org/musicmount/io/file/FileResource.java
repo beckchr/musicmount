@@ -26,7 +26,7 @@ import org.musicmount.io.Resource;
 import org.musicmount.io.ResourceDirectoryStream;
 import org.musicmount.io.ResourceProvider;
 
-class FileResource implements Resource {
+public class FileResource implements Resource {
 	private final FileResourceProvider provider; 
 	private final Path path;
 
@@ -51,12 +51,12 @@ class FileResource implements Resource {
 	}
 	
 	@Override
-	public Resource getParent() {
+	public FileResource getParent() {
 		return new FileResource(provider, path.getParent());
 	}
 
 	@Override
-	public Resource resolve(String path) {
+	public FileResource resolve(String path) {
 		return provider.newResource(getPath().resolve(path));
 	}
 
