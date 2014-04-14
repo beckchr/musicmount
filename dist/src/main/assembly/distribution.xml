@@ -6,18 +6,25 @@
 	<formats>
 		<format>zip</format>
 	</formats>
+	<baseDirectory>musicmount-${project.version}</baseDirectory>
 	<dependencySets>
 		<dependencySet>
 			<outputDirectory>/lib</outputDirectory>
+			<useProjectArtifact>false</useProjectArtifact>
+			<excludes>
+				<exclude>org.musicmount:musicmount-ui:jar</exclude>
+			</excludes>
 		</dependencySet>
 	</dependencySets>
 	<fileSets>
 		<fileSet>
-			<directory>dist</directory>
+			<directory>.</directory>
 			<outputDirectory>/</outputDirectory>
 			<filtered>true</filtered>			
 			<includes>
-				<include>**</include>
+				<include>README.txt</include>
+				<include>bin/**</include>
+				<include>cfg/**</include>
 			</includes>
 			<excludes>
 				<exclude>bin/musicmount</exclude>
@@ -26,13 +33,13 @@
 	</fileSets>
 	<files>
 		<file>
-			<source>dist/bin/musicmount</source>
+			<source>bin/musicmount</source>
 			<outputDirectory>/bin</outputDirectory>
 			<filtered>true</filtered>			
 			<fileMode>0755</fileMode>
 		</file>
 		<file>
-			<source>LICENSE.txt</source>
+			<source>../LICENSE.txt</source>
 			<outputDirectory>/</outputDirectory>
 		</file>
 	</files>
