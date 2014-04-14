@@ -193,14 +193,18 @@ public class MusicMountBuilder {
 	private boolean directoryIndex = false;
 	private Normalizer.Form normalizer = null;
 
-	private ProgressHandler progressHandler;
+	private ProgressHandler progressHandler = ProgressHandler.NOOP;
+
+	private final int maxAssetThreads;
+	private final int maxImageThreads;
 
 	public MusicMountBuilder() {
-		this(ProgressHandler.NOOP);
+		this(1, Integer.MAX_VALUE);
 	}
 
-	public MusicMountBuilder(ProgressHandler progressHandler) {
-		this.progressHandler = progressHandler;
+	public MusicMountBuilder(int maxAssetThreads, int maxImageThreads) {
+		this.maxAssetThreads = maxAssetThreads;
+		this.maxImageThreads = maxImageThreads;
 	}
 
 	public ProgressHandler getProgressHandler() {
@@ -302,21 +306,15 @@ public class MusicMountBuilder {
 	}
 
 	public void build(Resource musicFolder, Resource mountFolder, String musicPath) throws Exception {
-		LOGGER.info("Music folder: " + musicFolder.getPath().toUri());
-		LOGGER.info("Mount folder: " + mountFolder.getPath().toUri());
-		LOGGER.info("Music path  : " + musicPath);
-
-		if (!"file".equals(musicFolder.getPath().toUri().getScheme()) || !"file".equals(mountFolder.getPath().toUri().getScheme())) {
-			LOGGER.warning("Remote file system support is experimental/alpha!");
-		}
-		
 		Resource assetStoreFile = mountFolder.resolve(ASSET_STORE);
 
 		AssetLocator assetStoreAssetLocator = new SimpleAssetLocator(musicFolder, null, null); // no prefix, no normalization
 		AssetStore assetStore = new AssetStore(API_VERSION);
 		boolean assetStoreLoaded = false;
 		if (!full && assetStoreFile.exists()) {
-			LOGGER.info("Loading asset store...");
+			if (progressHandler != null) {
+				progressHandler.beginTask(-1, "Loading asset store...");
+			}
 			try (InputStream assetStoreInput = createInputStream(assetStoreFile)) {
 				assetStore.load(assetStoreInput, assetStoreAssetLocator);
 				assetStoreLoaded = true;
@@ -324,27 +322,33 @@ public class MusicMountBuilder {
 				LOGGER.log(Level.WARNING, "Failed to load asset store", e);
 				assetStore = new AssetStore(API_VERSION);
 			}
+			if (progressHandler != null) {
+				progressHandler.endTask();
+			}
 		}
 
 		AssetParser assetParser = new SimpleAssetParser();
 
-		LOGGER.info(assetStoreLoaded ? "Updating asset store..." : "Creating asset store...");
-		assetStore.update(musicFolder, assetParser, 1, progressHandler);
+		assetStore.update(musicFolder, assetParser, maxAssetThreads, progressHandler);
 
-		LOGGER.info("Building music libary...");
+		if (progressHandler != null) {
+			progressHandler.beginTask(-1, "Building music libary...");
+		}
 		Library library = new LibraryParser().parse(assetStore.assets());
 		if (noVariousArtists) { // remove "various artists" album artist (hack)
 			library.getAlbumArtists().remove(null);
 		}
 		Set<Album> changedAlbums = assetStore.sync(library.getAlbums());
-		if (LOGGER.isLoggable(Level.FINE) && assetStoreLoaded) {
+		if (assetStoreLoaded) {
 			LOGGER.fine(String.format("Number of albums changed: %d", changedAlbums.size()));
+		}
+		if (progressHandler != null) {
+			progressHandler.endTask();
 		}
 
 		if (noImages) {
 			assetStore.setRetina(null);
 		} else {
-			LOGGER.info(assetStoreLoaded ? "Updating images..." : "Generating images...");
 			ImageFormatter formatter = new ImageFormatter(assetParser, retina);
 			final boolean retinaChange = !Boolean.valueOf(retina).equals(assetStore.getRetina());
 			if (LOGGER.isLoggable(Level.FINE) && retinaChange && assetStoreLoaded) {
@@ -352,25 +356,33 @@ public class MusicMountBuilder {
 			}
 			ResourceLocator resourceLocator = new SimpleResourceLocator(mountFolder, xml, noImages);
 			Set<Album> imageAlbums = retinaChange || full ? new HashSet<>(library.getAlbums()) : changedAlbums;
-			formatter.formatImages(library, resourceLocator, imageAlbums, Integer.MAX_VALUE, progressHandler);
+			formatter.formatImages(library, resourceLocator, imageAlbums, maxImageThreads, progressHandler);
 			assetStore.setRetina(retina);
 		}
 		
-		LOGGER.info("Generating JSON...");
 		generateResponseFiles(library, musicFolder, mountFolder, musicPath);
 
-		LOGGER.info("Saving asset store...");
+		if (progressHandler != null) {
+			progressHandler.beginTask(-1, "Saving asset store...");
+		}
 		try (OutputStream assetStoreOutput = createOutputStream(assetStoreFile)) {
 			assetStore.save(assetStoreOutput, assetStoreAssetLocator);
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to save asset store", e);
 			assetStoreFile.delete();
 		}
+		if (progressHandler != null) {
+			progressHandler.endTask();
+		}
 
 		LOGGER.info("Done.");
 	}
 
 	void generateResponseFiles(Library library, Resource musicFolder, Resource mountFolder, String musicPath) throws Exception {
+		if (progressHandler != null) {
+			progressHandler.beginTask(7, "Generating JSON...");
+		}
+
 		LocalStrings localStrings = new LocalStrings(Locale.ENGLISH);
 		ResponseFormatter<?> formatter;
 		if (xml) {
@@ -381,11 +393,13 @@ public class MusicMountBuilder {
 		AssetLocator assetLocator = new SimpleAssetLocator(musicFolder, musicPath, normalizer);
 		ResourceLocator resourceLocator = new SimpleResourceLocator(mountFolder, xml, noImages);
 
+		int workDone = -1;
+		
 		/*
 		 * album artists
 		 */
-		if (LOGGER.isLoggable(Level.FINE)) {
-			LOGGER.fine(String.format("%4d album artists...", library.getAlbumArtists().size()));
+		if (progressHandler != null) {
+			progressHandler.progress(++workDone, String.format("%4d album artists...", library.getAlbumArtists().size()));
 		}
 		Map<Artist, Album> representativeAlbums = new HashMap<Artist, Album>();
 		for (Artist artist : library.getAlbumArtists().values()) {
@@ -396,8 +410,8 @@ public class MusicMountBuilder {
 				representativeAlbums.put(artist, formatter.formatAlbumCollection(artist, output, resourceLocator));
 			}
 		}
-		if (LOGGER.isLoggable(Level.FINER)) {
-			LOGGER.finer("Generating album artist index");
+		if (progressHandler != null) {
+			progressHandler.progress(++workDone, "album artist index");
 		}
 		try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getArtistIndexPath(ArtistType.AlbumArtist)))) {
 			formatter.formatArtistIndex(library.getAlbumArtists().values(), ArtistType.AlbumArtist, output, resourceLocator, representativeAlbums);
@@ -406,8 +420,8 @@ public class MusicMountBuilder {
 		/*
 		 * artists
 		 */
-		if (LOGGER.isLoggable(Level.FINE)) {
-			LOGGER.fine(String.format("%4d artists...", library.getTrackArtists().size()));
+		if (progressHandler != null) {
+			progressHandler.progress(++workDone, String.format("%4d artists...", library.getTrackArtists().size()));
 		}
 		representativeAlbums.clear();
 		for (Artist artist : library.getTrackArtists().values()) {
@@ -418,8 +432,8 @@ public class MusicMountBuilder {
 				representativeAlbums.put(artist, formatter.formatAlbumCollection(artist, output, resourceLocator));
 			}
 		}
-		if (LOGGER.isLoggable(Level.FINER)) {
-			LOGGER.finer("Generating artist index");
+		if (progressHandler != null) {
+			progressHandler.progress(++workDone, "artist index");
 		}
 		try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getArtistIndexPath(ArtistType.TrackArtist)))) {
 			formatter.formatArtistIndex(library.getTrackArtists().values(), ArtistType.TrackArtist, output, resourceLocator, representativeAlbums);
@@ -428,8 +442,8 @@ public class MusicMountBuilder {
 		/*
 		 * albums
 		 */
-		if (LOGGER.isLoggable(Level.FINE)) {
-			LOGGER.fine(String.format("%4d albums...", library.getAlbums().size()));
+		if (progressHandler != null) {
+			progressHandler.progress(++workDone, String.format("%4d albums...", library.getAlbums().size()));
 		}
 		for (Album album : library.getAlbums()) {
 			if (LOGGER.isLoggable(Level.FINEST)) {
@@ -439,8 +453,8 @@ public class MusicMountBuilder {
 				formatter.formatAlbum(album, output, resourceLocator, assetLocator);
 			}
 		}
-		if (LOGGER.isLoggable(Level.FINER)) {
-			LOGGER.finer("Generating album index");
+		if (progressHandler != null) {
+			progressHandler.progress(++workDone, "album index");
 		}
 		try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getAlbumIndexPath()))) {
 			formatter.formatAlbumIndex(library.getAlbums(), output, resourceLocator);
@@ -449,11 +463,15 @@ public class MusicMountBuilder {
 		/*
 		 * service index last
 		 */
-		if (LOGGER.isLoggable(Level.FINER)) {
-			LOGGER.finer("Generating service index...");
+		if (progressHandler != null) {
+			progressHandler.progress(++workDone, "service index");
 		}
 		try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getServiceIndexPath()))) {
 			formatter.formatServiceIndex(resourceLocator, output);
+		}
+
+		if (progressHandler != null) {
+			progressHandler.endTask();
 		}
 	}
 
@@ -632,6 +650,15 @@ public class MusicMountBuilder {
 		 * Configure logging
 		 */
 		LoggingUtil.configure(MusicMountBuilder.class.getPackage().getName(), optionVerbose ? Level.FINER : Level.FINE);
+
+		LOGGER.info("Music folder: " + musicFolder.getPath().toUri());
+		LOGGER.info("Mount folder: " + mountFolder.getPath().toUri());
+		LOGGER.info("Music path  : " + optionMusic);
+
+		if (!"file".equals(musicFolder.getPath().toUri().getScheme()) || !"file".equals(mountFolder.getPath().toUri().getScheme())) {
+			LOGGER.warning("Remote file system support is experimental/alpha!");
+		}
+
 		builder.setProgressHandler(new ProgressHandler() {
 			@Override
 			public void beginTask(int totalWork, String title) {
@@ -651,7 +678,6 @@ public class MusicMountBuilder {
 			public void endTask() {
 			}
 		});
-
 
 		/**
 		 * Run builder

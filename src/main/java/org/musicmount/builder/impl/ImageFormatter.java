@@ -144,13 +144,22 @@ public class ImageFormatter {
 	}
 	
 	public void formatImages(Library library, ResourceLocator resourceLocator, Collection<Album> changedAlbums, int maxThreads, final ProgressHandler progressHandler) {
+		if (progressHandler != null) {
+			progressHandler.beginTask(-1, "Preparing images...");
+		}
 		final Map<Album, Map<ImageType, Resource>> albumTargets = collectAlbumTargets(library, resourceLocator, changedAlbums);
+		if (progressHandler != null) {
+			progressHandler.endTask();
+		}
 		List<Album> albums = new ArrayList<>(albumTargets.keySet());
 
 		int numberOfAlbumsPerTask = 10;
 		int numberOfAlbums = albums.size();
 		int numberOfThreads = Math.min(1 + (numberOfAlbums - 1) / numberOfAlbumsPerTask, Math.min(maxThreads, Runtime.getRuntime().availableProcessors()));
-		progressHandler.beginTask(numberOfAlbums, null);
+		if (progressHandler != null) {
+			progressHandler.beginTask(numberOfAlbums, "Formatting images...");
+		}
+		final int progressModulo = numberOfAlbums < 200 ? 10 : numberOfAlbums < 1000 ? 50 : 100;
 		if (numberOfThreads > 1) { // run on multiple threads
 			if (LOGGER.isLoggable(Level.FINER)) {
 				LOGGER.finer("Parallel: #threads = " + numberOfThreads);
@@ -165,7 +174,7 @@ public class ImageFormatter {
 						for (Album album : albumsSlice) {
 							formatImages(album.artworkAssetResource(), albumTargets.get(album));
 							int count = atomicCount.getAndIncrement() + 1;
-							if (progressHandler != null && count % 100 == 0) {
+							if (progressHandler != null && count % progressModulo == 0) {
 								progressHandler.progress(count, String.format("#albums = %4d", count));
 							}
 						}
@@ -183,11 +192,13 @@ public class ImageFormatter {
 			for (Album album : albums) {
 				formatImages(album.artworkAssetResource(), albumTargets.get(album));
 				count++;
-				if (progressHandler != null && count % 100 == 0) {
+				if (progressHandler != null && count % progressModulo == 0) {
 					progressHandler.progress(count, String.format("#albums = %4d", count));
 				}
 			}
 		}
-		progressHandler.endTask();
+		if (progressHandler != null) {
+			progressHandler.endTask();
+		}
 	}
 }

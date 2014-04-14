@@ -343,10 +343,13 @@ public class AssetStore {
 		/*
 		 * Parse new/modified entities
 		 */
-		int numberOfAssetsPerTask = 100;
+		int numberOfAssetsPerTask = 10;
 		int numberOfAssets = parseList.size();
 		int numberOfThreads = Math.min(1 + (numberOfAssets - 1) / numberOfAssetsPerTask, Math.min(maxThreads, Runtime.getRuntime().availableProcessors()));
-		progressHandler.beginTask(parseList.size(), "Parsing new/modified assets...");
+		if (progressHandler != null) {
+			progressHandler.beginTask(parseList.size(), "Parsing new/modified assets...");
+		}
+		final int progressModulo = numberOfAssets < 200 ? 10 : numberOfAssets < 1000 ? 50 : 100;
 		if (numberOfThreads > 1) { // run on multiple threads
 			if (LOGGER.isLoggable(Level.FINER)) {
 				LOGGER.finer("Parallel: #threads = " + numberOfThreads);
@@ -365,7 +368,7 @@ public class AssetStore {
 								LOGGER.log(Level.WARNING, "Could not parse asset: " + resource.getPath(), e);
 							}
 							int count = atomicCount.getAndIncrement() + 1;
-							if (progressHandler != null && count % 100 == 0) {
+							if (progressHandler != null && count % progressModulo == 0) {
 								progressHandler.progress(count, String.format("#assets = %5d", count));
 							}
 						}
@@ -387,13 +390,15 @@ public class AssetStore {
 					LOGGER.log(Level.WARNING, "Could not parse asset: " + resource.getPath(), e);
 				}
 				count++;
-				if (progressHandler != null && count % 100 == 0) {
+				if (progressHandler != null && count % progressModulo == 0) {
 					progressHandler.progress(count, String.format("#assets = %5d", count));
 				}
 			}
 		}
 		
-		progressHandler.endTask();
+		if (progressHandler != null) {
+			progressHandler.endTask();
+		}
 
 		/*
 		 * remove deleted entities
@@ -429,10 +434,14 @@ public class AssetStore {
 	}
 
 	List<Resource> collectAssetResources(Resource directory, ProgressHandler progressHandler, DirectoryStream.Filter<Path> assetFilter) throws IOException {
-		progressHandler.beginTask(-1, "Scanning directory for assets...");
+		if (progressHandler != null) {
+			progressHandler.beginTask(-1, "Scanning directory for assets...");
+		}
 		List<Resource> assetResources = new ArrayList<>();
 		collectAssetResources(assetResources, directory, progressHandler, assetFilter);
-		progressHandler.endTask();
+		if (progressHandler != null) {
+			progressHandler.endTask();
+		}
 		return assetResources;
 	}
 
