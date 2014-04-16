@@ -183,10 +183,92 @@ public class MusicMountTestServer {
 		}
 		return parent.delete();
 	}
+	
+	int upLevels(String[] segments) {
+		int upLevels = 0;
+		while (segments[upLevels].equals("..")) {
+			if (++upLevels == segments.length) {
+				break;
+			}
+		}
+		return upLevels;
+	}
+	
+	String normalizeMusicPath(String musicPath) {
+		musicPath = musicPath.trim();
+		musicPath = musicPath.replace(FileSystems.getDefault().getSeparator(), "/");
+		musicPath = musicPath.replaceAll("/+", "/");
+		musicPath = musicPath.replaceAll("/\\./", "/");
+		musicPath = musicPath.replaceAll("^\\./|/\\.$", "");
+		if (musicPath.endsWith("/")) {
+			musicPath = musicPath.substring(0, musicPath.length() - 1);
+		}
+		return musicPath;
+	}
+	
+	public boolean checkMusicPath(String musicPath) {
+		if (musicPath == null || musicPath.trim().isEmpty()) {
+			return false;
+		}
+		musicPath = normalizeMusicPath(musicPath);
+		String[] segments = musicPath.split("/");
+		int downStartIndex = upLevels(segments);
+		if (downStartIndex == segments.length) {
+			return false;
+		}
+		for (int i = downStartIndex; i < segments.length; i++) {
+			if (segments[i].equals("..")) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	String musicContextPath(String musicPath) {
+		musicPath = normalizeMusicPath(musicPath);
+		if (musicPath.startsWith("../")) { // up-down-path, e.g. "../../../music" -> "/music"
+			return musicPath.substring(3 * upLevels(musicPath.split("/")) - 1);
+		} else if (musicPath.startsWith("/")) { // absolute path, e.g. "/music" -> "/music"
+			return musicPath;
+		} else { // down-path, e.g. "music"
+			return "/musicmount/" + musicPath;
+		}
+	}
+
+	String mountContextPath(String musicPath) {
+		musicPath = normalizeMusicPath(musicPath);
+		int upLevels = upLevels(musicPath.split("/"));
+		if (upLevels < 2) {
+			return "/musicmount";
+		} else {
+			StringBuilder builder = new StringBuilder();
+			for (int i = 1; i < upLevels; i++) {
+				builder.append("/").append(i);
+			}
+			return builder.append("/musicmount").toString();
+		}
+	}
+	
+	public String getSiteURL(String musicPath, int port) {
+		if (!checkMusicPath(musicPath)) {
+			return null;
+		}
+		String host = InetAddress.getLoopbackAddress().getHostName();
+		try {
+			host = InetAddress.getLocalHost().getHostName();
+		} catch (UnknownHostException e) {
+			LOGGER.log(Level.WARNING, "Could not determine local host name, showing loopback name", e);
+		}
+		return String.format("http://%s:%d%s/index.json", host, port, mountContextPath(musicPath));
+	}
 
 	Tomcat tomcat;
 
 	public void start(FileResource musicFolder, FileResource mountFolder, String musicPath, int port, final String user, final String password) throws Exception {
+		if (!checkMusicPath(musicPath)) {
+			throw new IllegalArgumentException("Unsupported music path");
+		}
+
 		LOGGER.info("Music folder: " + musicFolder.getPath());
 		LOGGER.info("Mount folder: " + mountFolder.getPath());
 		LOGGER.info("Music path  : " + musicPath);
@@ -208,33 +290,13 @@ public class MusicMountTestServer {
 		tomcat.getConnector().setURIEncoding("UTF-8");
 		tomcat.setSilent(true);
 
-		Context mountContext = addContext(tomcat, "/musicmount", mountFolder.getPath().toFile());
+		Context mountContext = addContext(tomcat, mountContextPath(musicPath), mountFolder.getPath().toFile());
 		mountContext.addWelcomeFile("index.json");
 		mountContext.addMimeMapping("json", "text/json");
 
-		Context musicContext = null;
-		if (musicPath == null || musicPath.isEmpty()) {
-			if (!mountFolder.equals(musicFolder)) {
-				throw new IllegalArgumentException("Missing music path");
-			}
-		} else { // calculate music context path and add context
-			if (!musicPath.startsWith("/")) {
-				if (musicPath.startsWith("../")) { // ../music --> /music
-					musicPath = musicPath.substring(2);
-				} else { // music or ./music --> /musicmount/music
-					if (musicPath.startsWith("./")) {
-						musicPath = musicPath.substring(2);
-					}
-					musicPath = "/musicmount/" + musicPath;
-				}
-			}
-			if (musicPath.indexOf("..") >= 0) {
-				throw new IllegalArgumentException("Unsupported music path");
-			}
-			musicContext = addContext(tomcat, musicPath, musicFolder.getPath().toFile());
-			musicContext.addMimeMapping("m4a", "audio/mp4");
-			musicContext.addMimeMapping("mp3", "audio/mpeg");
-		}
+		Context musicContext = addContext(tomcat, musicContextPath(musicPath), musicFolder.getPath().toFile());
+		musicContext.addMimeMapping("m4a", "audio/mp4");
+		musicContext.addMimeMapping("mp3", "audio/mpeg");
 		
 		FilterDef utf8FilterDef = new FilterDef();
 		utf8FilterDef.setFilterName("utf8-filter");

@@ -52,7 +52,11 @@ public class FileResource implements Resource {
 	
 	@Override
 	public FileResource getParent() {
-		return new FileResource(provider, path.getParent());
+		Path parentPath = path.getParent();
+		if (parentPath == null) {
+			return null;
+		}
+		return new FileResource(provider, parentPath);
 	}
 
 	@Override
