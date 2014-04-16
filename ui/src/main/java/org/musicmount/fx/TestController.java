@@ -1,8 +1,6 @@
 package org.musicmount.fx;
 
 import java.io.File;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.logging.Level;
 
 import javafx.beans.value.ChangeListener;
@@ -169,12 +167,7 @@ public class TestController {
 
     	service.setOnRunning(new EventHandler<WorkerStateEvent>() {
 			public void handle(WorkerStateEvent event) {
-				String hostname = InetAddress.getLoopbackAddress().getHostName();
-				try {
-					hostname = InetAddress.getLocalHost().getHostName();
-				} catch (UnknownHostException e) {
-				}
-				statusText.setText(String.format("Site: http://%s:%d/musicmount/", hostname, port));
+				statusText.setText(server.getSiteURL(model.getMusicPath(), port));
 				runButton.setText("Stop Server");
             	disableControls(true);
 			}
@@ -348,7 +341,7 @@ public class TestController {
 	}
 	
 	void updateRunButton() {
-		runButton.setDisable(!model.isSite() || port == null);
+		runButton.setDisable(!model.isSite() || port == null || !server.checkMusicPath(model.getMusicPath()));
 	}
 	
 	void updatePort() {

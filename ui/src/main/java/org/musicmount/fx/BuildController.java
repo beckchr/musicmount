@@ -269,7 +269,6 @@ public class BuildController {
 		 * options
 		 */
 		Label optionsLabel = new Label("Options");
-		GridPane.setHalignment(optionsLabel, HPos.RIGHT);
 		grid.add(optionsLabel, 0, 4);
 		GridPane.setHalignment(optionsLabel, HPos.RIGHT);
 		retinaCheckBox = new CheckBox("Retina Images");

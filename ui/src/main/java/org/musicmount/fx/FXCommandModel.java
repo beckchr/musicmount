@@ -64,6 +64,13 @@ public class FXCommandModel {
 		if (musicFolder == null ||  mountFolder == null) {
 			return false;
 		}
+		FileResource folder = mountFolder;
+		while (folder != null) {
+			if (folder.equals(musicFolder)) {
+				return false;
+			}
+			folder = folder.getParent();
+		}
 		String musicPath = getMusicPath();
 		return musicPath != null && !musicPath.isEmpty();
 	}

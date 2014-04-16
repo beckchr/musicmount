@@ -33,6 +33,8 @@ public class MusicMountApplication extends Application {
 
 	@Override
 	public void start(Stage primaryStage) {
+//		System.out.println("java version: " + System.getProperty("java.version"));
+		
 		FXCommandModel model = new FXCommandModel();
 		BuildController buildController = new BuildController(model);
 		Pane buildPane = buildController.getPane();
@@ -69,12 +71,12 @@ public class MusicMountApplication extends Application {
 		buildController.getService().runningProperty().addListener(serviceRunningListener);
 		testController.getService().runningProperty().addListener(serviceRunningListener);
 		
-		Scene scene = new Scene(borderPane, 560, borderPane.getPrefHeight());
+		Scene scene = new Scene(borderPane, 640, borderPane.getPrefHeight());
 		scene.getStylesheets().add(getClass().getResource("style.css").toExternalForm());
 		primaryStage.setTitle("MusicMount");
 		primaryStage.setScene(scene);
 		primaryStage.show();
-		primaryStage.setResizable(false);
+//		primaryStage.setResizable(false);
 	}
 
 	/**
