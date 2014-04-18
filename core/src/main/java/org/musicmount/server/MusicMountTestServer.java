@@ -288,6 +288,9 @@ public class MusicMountTestServer {
 		tomcat.setBaseDir(workDir.getAbsolutePath());
 		tomcat.setPort(port);
 		tomcat.getConnector().setURIEncoding("UTF-8");
+		tomcat.getConnector().setProperty("compression", "on");
+		tomcat.getConnector().setProperty("compressionMinSize", "1024");
+		tomcat.getConnector().setProperty("compressableMimeType", "text/json");
 		tomcat.setSilent(true);
 
 		Context mountContext = addContext(tomcat, mountContextPath(musicPath), mountFolder.getPath().toFile());
