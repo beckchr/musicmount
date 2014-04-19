@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>org.musicmount</groupId>
 		<artifactId>musicmount-parent</artifactId>
-		<version>1.4.2-SNAPSHOT</version>
+		<version>1.5-SNAPSHOT</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
@@ -30,6 +30,7 @@
 						<descriptor>src/main/assembly/distribution.xml</descriptor>
 					</descriptors>
 					<appendAssemblyId>false</appendAssemblyId>
+					<finalName>musicmount-${project.version}</finalName>
 				</configuration>
 				<executions>
 					<execution>
