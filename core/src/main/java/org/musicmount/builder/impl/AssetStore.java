@@ -347,7 +347,7 @@ public class AssetStore {
 		int numberOfAssets = parseList.size();
 		int numberOfThreads = Math.min(1 + (numberOfAssets - 1) / numberOfAssetsPerTask, Math.min(maxThreads, Runtime.getRuntime().availableProcessors()));
 		if (progressHandler != null) {
-			progressHandler.beginTask(parseList.size(), "Parsing new/modified assets...");
+			progressHandler.beginTask(parseList.size(), String.format("Parsing %d new/modified assets...", numberOfAssets));
 		}
 		final int progressModulo = numberOfAssets < 200 ? 10 : numberOfAssets < 1000 ? 50 : 100;
 		if (numberOfThreads > 1) { // run on multiple threads

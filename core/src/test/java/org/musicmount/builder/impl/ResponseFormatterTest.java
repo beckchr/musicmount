@@ -38,13 +38,13 @@ public class ResponseFormatterTest {
 	public void test() throws Exception {
 		ResourceProvider resourceProvider = new FileResourceProvider();
 
-		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(resourceProvider.newResource(outputFolder.getRoot().toPath()), false, false);
+		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(resourceProvider.newResource(outputFolder.getRoot().toPath()), false, false, false);
 		ResponseFormatter.JSON responseFormatter = new ResponseFormatter.JSON("test", new LocalStrings(), false, false, false, true);
 
 		File inputFolder = new File(getClass().getResource("/sample-library").toURI());
 		AssetStore assetStore = new AssetStore("test");
 		assetStore.update(resourceProvider.newResource(inputFolder.toPath()), new SimpleAssetParser(), 1, ProgressHandler.NOOP);
-		Library library = new LibraryParser().parse(assetStore.assets());
+		Library library = new LibraryParser(true).parse(assetStore.assets());
 
 		SimpleAssetLocator assetLocator = new SimpleAssetLocator(resourceProvider.newResource(outputFolder.getRoot().toPath()), "music", null);
 		ByteArrayOutputStream output;
@@ -66,6 +66,9 @@ public class ResponseFormatterTest {
 
 		output = new ByteArrayOutputStream();
 		responseFormatter.formatArtistIndex(library.getTrackArtists().values(), ArtistType.TrackArtist, output, resourceLocator, null);
+
+		output = new ByteArrayOutputStream();
+		responseFormatter.formatTrackIndex(library.getTracks(), output, resourceLocator, assetLocator);
 
 		output = new ByteArrayOutputStream();
 		responseFormatter.formatServiceIndex(resourceLocator, output);

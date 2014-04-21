@@ -63,6 +63,10 @@ public class LocalStrings {
 		return bundle.getString("UnknownAlbum");
 	}
 	
+	public String getUnknownTrack() {
+		return bundle.getString("UnknownTrack");
+	}
+	
 	public String getDisc() {
 		return bundle.getString("Disc");
 	}

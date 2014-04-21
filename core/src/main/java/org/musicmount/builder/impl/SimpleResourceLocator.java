@@ -24,11 +24,13 @@ public class SimpleResourceLocator implements ResourceLocator {
 	private final Resource outputFolder;
 	private final String extension;
 	private final boolean noImages;
+	private final boolean noTrackIndex;
 	
-	public SimpleResourceLocator(Resource outputFolder, boolean xml, boolean noImages) {
+	public SimpleResourceLocator(Resource outputFolder, boolean xml, boolean noImages, boolean noTrackIndex) {
 		this.outputFolder = outputFolder;
 		this.extension = xml ? "xml" : "json";
 		this.noImages = noImages;
+		this.noTrackIndex = noTrackIndex;
 	}		
 
 	private String getArtistPathPrefix(ArtistType artistType) {
@@ -64,6 +66,11 @@ public class SimpleResourceLocator implements ResourceLocator {
 	@Override
 	public String getAlbumIndexPath() {
 		return String.format("albums/index.%s", extension);
+	}
+
+	@Override
+	public String getTrackIndexPath() {
+		return noTrackIndex ? null : String.format("tracks/index.%s", extension);
 	}
 
 	@Override

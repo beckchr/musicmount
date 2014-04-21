@@ -20,7 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Library {
+public class Library extends Playlist {
 	private final Map<String, AlbumArtist> albumArtists = new LinkedHashMap<String, AlbumArtist>();
 	private final Map<String, TrackArtist> trackArtists = new LinkedHashMap<String, TrackArtist>();
 	private final List<Album> albums = new ArrayList<Album>();

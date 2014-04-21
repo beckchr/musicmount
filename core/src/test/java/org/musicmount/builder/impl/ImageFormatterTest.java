@@ -43,9 +43,9 @@ public class ImageFormatterTest {
 		AssetStore assetStore = new AssetStore("test");
 		AssetParser assetParser = new SimpleAssetParser();
 		assetStore.update(resourceProvider.newResource(input.toPath()), assetParser, 1, ProgressHandler.NOOP);
-		Library library = new LibraryParser().parse(assetStore.assets());
+		Library library = new LibraryParser(true).parse(assetStore.assets());
 		File output = outputFolder.getRoot();
-		ResourceLocator resourceLocator = new SimpleResourceLocator(resourceProvider.newResource(output.toPath()), false, false);
+		ResourceLocator resourceLocator = new SimpleResourceLocator(resourceProvider.newResource(output.toPath()), false, false, false);
 		ImageFormatter imageFormatter = new ImageFormatter(assetParser, false);
 		imageFormatter.formatImages(library, resourceLocator, library.getAlbums(), 4, ProgressHandler.NOOP);
 		

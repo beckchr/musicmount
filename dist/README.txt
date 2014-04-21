@@ -24,6 +24,7 @@ Options:
        --full             full parse, don't use track store
        --grouping         use grouping tag to group album tracks
        --unknownGenre     report missing genre as 'Unknown'
+       --noTrackIndex     do not generate a track index
        --noVariousArtists exclude 'Various Artists' from album artist index
        --directoryIndex   use 'path/' instead of 'path/index.json'
        --pretty           pretty-print JSON documents

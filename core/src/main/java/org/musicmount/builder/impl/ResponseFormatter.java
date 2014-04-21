@@ -203,23 +203,10 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		return localStrings.getUnknownAlbum();
 	}
 
-	private String trackTitle(Track track) {
-		if (useGrouping && track.getGrouping() != null && track.getTitle().startsWith(track.getGrouping())) {
-			String title = track.getTitle().substring(track.getGrouping().length());
-			if (title.length() > 0) {
-				if (Character.isAlphabetic(title.charAt(0)) || Character.isDigit(title.charAt(0))) {
-					return title;
-				}
-				for (int start = 1; start < title.length(); start++) {
-					if (Character.isAlphabetic(title.charAt(start)) || Character.isDigit(title.charAt(start))) {
-						return title.substring(start);
-					}
-				}
-			}
-		}
-		return track.getTitle();
+	private String getDefaultTrackTitle() {
+		return localStrings.getUnknownTrack();
 	}
-	
+
 	public Integer albumYear(Album album, Integer defaultValue) {
 		Integer maximumYear = null;
 		for (Track track : album.getTracks()) {
@@ -298,6 +285,44 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		}
 	}
 
+	private void formatTrackSections(T writer, Iterable<CollectionSection<Track>> sections, ResourceLocator resourceLocator, AssetLocator assetLocator, ImageType imageType) throws Exception {
+		writeStartArray(writer);
+		for (CollectionSection<Track> section : sections) {
+			writer.writeStartElement("section");
+			if (section.getTitle() != null) {
+				writeStringProperty(writer, "title", section.getTitle());
+			}
+			writeStartArray(writer);
+			for (Track item : section.getItems()) {
+				writer.writeStartElement("item");
+				writeStringProperty(writer, "title", item.getTitle() == null ? getDefaultTrackTitle() : item.getTitle());
+				writeStringProperty(writer, "artist", item.getArtist().getTitle() == null ? getDefaultArtistTitle(ArtistType.TrackArtist) : item.getArtist().getTitle());
+				if (item.getGenre() != null || includeUnknownGenre) {
+					writeStringProperty(writer, "genre", item.getGenre() != null ? item.getGenre() : localStrings.getUnknownGenre());
+				}
+				if (item.getDuration() != null) {
+					writeNumberProperty(writer, "duration", item.getDuration());
+				}
+				if (item.getAlbum() != null) {
+					String imagePath = resourceLocator.getAlbumImagePath(item.getAlbum(), imageType);
+					if (imagePath != null && resourceLocator.getResource(imagePath).exists()) {
+						writeStringProperty(writer, "imagePath", imagePath);
+					}
+					writeStringProperty(writer, "albumPath", getDocumentPath(resourceLocator.getAlbumPath(item.getAlbum())));
+				}
+				if (assetLocator != null) {
+					String assetPath = assetLocator.getAssetPath(item.getResource());
+					if (assetPath != null) {
+						writeStringProperty(writer, "assetPath", assetPath);
+					}
+				}
+				writer.writeEndElement();
+			}
+			writer.writeEndElement();
+		}
+	}
+
+
 	private Iterable<CollectionSection<Album>> createAlbumCollectionSections(Artist artist) {
 		// split albums into sections with regular albums and others (compilations/various/unknown)
 		CollectionSection<Album> regularAlbums = new CollectionSection<Album>(localStrings.getRegularAlbumSection());
@@ -357,10 +382,14 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		if (albumIndexPath != null) {
 			writeStringProperty(writer, "albumIndexPath", getDocumentPath(albumIndexPath));
 		}
+		String trackIndexPath = resourceLocator.getTrackIndexPath();
+		if (trackIndexPath != null) {
+			writeStringProperty(writer, "trackIndexPath", getDocumentPath(trackIndexPath));
+		}
 		endResponse(writer);
 	}
 
-	public void formatArtistIndex(Collection<? extends Artist> artists, ArtistType artistType, OutputStream output, ResourceLocator resourceLocator, Map<Artist, Album> representativeAlbums) throws Exception {
+	public void formatArtistIndex(Iterable<? extends Artist> artists, ArtistType artistType, OutputStream output, ResourceLocator resourceLocator, Map<Artist, Album> representativeAlbums) throws Exception {
 		T writer = createStreamWriter(output);
 		startResponse(writer, "artistCollection");
 		writeStringProperty(writer, "title", localStrings.getArtistIndexTitle(artistType));
@@ -375,7 +404,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		endResponse(writer);
 	}
 	
-	public void formatAlbumIndex(Collection<Album> albums, OutputStream output, ResourceLocator resourceLocator) throws Exception {
+	public void formatAlbumIndex(Iterable<Album> albums, OutputStream output, ResourceLocator resourceLocator) throws Exception {
 		T writer = createStreamWriter(output);
 		startResponse(writer, "albumCollection");
 		writeStringProperty(writer, "title", "Albums");
@@ -389,6 +418,23 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		});
 		Iterable<CollectionSection<Album>> sections = CollectionSection.createIndex(albums, comparator);
 		formatAlbumSections(writer, sections, resourceLocator, ImageType.Thumbnail, true);
+		endResponse(writer);
+	}
+
+	public void formatTrackIndex(Iterable<Track> tracks, OutputStream output, ResourceLocator resourceLocator, AssetLocator assetLocator) throws Exception {
+		T writer = createStreamWriter(output);
+		startResponse(writer, "trackCollection");
+		writeStringProperty(writer, "title", "Tracks");
+		TitledComparator<Track> comparator = new TitledComparator<Track>(localStrings, getDefaultTrackTitle(), new Comparator<Track>() {
+			@Override
+			public int compare(Track o1, Track o2) { // sort equally titled tracks by artist
+				String title1 = o1.getArtist().getTitle() == null ? getDefaultArtistTitle(ArtistType.TrackArtist) : o1.getArtist().getTitle();
+				String title2 = o2.getArtist().getTitle() == null ? getDefaultArtistTitle(ArtistType.TrackArtist) : o2.getArtist().getTitle();
+				return title1.compareTo(title2);
+			}
+		});
+		Iterable<CollectionSection<Track>> sections = CollectionSection.createIndex(tracks, comparator);
+		formatTrackSections(writer, sections, resourceLocator, assetLocator, ImageType.Thumbnail);
 		endResponse(writer);
 	}
 
@@ -471,7 +517,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 			writeStartArray(writer);
 			for (Track item : items) {
 				writer.writeStartElement("item");
-				writeStringProperty(writer, "title", trackTitle(item));
+				writeStringProperty(writer, "title", item.getTitle() == null ? getDefaultTrackTitle() : item.getTitle());
 				String artist = item.getArtist().getTitle();
 				if (artist == null) {
 					artist = localStrings.getUnknownArtist();

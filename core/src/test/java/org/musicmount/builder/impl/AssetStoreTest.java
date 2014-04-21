@@ -38,7 +38,7 @@ public class AssetStoreTest {
 		AssetLocator assetLocator = new SimpleAssetLocator(resourceProvider.newResource(assetDir.toPath()), null, null);
 		AssetStore assetStore = new AssetStore("test");
 		assetStore.update(resourceProvider.newResource(assetDir.toPath()), new SimpleAssetParser(), 1, ProgressHandler.NOOP);
-		Library library = new LibraryParser().parse(assetStore.assets());
+		Library library = new LibraryParser(true).parse(assetStore.assets());
 
 		Assert.assertEquals(1, library.getAlbumArtists().size());
 		Assert.assertEquals(1, library.getTrackArtists().size());
@@ -60,7 +60,7 @@ public class AssetStoreTest {
 		Assert.assertEquals(3, assetStore.getEntities().size());
 		assetStore.update(resourceProvider.newResource(assetDir.toPath()), new SimpleAssetParser(), 4, ProgressHandler.NOOP);
 
-		library = new LibraryParser().parse(assetStore.assets());
+		library = new LibraryParser(true).parse(assetStore.assets());
 		Assert.assertEquals(1, library.getAlbumArtists().size());
 		Assert.assertEquals(1, library.getTrackArtists().size());
 		Assert.assertEquals(1, library.getAlbums().size());

@@ -40,6 +40,12 @@ public class LibraryParser {
 		}
 		return s;
 	}
+	
+	private final boolean useTrackGrouping;
+	
+	public LibraryParser(boolean useTrackGrouping) {
+		this.useTrackGrouping = useTrackGrouping;
+	}
 
 	void sortTracks(Library library) {
 		/*
@@ -172,8 +178,29 @@ public class LibraryParser {
 		return library;
 	}
 
-	void parse(Library library, Asset asset) {
+	private String trackName(Asset asset) {
 		String trackName = trimToNonEmptyStringOrNull(asset.getName());
+		if (useTrackGrouping && trackName != null) {
+			String trackGrouping = trimToNonEmptyStringOrNull(asset.getGrouping());
+			if (trackGrouping != null && trackName.startsWith(trackGrouping)) {
+				String title = trackName.substring(trackGrouping.length());
+				if (title.length() > 0) {
+					if (Character.isAlphabetic(title.charAt(0)) || Character.isDigit(title.charAt(0))) {
+						return title;
+					}
+					for (int start = 1; start < title.length(); start++) {
+						if (Character.isAlphabetic(title.charAt(start)) || Character.isDigit(title.charAt(start))) {
+							return title.substring(start);
+						}
+					}
+				}
+			}
+		}
+		return trackName;
+	}
+
+	void parse(Library library, Asset asset) {
+		String trackName = trackName(asset);
 		String albumName = trimToNonEmptyStringOrNull(asset.getAlbum());
 		String trackArtistName = trimToNonEmptyStringOrNull(asset.getArtist());
 		String albumArtistName = trimToNonEmptyStringOrNull(asset.getAlbumArtist());
@@ -240,6 +267,7 @@ public class LibraryParser {
 				asset.getTrackNumber(),
 				asset.getYear()
 		);
+		library.getTracks().add(track);
 		album.getTracks().add(track);
 		track.setAlbum(album);
 		track.setArtist(trackArtist);

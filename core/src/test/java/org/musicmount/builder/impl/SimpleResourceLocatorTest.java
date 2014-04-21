@@ -33,7 +33,7 @@ public class SimpleResourceLocatorTest {
 
 	@Test
 	public void testGetAlbumCollectionPath() {
-		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
+		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false, false);
 		Assert.assertEquals("albumArtists/10/01-albums.json", resourceLocator.getAlbumCollectionPath(new AlbumArtist(0x1001, "foo")));
 	}
 
@@ -55,7 +55,7 @@ public class SimpleResourceLocatorTest {
 	public void testGetAlbumImagePath() {
 		Album album;
 		
-		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
+		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false, false);
 		album = createAlbum(0x1001, null, true);
 		Assert.assertEquals("albums/10/01/" + ImageType.Artwork.getFileName(), resourceLocator.getAlbumImagePath(album, ImageType.Artwork));
 		Assert.assertEquals("albums/10/01/" + ImageType.Tile.getFileName(), resourceLocator.getAlbumImagePath(album, ImageType.Tile));
@@ -66,7 +66,7 @@ public class SimpleResourceLocatorTest {
 		Assert.assertNull(resourceLocator.getAlbumImagePath(album, ImageType.Tile));
 		Assert.assertNull(resourceLocator.getAlbumImagePath(album, ImageType.Thumbnail));
 
-		resourceLocator = new SimpleResourceLocator(null, false, true); // noImages
+		resourceLocator = new SimpleResourceLocator(null, false, true, false); // noImages
 		album = createAlbum(0x1001, null, true);
 		Assert.assertNull(resourceLocator.getAlbumImagePath(album, ImageType.Artwork));
 		Assert.assertNull(resourceLocator.getAlbumImagePath(album, ImageType.Tile));
@@ -75,13 +75,13 @@ public class SimpleResourceLocatorTest {
 
 	@Test
 	public void testGetAlbumIndexPath() {
-		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
+		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false, false);
 		Assert.assertEquals("albums/index.json", resourceLocator.getAlbumIndexPath());
 	}
 
 	@Test
 	public void testGetAlbumPath() {
-		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
+		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false, false);
 		Album album = new Album("foo");
 		album.setAlbumId(0x1001);
 		Assert.assertEquals("albums/10/01/album.json", resourceLocator.getAlbumPath(album));
@@ -89,27 +89,35 @@ public class SimpleResourceLocatorTest {
 
 	@Test
 	public void testGetArtistIndexPath() {
-		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
+		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false, false);
 		Assert.assertEquals("albumArtists/index.json", resourceLocator.getArtistIndexPath(ArtistType.AlbumArtist));
 		Assert.assertEquals("artists/index.json", resourceLocator.getArtistIndexPath(ArtistType.TrackArtist));
 	}
 
 	@Test
+	public void testGetTrackIndexPath() {
+		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false, false);
+		Assert.assertEquals("tracks/index.json", resourceLocator.getTrackIndexPath());
+		resourceLocator = new SimpleResourceLocator(null, false, false, true);
+		Assert.assertNull(resourceLocator.getTrackIndexPath());
+	}
+
+	@Test
 	public void testFile() throws URISyntaxException {
 		Resource outputFolder = resourceProvider.newResource(new File(getClass().getResource("/sample-assets").toURI()).toPath());
-		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(outputFolder, false, false);
+		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(outputFolder, false, false, false);
 		Assert.assertEquals(outputFolder.resolve("foo/bar.json"), resourceLocator.getResource("foo/bar.json"));
 	}
 
 	@Test
 	public void testGetServiceIndexPath() {
-		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
+		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false, false);
 		Assert.assertEquals("index.json", resourceLocator.getServiceIndexPath());
 	}
 	
 	@Test
 	public void testHugeId() {
-		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false);
+		SimpleResourceLocator resourceLocator = new SimpleResourceLocator(null, false, false, false);
 		Album album = new Album("foo");
 		album.setAlbumId(0x1001);
 		Assert.assertEquals("albums/10/01/album.json", resourceLocator.getAlbumPath(album));

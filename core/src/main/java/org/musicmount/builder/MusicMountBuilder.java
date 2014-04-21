@@ -189,6 +189,7 @@ public class MusicMountBuilder {
 	private boolean xml = false;
 	private boolean grouping = false;
 	private boolean unknownGenre = false;
+	private boolean noTrackIndex = false;
 	private boolean noVariousArtists = false;
 	private boolean directoryIndex = false;
 	private Normalizer.Form normalizer = null;
@@ -263,6 +264,13 @@ public class MusicMountBuilder {
 	public void setUnknownGenre(boolean unknownGenre) {
 		this.unknownGenre = unknownGenre;
 	}
+	
+	public boolean isNoTrackIndex() {
+		return noTrackIndex;
+	}
+	public void setNoTrackIndex(boolean noTrackIndex) {
+		this.noTrackIndex = noTrackIndex;
+	}
 
 	public boolean isNoVariousArtists() {
 		return noVariousArtists;
@@ -297,7 +305,9 @@ public class MusicMountBuilder {
 	}
 
 	private OutputStream createOutputStream(Resource file) throws IOException {
-		file.getParent().mkdirs();
+		if (!file.getParent().exists()) { // file.getParent() may be a symbolic link target (mount folder)
+			file.getParent().mkdirs();
+		}
 		OutputStream output = new BufferedOutputStream(file.getOutputStream());
 		if (file.getName().endsWith(".gz")) {
 			output = new GZIPOutputStream(output);
@@ -334,7 +344,7 @@ public class MusicMountBuilder {
 		if (progressHandler != null) {
 			progressHandler.beginTask(-1, "Building music libary...");
 		}
-		Library library = new LibraryParser().parse(assetStore.assets());
+		Library library = new LibraryParser(grouping).parse(assetStore.assets());
 		if (noVariousArtists) { // remove "various artists" album artist (hack)
 			library.getAlbumArtists().remove(null);
 		}
@@ -354,7 +364,7 @@ public class MusicMountBuilder {
 			if (LOGGER.isLoggable(Level.FINE) && retinaChange && assetStoreLoaded) {
 				LOGGER.fine(String.format("Retina state %s", assetStore.getRetina() == null ? "unknown" : "changed"));
 			}
-			ResourceLocator resourceLocator = new SimpleResourceLocator(mountFolder, xml, noImages);
+			ResourceLocator resourceLocator = new SimpleResourceLocator(mountFolder, xml, noImages, noTrackIndex);
 			Set<Album> imageAlbums = retinaChange || full ? new HashSet<>(library.getAlbums()) : changedAlbums;
 			formatter.formatImages(library, resourceLocator, imageAlbums, maxImageThreads, progressHandler);
 			assetStore.setRetina(retina);
@@ -380,7 +390,7 @@ public class MusicMountBuilder {
 
 	void generateResponseFiles(Library library, Resource musicFolder, Resource mountFolder, String musicPath) throws Exception {
 		if (progressHandler != null) {
-			progressHandler.beginTask(7, "Generating JSON...");
+			progressHandler.beginTask(noTrackIndex ? 3 : 4, "Generating JSON...");
 		}
 
 		LocalStrings localStrings = new LocalStrings(Locale.ENGLISH);
@@ -391,16 +401,13 @@ public class MusicMountBuilder {
 			formatter = new ResponseFormatter.JSON(API_VERSION, localStrings, directoryIndex, unknownGenre, grouping, pretty);
 		}
 		AssetLocator assetLocator = new SimpleAssetLocator(musicFolder, musicPath, normalizer);
-		ResourceLocator resourceLocator = new SimpleResourceLocator(mountFolder, xml, noImages);
+		ResourceLocator resourceLocator = new SimpleResourceLocator(mountFolder, xml, noImages, noTrackIndex);
 
 		int workDone = -1;
 		
 		/*
 		 * album artists
 		 */
-		if (progressHandler != null) {
-			progressHandler.progress(++workDone, String.format("%4d album artists...", library.getAlbumArtists().size()));
-		}
 		Map<Artist, Album> representativeAlbums = new HashMap<Artist, Album>();
 		for (Artist artist : library.getAlbumArtists().values()) {
 			if (LOGGER.isLoggable(Level.FINEST)) {
@@ -410,19 +417,16 @@ public class MusicMountBuilder {
 				representativeAlbums.put(artist, formatter.formatAlbumCollection(artist, output, resourceLocator));
 			}
 		}
-		if (progressHandler != null) {
-			progressHandler.progress(++workDone, "album artist index");
-		}
 		try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getArtistIndexPath(ArtistType.AlbumArtist)))) {
 			formatter.formatArtistIndex(library.getAlbumArtists().values(), ArtistType.AlbumArtist, output, resourceLocator, representativeAlbums);
+		}
+		if (progressHandler != null) {
+			progressHandler.progress(++workDone, String.format("%5d album artists", library.getAlbumArtists().size()));
 		}
 
 		/*
 		 * artists
 		 */
-		if (progressHandler != null) {
-			progressHandler.progress(++workDone, String.format("%4d artists...", library.getTrackArtists().size()));
-		}
 		representativeAlbums.clear();
 		for (Artist artist : library.getTrackArtists().values()) {
 			if (LOGGER.isLoggable(Level.FINEST)) {
@@ -432,19 +436,16 @@ public class MusicMountBuilder {
 				representativeAlbums.put(artist, formatter.formatAlbumCollection(artist, output, resourceLocator));
 			}
 		}
-		if (progressHandler != null) {
-			progressHandler.progress(++workDone, "artist index");
-		}
 		try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getArtistIndexPath(ArtistType.TrackArtist)))) {
 			formatter.formatArtistIndex(library.getTrackArtists().values(), ArtistType.TrackArtist, output, resourceLocator, representativeAlbums);
+		}
+		if (progressHandler != null) {
+			progressHandler.progress(++workDone, String.format("%5d artists", library.getTrackArtists().size()));
 		}
 
 		/*
 		 * albums
 		 */
-		if (progressHandler != null) {
-			progressHandler.progress(++workDone, String.format("%4d albums...", library.getAlbums().size()));
-		}
 		for (Album album : library.getAlbums()) {
 			if (LOGGER.isLoggable(Level.FINEST)) {
 				LOGGER.finest("Generating album: " + album.getTitle());
@@ -453,19 +454,28 @@ public class MusicMountBuilder {
 				formatter.formatAlbum(album, output, resourceLocator, assetLocator);
 			}
 		}
-		if (progressHandler != null) {
-			progressHandler.progress(++workDone, "album index");
-		}
 		try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getAlbumIndexPath()))) {
 			formatter.formatAlbumIndex(library.getAlbums(), output, resourceLocator);
+		}
+		if (progressHandler != null) {
+			progressHandler.progress(++workDone, String.format("%5d albums", library.getAlbums().size()));
+		}
+		
+		/*
+		 * track index
+		 */
+		if (!noTrackIndex) {
+			try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getTrackIndexPath()))) {
+				formatter.formatTrackIndex(library.getTracks(), output, resourceLocator, null);
+			}
+			if (progressHandler != null) {
+				progressHandler.progress(++workDone, String.format("%5d tracks", library.getTracks().size()));
+			}
 		}
 
 		/*
 		 * service index last
 		 */
-		if (progressHandler != null) {
-			progressHandler.progress(++workDone, "service index");
-		}
 		try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getServiceIndexPath()))) {
 			formatter.formatServiceIndex(resourceLocator, output);
 		}
@@ -495,6 +505,7 @@ public class MusicMountBuilder {
 		System.err.println("       --full             full parse, don't use asset store");
 		System.err.println("       --grouping         use grouping tag to group album tracks");
 		System.err.println("       --unknownGenre     report missing genre as 'Unknown'");
+		System.err.println("       --noTrackIndex     do not generate a track index");
 		System.err.println("       --noVariousArtists exclude 'Various Artists' from album artist index");
 		System.err.println("       --directoryIndex   use 'path/' instead of 'path/index.ext'");
 		System.err.println("       --pretty           pretty-print JSON documents");
@@ -550,6 +561,9 @@ public class MusicMountBuilder {
 				break;
 			case "--unknownGenre":
 				builder.setUnknownGenre(true);
+				break;
+			case "--noTrackIndex":
+				builder.setNoTrackIndex(true);
 				break;
 			case "--noVariousArtists":
 				builder.setNoVariousArtists(true);

@@ -71,7 +71,7 @@ public class MusicMountBuilderTest {
 
 		AssetStore assetStore = new AssetStore(MusicMountBuilder.API_VERSION);
 		assetStore.update(musicFolder, new SimpleAssetParser(), 4, ProgressHandler.NOOP);
-		Library library = new LibraryParser().parse(assetStore.assets());
+		Library library = new LibraryParser(true).parse(assetStore.assets());
 
 		new MusicMountBuilder().generateResponseFiles(library, musicFolder, mountFolder, "music");
 	}

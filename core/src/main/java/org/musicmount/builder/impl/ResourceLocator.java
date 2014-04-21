@@ -26,6 +26,7 @@ public interface ResourceLocator {
 	public String getServiceIndexPath();	
 	public String getArtistIndexPath(ArtistType artistType);	
 	public String getAlbumIndexPath();	
+	public String getTrackIndexPath();	
 
 	public String getAlbumCollectionPath(Artist artist);
 	public String getAlbumPath(Album album);
