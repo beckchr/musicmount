@@ -10,8 +10,8 @@ and open the template in the editor.
 
 .tool-title {
 	-fx-font-size: 1.4em;
-	-fx-font-family: "Arial Black";
-	-fx-fill: #C0C0C0;
+	-fx-font-weight: bold;
+	-fx-fill: #4F779F;
 }
 
 .run-button {
@@ -19,7 +19,7 @@ and open the template in the editor.
 }
 
 .status-text {
-    -fx-font-size: 0.8em;
+    -fx-font-size: 0.84em;
 }
 
 .tab-pane .tab-header-area .tab-header-background {

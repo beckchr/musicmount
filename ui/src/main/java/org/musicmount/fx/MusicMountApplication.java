@@ -34,7 +34,7 @@ public class MusicMountApplication extends Application {
 	@Override
 	public void start(Stage primaryStage) {
 //		System.out.println("java version: " + System.getProperty("java.version"));
-		
+
 		FXCommandModel model = new FXCommandModel();
 		BuildController buildController = new BuildController(model);
 		Pane buildPane = buildController.getPane();
@@ -44,8 +44,6 @@ public class MusicMountApplication extends Application {
 		Pane testPane = testController.getPane();
 		testPane.setId("test-pane");
 
-		BorderPane borderPane = new BorderPane();
-		borderPane.setId("border-pane");
 		final TabPane tabPane = new TabPane();
 		tabPane.setId("tab-pane");
 		tabPane.setSide(Side.TOP);
@@ -58,7 +56,6 @@ public class MusicMountApplication extends Application {
 		testTab.setContent(testPane);
 		tabPane.getTabs().addAll(buildTab, testTab);
 		tabPane.getSelectionModel().select(buildTab);
-		borderPane.setCenter(tabPane);
 
 		ChangeListener<Boolean> serviceRunningListener = new ChangeListener<Boolean>() {
 			@Override
@@ -70,13 +67,17 @@ public class MusicMountApplication extends Application {
 		};		
 		buildController.getService().runningProperty().addListener(serviceRunningListener);
 		testController.getService().runningProperty().addListener(serviceRunningListener);
+
+		BorderPane borderPane = new BorderPane();
+		borderPane.setId("border-pane");
+		borderPane.setCenter(tabPane);
 		
-		Scene scene = new Scene(borderPane, 640, borderPane.getPrefHeight());
+		Scene scene = new Scene(borderPane, 600, borderPane.getPrefHeight());
 		scene.getStylesheets().add(getClass().getResource("style.css").toExternalForm());
 		primaryStage.setTitle("MusicMount");
 		primaryStage.setScene(scene);
 		primaryStage.show();
-//		primaryStage.setResizable(false);
+		primaryStage.setResizable(false);
 	}
 
 	/**

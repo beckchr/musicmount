@@ -19,6 +19,7 @@ import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraintsBuilder;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -224,7 +225,6 @@ public class TestController {
 		grid.setAlignment(Pos.CENTER);
 		grid.setHgap(10);
 		grid.setVgap(10);
-		grid.setPadding(new Insets(15));
 
 //		grid.setGridLinesVisible(true);
 		grid.getColumnConstraints().add(0, ColumnConstraintsBuilder.create().hgrow(Priority.NEVER).build());
@@ -313,12 +313,17 @@ public class TestController {
 		grid.add(runButtonHBox, 1, 7, 2, 1);
 		GridPane.setVgrow(runButtonHBox, Priority.ALWAYS);
 
+		BorderPane borderPane = new BorderPane();
+		borderPane.setCenter(grid);
+		BorderPane.setMargin(grid, new Insets(10));
+		
 		statusText = new Text();
 		statusText.setId("test-status");
 		statusText.getStyleClass().add("status-text");
-		grid.add(statusText, 0, 8, 3, 1);
-		
-		return grid;
+		borderPane.setBottom(statusText);
+		BorderPane.setMargin(statusText, new Insets(5, 10, 10, 10));
+
+		return borderPane;
 	}
 	
 	void updateAll() {
