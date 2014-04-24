@@ -206,7 +206,7 @@ public class BuildController {
 		mountFolderChooseButton.setDisable(disable);
 		musicFolderTextField.setDisable(disable);
 		musicPathChoiceBox.setDisable(disable);
-		musicPathTextField.setDisable(disable || model.getCustomMusicPath() == null);
+		musicPathTextField.setDisable(disable);
 		retinaCheckBox.setDisable(disable);
 		groupingCheckBox.setDisable(disable);
 		fullCheckBox.setDisable(disable);
@@ -235,6 +235,7 @@ public class BuildController {
 		 */
 		Label musicFolderLabel = new Label("Music Folder");
 		musicFolderTextField = new TextField();
+		musicFolderTextField.setPromptText("Input directory, containing your music collection");
 		musicFolderChooseButton = new Button("...");
 		grid.add(musicFolderLabel, 0, 1);
 		GridPane.setHalignment(musicFolderLabel, HPos.RIGHT);
@@ -246,6 +247,7 @@ public class BuildController {
 		 */
 		Label mountFolderLabel = new Label("Mount Folder");
 		mountFolderTextField = new TextField();
+		mountFolderTextField.setPromptText("Output directory, containing your generated site");
 		mountFolderChooseButton = new Button("...");
 		grid.add(mountFolderLabel, 0, 2);
 		GridPane.setHalignment(mountFolderLabel, HPos.RIGHT);
@@ -257,6 +259,7 @@ public class BuildController {
 		 */
 		Label musicPathLabel = new Label("Music Path");
 		musicPathTextField = new TextField();
+		musicPathTextField.setPromptText("Web path to music, absolute or relative to site URL");
 		musicPathChoiceBox = new ChoiceBox<String>(FXCollections.observableArrayList("Auto", "Custom"));
 		grid.add(musicPathLabel, 0, 3);
 		GridPane.setHalignment(musicPathLabel, HPos.RIGHT);
@@ -331,7 +334,7 @@ public class BuildController {
 
 	void updateMusicPath() {
         musicPathChoiceBox.getSelectionModel().select(model.getCustomMusicPath() == null ? 0 : 1);
-        musicPathTextField.setDisable(service.isRunning() || model.getCustomMusicPath() == null);
+        musicPathTextField.setEditable(model.getCustomMusicPath() != null);
 		musicPathTextField.setText(model.getMusicPath());
 	}
 	
