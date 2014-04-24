@@ -56,6 +56,7 @@ public class MusicMountTestServer {
 	static final Logger LOGGER = Logger.getLogger(MusicMountTestServer.class.getName());
 
 	static {
+		System.setProperty("org.apache.catalina.startup.EXIT_ON_INIT_FAILURE", "true");
 		LoggingUtil.configure("org.apache", Level.INFO);
 		LoggingUtil.configure(DigesterFactory.class.getName(), Level.SEVERE); // get rid of warnings on missing jsp schema files		
 	}
