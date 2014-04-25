@@ -17,7 +17,6 @@ package org.musicmount.audio.mp3;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 
 import org.musicmount.util.PositionLengthInputStream;
 
@@ -84,7 +83,7 @@ public class ID3v2FrameBody {
 		return frameHeader;
 	}
 	
-	private String extractString(byte[] bytes, int offset, int length, ID3v2Encoding encoding, boolean searchZeros) throws UnsupportedEncodingException {
+	private String extractString(byte[] bytes, int offset, int length, ID3v2Encoding encoding, boolean searchZeros) {
 		if (searchZeros) {
 			int zeros = 0;
 			for (int i = 0; i < length; i++) {
