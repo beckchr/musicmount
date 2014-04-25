@@ -58,9 +58,7 @@ public class TestController {
 			return new Task<Object>() {
 				@Override
 				protected Object call() throws Exception {
-					String user = userTextField == null || userTextField.getText().trim().isEmpty() ? null : userTextField.getText().trim();
-					String pass = passwordField == null || passwordField.getText().trim().isEmpty() ? null : passwordField.getText().trim();
-					server.start(model.getMusicFolder(), model.getMountFolder(), model.getMusicPath(), port, user, pass);
+					server.start(model.getMusicFolder(), model.getMountFolder(), model.getMusicPath(), port, getUser(), getPassword());
 					return null;
 				}
 				@Override
@@ -165,6 +163,20 @@ public class TestController {
                 updateRunButton();
 			}
 		});
+		userTextField.textProperty().addListener(new ChangeListener<String>() {
+			@Override
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+				updateUserAndPassword();
+                updateRunButton();
+			}
+		});
+		passwordField.textProperty().addListener(new ChangeListener<String>() {
+			@Override
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+				updateUserAndPassword();
+                updateRunButton();
+			}
+		});
 
     	service.setOnRunning(new EventHandler<WorkerStateEvent>() {
 			public void handle(WorkerStateEvent event) {
@@ -217,24 +229,21 @@ public class TestController {
 		musicPathTextField.setDisable(disable);
 		portTextField.setDisable(disable);
 		userTextField.setDisable(disable);
-		passwordField.setDisable(disable || !model.isValid());
+		passwordField.setDisable(disable);
 	}
 	
 	Pane createView() {
 		GridPane grid = new GridPane();
 		grid.setAlignment(Pos.CENTER);
-		grid.setHgap(10);
+		grid.setHgap(5);
 		grid.setVgap(10);
 
 //		grid.setGridLinesVisible(true);
 		grid.getColumnConstraints().add(0, ColumnConstraintsBuilder.create().hgrow(Priority.NEVER).build());
 		grid.getColumnConstraints().add(1, ColumnConstraintsBuilder.create().hgrow(Priority.ALWAYS).build());
 		grid.getColumnConstraints().add(2, ColumnConstraintsBuilder.create().hgrow(Priority.NEVER).build());
-
-		Text titleText = new Text("Launch MusicMount Test Server");
-		titleText.setId("test-title");
-		titleText.getStyleClass().add("tool-title");
-		grid.add(titleText, 0, 0, 2, 1);
+		grid.getColumnConstraints().add(3, ColumnConstraintsBuilder.create().hgrow(Priority.ALWAYS).build());
+		grid.getColumnConstraints().add(4, ColumnConstraintsBuilder.create().hgrow(Priority.NEVER).build());
 
 		/*
 		 * music folder
@@ -245,8 +254,8 @@ public class TestController {
 		musicFolderChooseButton = new Button("...");
 		grid.add(musicFolderLabel, 0, 1);
 		GridPane.setHalignment(musicFolderLabel, HPos.RIGHT);
-		grid.add(musicFolderTextField, 1, 1);
-		grid.add(musicFolderChooseButton, 2, 1);
+		grid.add(musicFolderTextField, 1, 1, 3, 1);
+		grid.add(musicFolderChooseButton, 4, 1);
 
 		/*
 		 * mount folder
@@ -257,8 +266,8 @@ public class TestController {
 		mountFolderChooseButton = new Button("...");
 		grid.add(mountFolderLabel, 0, 2);
 		GridPane.setHalignment(mountFolderLabel, HPos.RIGHT);
-		grid.add(mountFolderTextField, 1, 2);
-		grid.add(mountFolderChooseButton, 2, 2);
+		grid.add(mountFolderTextField, 1, 2, 3, 1);
+		grid.add(mountFolderChooseButton, 4, 2);
 
 		/*
 		 * music path
@@ -272,7 +281,7 @@ public class TestController {
 		HBox.setHgrow(musicPathTextField, Priority.ALWAYS);
         HBox musicPathHBox = new HBox(10);
         musicPathHBox.getChildren().addAll(musicPathChoiceBox, musicPathTextField);
-		grid.add(musicPathHBox, 1, 3);
+		grid.add(musicPathHBox, 1, 3, 3, 1);
 
 		/*
 		 * server port
@@ -281,6 +290,7 @@ public class TestController {
 		grid.add(portLabel, 0, 4);
 		GridPane.setHalignment(portLabel, HPos.RIGHT);
 		portTextField = new TextField();
+		portTextField.setPromptText("Number");
 		grid.add(portTextField, 1, 4);
 
 		/*
@@ -290,16 +300,18 @@ public class TestController {
 		grid.add(userLabel, 0, 5);
 		GridPane.setHalignment(userLabel, HPos.RIGHT);
 		userTextField = new TextField();
+		userTextField.setPromptText("Optional");
 		grid.add(userTextField, 1, 5);
 
 		/*
 		 * password
 		 */
 		Label passwordLabel = new Label("Password");
-		grid.add(passwordLabel, 0, 6);
+		grid.add(passwordLabel, 2, 5);
 		GridPane.setHalignment(passwordLabel, HPos.RIGHT);
 		passwordField = new PasswordField();
-		grid.add(passwordField, 1, 6);
+		passwordField.setPromptText("Optional");
+		grid.add(passwordField, 3, 5);
 
 		/*
 		 * run button
@@ -310,13 +322,19 @@ public class TestController {
 		HBox runButtonHBox = new HBox(10);
 		runButtonHBox.setAlignment(Pos.BOTTOM_RIGHT);
 		runButtonHBox.getChildren().add(runButton);
-		grid.add(runButtonHBox, 1, 7, 2, 1);
+		grid.add(runButtonHBox, 2, 6, 3, 1);
 		GridPane.setVgrow(runButtonHBox, Priority.ALWAYS);
 
 		BorderPane borderPane = new BorderPane();
 		borderPane.setCenter(grid);
 		BorderPane.setMargin(grid, new Insets(10));
 		
+		Text titleText = new Text("Launch MusicMount Test Server");
+		titleText.setId("test-title");
+		titleText.getStyleClass().add("tool-title");
+		borderPane.setTop(titleText);
+		BorderPane.setMargin(titleText, new Insets(15, 10, 0, 10));
+
 		statusText = new Text();
 		statusText.setId("test-status");
 		statusText.getStyleClass().add("status-text");
@@ -332,6 +350,7 @@ public class TestController {
 		updateMusicPath();
 		updateRunButton();
 		updatePort();
+		updateUserAndPassword();
 	}
 
 	void updateMusicFolder() {
@@ -349,11 +368,24 @@ public class TestController {
 	}
 	
 	void updateRunButton() {
-		runButton.setDisable(!model.isSite() || port == null || !server.checkMusicPath(model.getMusicPath()));
+		runButton.setDisable(!model.isSite() || port == null || !server.checkMusicPath(model.getMusicPath()) || (getUser() == null) != (getPassword() == null));
 	}
 	
 	void updatePort() {
 		portTextField.setText(port != null ? port.toString() : null);
+	}
+
+	void updateUserAndPassword() {
+		userTextField.setPromptText(getPassword() == null ? "Optional" : null);
+		passwordField.setPromptText(getUser() == null ? "Optional" : null);
+	}
+	
+	String getUser() {
+		return userTextField == null || userTextField.getText().trim().isEmpty() ? null : userTextField.getText().trim();
+	}
+	
+	String getPassword() {
+		return passwordField == null || passwordField.getText().trim().isEmpty() ? null : passwordField.getText().trim();
 	}
 
 	public Pane getPane() {

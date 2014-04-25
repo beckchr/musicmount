@@ -49,12 +49,15 @@ public class BuildController {
 	private CheckBox retinaCheckBox;
 	private CheckBox groupingCheckBox;
 	private CheckBox fullCheckBox;
+	private CheckBox noTrackIndexCheckBox;
+	private CheckBox noVariousArtistsCheckBox;
+	private CheckBox unknownGenreCheckBox;
 	private ProgressIndicator progressIndicator;
 	private Button runButton;
 	private Text statusText;
 	
-	private final MusicMountBuilder builder;
 	private final FXCommandModel model;
+	private final MusicMountBuilder builder = new MusicMountBuilder();
 	private final Service<Object> service = new Service<Object>() {
 		@Override
 		protected Task<Object> createTask() {
@@ -81,7 +84,6 @@ public class BuildController {
 			}
 		});
 
-		builder = new MusicMountBuilder();
 		builder.setProgressHandler(new FXProgressHandler(statusText, progressIndicator));
 		
 		musicFolderTextField.textProperty().addListener(new ChangeListener<String>() {
@@ -165,6 +167,24 @@ public class BuildController {
 				builder.setFull(fullCheckBox.isSelected());
 			}
 		});
+		noTrackIndexCheckBox.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				builder.setNoTrackIndex(noTrackIndexCheckBox.isSelected());
+			}
+		});
+		noVariousArtistsCheckBox.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				builder.setNoVariousArtists(noVariousArtistsCheckBox.isSelected());
+			}
+		});
+		unknownGenreCheckBox.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				builder.setUnknownGenre(unknownGenreCheckBox.isSelected());
+			}
+		});
 
     	service.setOnRunning(new EventHandler<WorkerStateEvent>() {
 			public void handle(WorkerStateEvent event) {
@@ -211,24 +231,23 @@ public class BuildController {
 		retinaCheckBox.setDisable(disable);
 		groupingCheckBox.setDisable(disable);
 		fullCheckBox.setDisable(disable);
+		noTrackIndexCheckBox.setDisable(disable);
+		noVariousArtistsCheckBox.setDisable(disable);
+		unknownGenreCheckBox.setDisable(disable);
 		runButton.setDisable(disable || !model.isValid());
 	}
 	
 	Pane createView() {
 		GridPane grid = new GridPane();
 		grid.setAlignment(Pos.CENTER);
-		grid.setHgap(10);
+		grid.setHgap(5);
 		grid.setVgap(10);
 
 //		grid.setGridLinesVisible(true);
 		grid.getColumnConstraints().add(0, ColumnConstraintsBuilder.create().hgrow(Priority.NEVER).build());
 		grid.getColumnConstraints().add(1, ColumnConstraintsBuilder.create().hgrow(Priority.ALWAYS).build());
-		grid.getColumnConstraints().add(2, ColumnConstraintsBuilder.create().hgrow(Priority.NEVER).build());
-
-		Text titleText = new Text("Generate MusicMount Site");
-		titleText.setId("build-title");
-		titleText.getStyleClass().add("tool-title");
-		grid.add(titleText, 0, 0, 2, 1);
+		grid.getColumnConstraints().add(2, ColumnConstraintsBuilder.create().hgrow(Priority.ALWAYS).build());
+		grid.getColumnConstraints().add(3, ColumnConstraintsBuilder.create().hgrow(Priority.NEVER).build());
 
 		/*
 		 * music folder
@@ -239,8 +258,8 @@ public class BuildController {
 		musicFolderChooseButton = new Button("...");
 		grid.add(musicFolderLabel, 0, 1);
 		GridPane.setHalignment(musicFolderLabel, HPos.RIGHT);
-		grid.add(musicFolderTextField, 1, 1);
-		grid.add(musicFolderChooseButton, 2, 1);
+		grid.add(musicFolderTextField, 1, 1, 2, 1);
+		grid.add(musicFolderChooseButton, 3, 1);
 
 		/*
 		 * mount folder
@@ -251,8 +270,8 @@ public class BuildController {
 		mountFolderChooseButton = new Button("...");
 		grid.add(mountFolderLabel, 0, 2);
 		GridPane.setHalignment(mountFolderLabel, HPos.RIGHT);
-		grid.add(mountFolderTextField, 1, 2);
-		grid.add(mountFolderChooseButton, 2, 2);
+		grid.add(mountFolderTextField, 1, 2, 2, 1);
+		grid.add(mountFolderChooseButton, 3, 2);
 
 		/*
 		 * music path
@@ -266,7 +285,7 @@ public class BuildController {
 		HBox.setHgrow(musicPathTextField, Priority.ALWAYS);
         HBox musicPathHBox = new HBox(10);
         musicPathHBox.getChildren().addAll(musicPathChoiceBox, musicPathTextField);
-		grid.add(musicPathHBox, 1, 3);
+		grid.add(musicPathHBox, 1, 3, 2, 1);
 
 		/*
 		 * options
@@ -275,12 +294,29 @@ public class BuildController {
 		grid.add(optionsLabel, 0, 4);
 		GridPane.setHalignment(optionsLabel, HPos.RIGHT);
 		retinaCheckBox = new CheckBox("Retina Images");
-		retinaCheckBox.setTooltip(new Tooltip("Hello Dolly!\nThis is a pretty long tooltip text..."));
+		retinaCheckBox.setTooltip(new Tooltip("Double image resolution, better for tables"));
+		retinaCheckBox.setSelected(builder.isRetina());
 		grid.add(retinaCheckBox, 1, 4);
 		groupingCheckBox = new CheckBox("Track Grouping");
+		groupingCheckBox.setTooltip(new Tooltip("Use grouping tag to group album tracks"));
+		groupingCheckBox.setSelected(builder.isGrouping());
 		grid.add(groupingCheckBox, 1, 5);
-		fullCheckBox = new CheckBox("Force Full Build");
+		fullCheckBox = new CheckBox("Full Parse/Build");
+		fullCheckBox.setTooltip(new Tooltip("Force full parse/build, don't use asset store"));
+		fullCheckBox.setSelected(builder.isFull());
 		grid.add(fullCheckBox, 1, 6);
+		noTrackIndexCheckBox = new CheckBox("No Track Index");
+		noTrackIndexCheckBox.setTooltip(new Tooltip("Do not generate a track index"));
+		noTrackIndexCheckBox.setSelected(builder.isNoTrackIndex());
+		grid.add(noTrackIndexCheckBox, 2, 4);
+		noVariousArtistsCheckBox = new CheckBox("No 'Various Artists' Item");
+		noVariousArtistsCheckBox.setTooltip(new Tooltip("Exclude 'Various Artists' from album artist index"));
+		noVariousArtistsCheckBox.setSelected(builder.isNoVariousArtists());
+		grid.add(noVariousArtistsCheckBox, 2, 5);
+		unknownGenreCheckBox = new CheckBox("Add 'Unknown' Genre");
+		unknownGenreCheckBox.setTooltip(new Tooltip("Report missing genre as 'Unknown'"));
+		unknownGenreCheckBox.setSelected(builder.isUnknownGenre());
+		grid.add(unknownGenreCheckBox, 2, 6);
 
 		/*
 		 * progress
@@ -303,13 +339,19 @@ public class BuildController {
 		HBox runButtonHBox = new HBox(10);
 		runButtonHBox.setAlignment(Pos.BOTTOM_RIGHT);
 		runButtonHBox.getChildren().add(runButton);
-		grid.add(runButtonHBox, 1, 7, 2, 1);
+		grid.add(runButtonHBox, 2, 7, 2, 1);
 		GridPane.setVgrow(runButtonHBox, Priority.ALWAYS);
 
 		BorderPane borderPane = new BorderPane();
 		borderPane.setCenter(grid);
 		BorderPane.setMargin(grid, new Insets(10));
-		
+
+		Text titleText = new Text("Generate MusicMount Site");
+		titleText.setId("build-title");
+		titleText.getStyleClass().add("tool-title");
+		borderPane.setTop(titleText);
+		BorderPane.setMargin(titleText, new Insets(15, 10, 0, 10));
+
 		statusText = new Text();
 		statusText.setId("build-status");
 		statusText.getStyleClass().add("status-text");
