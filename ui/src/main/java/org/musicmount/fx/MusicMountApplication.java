@@ -1,12 +1,19 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright 2013-2014 Odysseus Software GmbH
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-
 package org.musicmount.fx;
-
-import java.util.logging.Level;
 
 import javafx.application.Application;
 import javafx.beans.value.ChangeListener;
@@ -15,25 +22,31 @@ import javafx.geometry.Side;
 import javafx.scene.Scene;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.TitledPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 
-import org.musicmount.builder.MusicMountBuilder;
-import org.musicmount.util.LoggingUtil;
-
-/**
- * 
- * @author christoph
- */
 public class MusicMountApplication extends Application {
-	static {
-		LoggingUtil.configure(MusicMountBuilder.class.getPackage().getName(), Level.FINE);
-	}
-
 	@Override
-	public void start(Stage primaryStage) {
-//		System.out.println("java version: " + System.getProperty("java.version"));
+	public void start(final Stage primaryStage) {
+		FXConsole console = new FXConsole();
+		console.getTextArea().setId("console");
+		console.getTextArea().setEditable(false);
+		console.getTextArea().setPrefHeight(200);
+		console.start();
+		
+		System.out.println("java version: " + System.getProperty("java.version"));
+
+		TitledPane consolePane = new TitledPane("Console", console.getTextArea());
+		consolePane.setExpanded(false);
+		consolePane.setAnimated(false);
+		consolePane.heightProperty().addListener(new ChangeListener<Number>() {
+			@Override
+			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+				primaryStage.setHeight(primaryStage.getHeight() + newValue.doubleValue() - oldValue.doubleValue());
+			}
+		});
 
 		FXCommandModel model = new FXCommandModel();
 		BuildController buildController = new BuildController(model);
@@ -68,16 +81,17 @@ public class MusicMountApplication extends Application {
 		buildController.getService().runningProperty().addListener(serviceRunningListener);
 		testController.getService().runningProperty().addListener(serviceRunningListener);
 
-		BorderPane borderPane = new BorderPane();
+		final BorderPane borderPane = new BorderPane();
 		borderPane.setId("border-pane");
 		borderPane.setCenter(tabPane);
-		
+		borderPane.setBottom(consolePane);
+
 		Scene scene = new Scene(borderPane, 600, borderPane.getPrefHeight());
 		scene.getStylesheets().add(getClass().getResource("style.css").toExternalForm());
 		primaryStage.setTitle("MusicMount");
 		primaryStage.setScene(scene);
 		primaryStage.show();
-		primaryStage.setResizable(false);
+//		primaryStage.setResizable(false);
 	}
 
 	/**
@@ -87,5 +101,4 @@ public class MusicMountApplication extends Application {
 	public static void main(String[] args) {
 		launch(args);
 	}
-
 }
