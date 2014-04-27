@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -35,6 +37,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.catalina.Context;
+import org.apache.catalina.LifecycleState;
 import org.apache.catalina.Wrapper;
 import org.apache.catalina.authenticator.BasicAuthenticator;
 import org.apache.catalina.core.StandardContext;
@@ -69,7 +72,7 @@ public class MusicMountTestServer {
 		public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 			long timestamp = System.currentTimeMillis();
 			chain.doFilter(request, response);
-			if (LOGGER.isLoggable(Level.FINER)) {
+			if (LOGGER.isLoggable(Level.FINE)) {
 				response.flushBuffer();
 
 				HttpServletRequest httpRequest = (HttpServletRequest) request;
@@ -93,7 +96,7 @@ public class MusicMountTestServer {
 				}
 				long time = System.currentTimeMillis() - timestamp;
 				builder.append(String.format("%5.2fs", time / 1000.0));
-				LOGGER.finer(builder.toString());
+				LOGGER.fine(builder.toString());
 			}
 		}
 
@@ -263,6 +266,7 @@ public class MusicMountTestServer {
 	}
 
 	Tomcat tomcat;
+	Path workDir;
 
 	public void start(FileResource musicFolder, FileResource mountFolder, String musicPath, int port, final String user, final String password) throws Exception {
 		if (!checkMusicPath(musicPath)) {
@@ -275,18 +279,17 @@ public class MusicMountTestServer {
 		LOGGER.info("Music path  : " + musicPath);
 
 		tomcat = new Tomcat();
-		final File workDir = File.createTempFile("musicmount-", null);
-		workDir.delete();
-		workDir.mkdir();
+		workDir = Files.createTempDirectory("musicmount-");
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+			Path workDir = MusicMountTestServer.this.workDir;
 			@Override
 			public void run() {
-				if (!deleteRecursive(workDir)) {
-					LOGGER.fine("Could not delete temporary directory: " + workDir);
+				if (Files.exists(workDir) && !deleteRecursive(workDir.toFile())) {
+					LOGGER.warning("Could not delete temporary directory: " + workDir);
 				}
 			}
 		}));
-		tomcat.setBaseDir(workDir.getAbsolutePath());
+		tomcat.setBaseDir(workDir.toFile().getAbsolutePath());
 		tomcat.setPort(port);
 		tomcat.getConnector().setURIEncoding("UTF-8");
 		tomcat.getConnector().setProperty("compression", "on");
@@ -312,7 +315,7 @@ public class MusicMountTestServer {
 		mountContext.addFilterDef(utf8FilterDef);
 		mountContext.addFilterMap(utf8FilterMap);
 
-		if (LOGGER.isLoggable(Level.FINER)) {
+		if (LOGGER.isLoggable(Level.FINE)) {
 			FilterDef logFilterDef = new FilterDef();
 			logFilterDef.setFilterName("log-filter");
 			logFilterDef.setFilter(AccessLogFilter);
@@ -370,11 +373,19 @@ public class MusicMountTestServer {
 		tomcat.getServer().await();
 	}
 	
+	public boolean isStarted() {
+		return tomcat != null && tomcat.getServer().getState() == LifecycleState.STARTED;
+	}
+	
 	public void stop() throws Exception {
 		LOGGER.info("Stopping Server...");
 		tomcat.stop();
 		tomcat.destroy();
 		tomcat = null;
+		if (workDir != null && !deleteRecursive(workDir.toFile())) {
+			LOGGER.warning("Could not delete temporary directory: " + workDir);
+		}
+		workDir = null;
 		LOGGER.info("Done.");
 	}
 
