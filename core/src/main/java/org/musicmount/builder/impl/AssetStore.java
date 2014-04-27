@@ -304,6 +304,9 @@ public class AssetStore {
 	}
 
 	synchronized AssetEntity updateEntity(Resource resource, AssetParser assetParser) throws Exception {
+		if (LOGGER.isLoggable(Level.FINER)) {
+			LOGGER.finer("Parsing asset: " + resource.getPath());
+		}
 		AssetEntity entity = entities.remove(resource);
 		Asset asset = assetParser.parse(resource);
 		if (entity == null) { // new asset
@@ -325,17 +328,11 @@ public class AssetStore {
 			AssetEntity entity = entities.get(resource);
 			if (entity != null) { // known asset
 				if (resource.lastModified() > timestamp) { // modified asset -> parse
-					if (LOGGER.isLoggable(Level.FINER)) {
-						LOGGER.finer("Asset has been modified: " + resource.getPath());
-					}
 					parseList.add(resource);
 				} else { // unmodified asset -> re-use
 					updatedEntities.add(entity);
 				}
 			} else { // unknown asset -> parse
-				if (LOGGER.isLoggable(Level.FINER)) {
-					LOGGER.finer("Asset has been added: " + resource.getPath());
-				}
 				parseList.add(resource);
 			}
 		}

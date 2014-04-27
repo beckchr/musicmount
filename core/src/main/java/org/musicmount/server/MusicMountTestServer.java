@@ -46,7 +46,6 @@ import org.apache.catalina.deploy.SecurityConstraint;
 import org.apache.catalina.realm.GenericPrincipal;
 import org.apache.catalina.realm.RealmBase;
 import org.apache.catalina.servlets.DefaultServlet;
-import org.apache.catalina.startup.DigesterFactory;
 import org.apache.catalina.startup.Tomcat;
 import org.musicmount.io.file.FileResource;
 import org.musicmount.io.file.FileResourceProvider;
@@ -58,7 +57,7 @@ public class MusicMountTestServer {
 	static {
 		System.setProperty("org.apache.catalina.startup.EXIT_ON_INIT_FAILURE", "true");
 		LoggingUtil.configure("org.apache", Level.INFO);
-		LoggingUtil.configure(DigesterFactory.class.getName(), Level.SEVERE); // get rid of warnings on missing jsp schema files		
+//		LoggingUtil.configure(DigesterFactory.class.getName(), Level.SEVERE); // get rid of warnings on missing jsp schema files		
 	}
 	
 	static final Filter AccessLogFilter = new Filter() {
@@ -270,6 +269,7 @@ public class MusicMountTestServer {
 			throw new IllegalArgumentException("Unsupported music path");
 		}
 
+		LOGGER.info("Starting Server...");
 		LOGGER.info("Music folder: " + musicFolder.getPath());
 		LOGGER.info("Mount folder: " + mountFolder.getPath());
 		LOGGER.info("Music path  : " + musicPath);
@@ -355,13 +355,27 @@ public class MusicMountTestServer {
 		}
 
 		tomcat.start();
+		LOGGER.info(String.format("Mount Settings"));
+		LOGGER.info(String.format("--------------"));
+		LOGGER.info(String.format("Site: %s", getSiteURL(musicPath, port)));
+		if (user != null) {
+			LOGGER.info(String.format("User: %s", user));
+			LOGGER.info(String.format("Pass: %s", password));
+		}
+		LOGGER.info(String.format("--------------"));
+		LOGGER.info("Done.");
+	}
+	
+	public void await() {
 		tomcat.getServer().await();
 	}
 	
 	public void stop() throws Exception {
+		LOGGER.info("Stopping Server...");
 		tomcat.stop();
 		tomcat.destroy();
 		tomcat = null;
+		LOGGER.info("Done.");
 	}
 
 	/**
@@ -474,29 +488,11 @@ public class MusicMountTestServer {
 		}
 		optionMusic = optionMusic.replace(FileSystems.getDefault().getSeparator(), "/");
 
-		LOGGER.info("Music folder: " + musicFolder.getPath());
-		LOGGER.info("Mount folder: " + mountFolder.getPath());
-		LOGGER.info("Music path  : " + optionMusic);
-		LOGGER.info("");
-
-		String hostname = InetAddress.getLoopbackAddress().getHostName();
-		try {
-			hostname = InetAddress.getLocalHost().getHostName();
-		} catch (UnknownHostException e) {
-			LOGGER.log(Level.WARNING, "Could not determine local host name, showing loopback name", e);
-		}
-
-		LOGGER.info(String.format("Mount Settings"));
-		LOGGER.info(String.format("--------------"));
-		LOGGER.info(String.format("Site: http://%s:%d/musicmount/", hostname, optionPort));
-		if (optionUser != null) {
-			LOGGER.info(String.format("User: %s", optionUser));
-			LOGGER.info(String.format("Pass: %s", optionPassword));
-		}
-		LOGGER.info(String.format("--------------"));
-		LOGGER.info(String.format("Starting Server..."));
+		LOGGER.info("Starting Server...");
+		MusicMountTestServer server = new MusicMountTestServer();
+		server.start(musicFolder, mountFolder, optionMusic, optionPort, optionUser, optionPassword);
 		LOGGER.info("Press CTRL-C to exit...");
-		new MusicMountTestServer().start(musicFolder, mountFolder, optionMusic, optionPort, optionUser, optionPassword);
+		server.await();
 	}
 
 	public static void main(String[] args) throws Exception {

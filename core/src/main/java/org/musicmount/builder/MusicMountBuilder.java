@@ -318,6 +318,11 @@ public class MusicMountBuilder {
 	public void build(Resource musicFolder, Resource mountFolder, String musicPath) throws Exception {
 		Resource assetStoreFile = mountFolder.resolve(ASSET_STORE);
 
+		LOGGER.info("Starting Build...");
+		LOGGER.info("Music folder: " + musicFolder.getPath());
+		LOGGER.info("Mount folder: " + mountFolder.getPath());
+		LOGGER.info("Music path  : " + musicPath);
+
 		AssetLocator assetStoreAssetLocator = new SimpleAssetLocator(musicFolder, null, null); // no prefix, no normalization
 		AssetStore assetStore = new AssetStore(API_VERSION);
 		boolean assetStoreLoaded = false;
@@ -664,10 +669,6 @@ public class MusicMountBuilder {
 		 * Configure logging
 		 */
 		LoggingUtil.configure(MusicMountBuilder.class.getPackage().getName(), optionVerbose ? Level.FINER : Level.FINE);
-
-		LOGGER.info("Music folder: " + musicFolder.getPath().toUri());
-		LOGGER.info("Mount folder: " + mountFolder.getPath().toUri());
-		LOGGER.info("Music path  : " + optionMusic);
 
 		if (!"file".equals(musicFolder.getPath().toUri().getScheme()) || !"file".equals(mountFolder.getPath().toUri().getScheme())) {
 			LOGGER.warning("Remote file system support is experimental/alpha!");
