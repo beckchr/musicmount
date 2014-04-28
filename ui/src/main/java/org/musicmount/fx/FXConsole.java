@@ -28,7 +28,7 @@ import javafx.scene.control.TextArea;
 public class FXConsole {
 	private static int BUFFER_SIZE = 8192;
 	private static int MAX_TEXT_LEN = 1024 * 1024;
-	private static int FLUSH_INTERVAL = 100;
+	private static int FLUSH_INTERVAL = 200;
 	
     private final TextArea textArea;
     private final StringBuffer flushed = new StringBuffer();
@@ -39,9 +39,7 @@ public class FXConsole {
 				try {
 					Thread.sleep(FLUSH_INTERVAL);
 					appendFlushed();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
+				} catch (InterruptedException | IOException e) {
 					e.printStackTrace();
 				}
 			}
@@ -51,25 +49,36 @@ public class FXConsole {
     	private final byte[] buffer = new byte[BUFFER_SIZE];
 
     	@Override
-        public synchronized void write(final int i) throws IOException {
-            buffer[pos++] = (byte)i;
+        public void write(int i) throws IOException {
             if (pos == BUFFER_SIZE) {
                 flush();
             }
+            buffer[pos++] = (byte)i;
         }
-            
+    	
+    	public void write(byte[] b, int off, int len) throws IOException {
+    		if (pos + len < BUFFER_SIZE) {
+    			System.arraycopy(b, off, buffer, pos, len);
+    			pos += len;
+    		} else {
+    			flush();
+    			if (len < BUFFER_SIZE) {
+        			System.arraycopy(b, off, buffer, 0, len);
+    			} else {
+    				FXConsole.this.flush(b, off, len);
+    			}
+    		}
+    	}
+    	
         @Override
-        public synchronized void flush() throws IOException {
-        	if (pos > 0) {
-        		flushed.append(new String(buffer, 0, pos));
-        		pos = 0;
-        	}
+        public void flush() throws IOException {
+        	FXConsole.this.flush(buffer, 0, pos);
+        	pos = 0;
         }
         
         @Override
         public void close() throws IOException {
         	flush();
-        	appendFlushed();
         }
 	};
 
@@ -115,19 +124,29 @@ public class FXConsole {
 		running = false;
     }
     
-    void appendFlushed() throws IOException {
-    	if (flushed.length() > 0) {
-    		final String s = flushed.toString();
-    		flushed.setLength(0);
-    		Platform.runLater(new Runnable() {
-    			public void run() {
-    				textArea.appendText(s);
-    				int textLength = textArea.getText().length();
-    				if (textLength > MAX_TEXT_LEN) {
-    					textArea.setText(textArea.getText(textLength - MAX_TEXT_LEN / 2, textLength));
-    				}
-    			}
-    		});
+	void flush(byte[] b, int off, int len) {
+    	if (len > 0) {
+    		synchronized (flushed) {
+    			flushed.append(new String(b, off, len));
+    		}
     	}
+	}
+
+	void appendFlushed() throws IOException {
+		synchronized (flushed) {
+			if (flushed.length() > 0) {
+				final String s = flushed.toString();
+				flushed.setLength(0);
+				Platform.runLater(new Runnable() {
+					public void run() {
+						textArea.appendText(s);
+						int textLength = textArea.getText().length();
+						if (textLength > MAX_TEXT_LEN) {
+							textArea.setText(textArea.getText(textLength - MAX_TEXT_LEN / 2, textLength));
+						}
+					}
+				});
+			}
+		}
     }
 }
