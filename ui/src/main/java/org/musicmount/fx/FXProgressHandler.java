@@ -41,6 +41,7 @@ public class FXProgressHandler implements ProgressHandler {
             	taskWork = totalWork;
 				statusText.setText(title);
 				progressIndicator.setProgress(totalWork > 0 ? 0 : -1);
+				progressIndicator.setVisible(true);
             }
         });
 	}
@@ -64,6 +65,7 @@ public class FXProgressHandler implements ProgressHandler {
             @Override public void run() {
 				statusText.setText(null);
 				progressIndicator.setProgress(1.0);
+				progressIndicator.setVisible(false);
             }
         });
 	}
