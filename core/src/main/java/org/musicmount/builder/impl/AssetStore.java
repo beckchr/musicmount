@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -303,7 +304,7 @@ public class AssetStore {
 		}
 	}
 
-	synchronized AssetEntity updateEntity(Resource resource, AssetParser assetParser) throws Exception {
+	synchronized void updateEntity(Resource resource, AssetParser assetParser) throws Exception {
 		if (LOGGER.isLoggable(Level.FINER)) {
 			LOGGER.finer("Parsing asset: " + resource.getPath());
 		}
@@ -314,108 +315,121 @@ public class AssetStore {
 		} else { // modified asset -> keep albumId
 			entities.put(resource, entity = new AssetEntity(entity.albumId, asset, AssetEntity.State.Modified));
 		}
-		return entity;
 	}
 	
-	void updateEntities(final AssetParser assetParser, Iterable<Resource> assetResources, int maxThreads, final ProgressHandler progressHandler) throws IOException, XMLStreamException {
-		final Set<AssetEntity> updatedEntities = Collections.synchronizedSet(new HashSet<AssetEntity>());
-		
+	void updateEntities(final AssetParser assetParser, Set<Resource> assetResources, int maxThreads, final ProgressHandler progressHandler) throws IOException, XMLStreamException {
+		final List<Resource> trashList = new ArrayList<>(); // deleted/bad resources
+
+		/*
+		 * collect deleted resources
+		 */
+		for (Resource resource : entities.keySet()) {
+			if (!assetResources.contains(resource)) {
+				trashList.add(resource);
+			}
+		}
+
 		/*
 		 * prepare parse list
 		 */
 		List<Resource> parseList = new ArrayList<>(); // new/modified resources
-		for (Resource resource : assetResources) {
-			AssetEntity entity = entities.get(resource);
-			if (entity != null) { // known asset
-				if (resource.lastModified() > timestamp) { // modified asset -> parse
+		if (entities.isEmpty()) {
+			parseList.addAll(assetResources);
+		} else {
+			if (progressHandler != null) {
+				progressHandler.beginTask(assetResources.size(), "Collecting new/modified assets...");
+			}
+			final int progressModulo = 2500;
+			int progressCount = 0;
+			for (Resource resource : assetResources) {
+				if (!entities.containsKey(resource) || resource.lastModified() > timestamp) { // new/modified asset -> parse
 					parseList.add(resource);
-				} else { // unmodified asset -> re-use
-					updatedEntities.add(entity);
 				}
-			} else { // unknown asset -> parse
-				parseList.add(resource);
+				progressCount++;
+				if (progressHandler != null && progressCount % progressModulo == 0) {
+					progressHandler.progress(progressCount, String.format("#assets = %5d", progressCount));
+				}
+			}
+			if (progressHandler != null) {
+				progressHandler.endTask();
 			}
 		}
 
 		/*
 		 * Parse new/modified entities
 		 */
-		int numberOfAssetsPerTask = 10;
-		int numberOfAssets = parseList.size();
-		int numberOfThreads = Math.min(1 + (numberOfAssets - 1) / numberOfAssetsPerTask, Math.min(maxThreads, Runtime.getRuntime().availableProcessors()));
-		if (progressHandler != null) {
-			progressHandler.beginTask(parseList.size(), String.format("Parsing %d new/modified assets...", numberOfAssets));
-		}
-		final int progressModulo = numberOfAssets < 200 ? 10 : numberOfAssets < 1000 ? 50 : 100;
-		if (numberOfThreads > 1) { // run on multiple threads
-			if (LOGGER.isLoggable(Level.FINER)) {
-				LOGGER.finer("Parallel: #threads = " + numberOfThreads);
+		if (!parseList.isEmpty()) {
+			int numberOfAssetsPerTask = 10;
+			int numberOfAssets = parseList.size();
+			int numberOfThreads = Math.min(1 + (numberOfAssets - 1) / numberOfAssetsPerTask, Math.min(maxThreads, Runtime.getRuntime().availableProcessors()));
+			if (progressHandler != null) {
+				progressHandler.beginTask(parseList.size(), String.format("Parsing %d assets...", numberOfAssets));
 			}
-			ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
-			final AtomicInteger atomicCount = new AtomicInteger();
-			for (int start = 0; start < numberOfAssets; start += numberOfAssetsPerTask) {
-				final Collection<Resource> assetsSlice = parseList.subList(start, Math.min(numberOfAssets, start + numberOfAssetsPerTask));
-				executor.execute(new Runnable() {
-					@Override
-					public void run() {
-						for (Resource resource : assetsSlice) {
-							try {
-								updatedEntities.add(updateEntity(resource, assetParser));
-							} catch (Exception e) {
-								LOGGER.log(Level.WARNING, "Could not parse asset: " + resource.getPath(), e);
-							}
-							int count = atomicCount.getAndIncrement() + 1;
-							if (progressHandler != null && count % progressModulo == 0) {
-								progressHandler.progress(count, String.format("#assets = %5d", count));
+			final int progressModulo = numberOfAssets < 200 ? 10 : numberOfAssets < 1000 ? 50 : 100;
+			if (numberOfThreads > 1) { // run on multiple threads
+				if (LOGGER.isLoggable(Level.FINER)) {
+					LOGGER.finer("Parallel: #threads = " + numberOfThreads);
+				}
+				ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
+				final AtomicInteger atomicProgressCount = new AtomicInteger();
+				for (int start = 0; start < numberOfAssets; start += numberOfAssetsPerTask) {
+					final Collection<Resource> assetsSlice = parseList.subList(start, Math.min(numberOfAssets, start + numberOfAssetsPerTask));
+					executor.execute(new Runnable() {
+						@Override
+						public void run() {
+							for (Resource resource : assetsSlice) {
+								try {
+									updateEntity(resource, assetParser);
+								} catch (Exception e) {
+									trashList.add(resource);
+									LOGGER.log(Level.WARNING, "Could not parse asset: " + resource.getPath(), e);
+								}
+								int count = atomicProgressCount.getAndIncrement() + 1;
+								if (progressHandler != null && count % progressModulo == 0) {
+									progressHandler.progress(count, String.format("#assets = %5d", count));
+								}
 							}
 						}
-					}
-				});
-			}
-			executor.shutdown();
-			try {
-				executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-			} catch (InterruptedException e) {
-				LOGGER.warning("Interrupted: " + e.getMessage());
-			}
-		} else {
-			int count = 0;
-			for (Resource resource : parseList) {
+					});
+				}
+				executor.shutdown();
 				try {
-					updatedEntities.add(updateEntity(resource, assetParser));
-				} catch (Exception e) {
-					LOGGER.log(Level.WARNING, "Could not parse asset: " + resource.getPath(), e);
+					executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+				} catch (InterruptedException e) {
+					LOGGER.warning("Interrupted: " + e.getMessage());
 				}
-				count++;
-				if (progressHandler != null && count % progressModulo == 0) {
-					progressHandler.progress(count, String.format("#assets = %5d", count));
+			} else { // run in current thread
+				int progressCount = 0;
+				for (Resource resource : parseList) {
+					try {
+						updateEntity(resource, assetParser);
+					} catch (Exception e) {
+						trashList.add(resource);
+						LOGGER.log(Level.WARNING, "Could not parse asset: " + resource.getPath(), e);
+					}
+					progressCount++;
+					if (progressHandler != null && progressCount % progressModulo == 0) {
+						progressHandler.progress(progressCount, String.format("#assets = %5d", progressCount));
+					}
 				}
 			}
-		}
-		
-		if (progressHandler != null) {
-			progressHandler.endTask();
+			if (progressHandler != null) {
+				progressHandler.endTask();
+			}
 		}
 
 		/*
-		 * remove deleted entities
+		 * remove entities for deleted/bad resources
 		 */
-		Iterator<AssetEntity> iterator = entities.values().iterator();
-		while (iterator.hasNext()) {
-			AssetEntity entity = iterator.next();
-			if (!updatedEntities.contains(entity)) {
-				if (LOGGER.isLoggable(Level.FINER)) {
-					LOGGER.finer("Asset has been deleted: " + entity.asset.getResource().getPath().toAbsolutePath());
-				}
-				if (entity.albumId != null) {
-					deletedAlbumIds.add(entity.albumId);
-				}
-				iterator.remove();
+		for (Resource resource : trashList) {
+			AssetEntity entity = entities.remove(resource);
+			if (entity != null && entity.albumId != null) {
+				deletedAlbumIds.add(entity.albumId);
 			}
 		}
 	}
 
-	private void collectAssetResources(List<Resource> assetResources, final Resource directory, ProgressHandler progressHandler, DirectoryStream.Filter<Path> assetFilter) throws IOException {
+	private void collectAssetResources(Set<Resource> assetResources, final Resource directory, ProgressHandler progressHandler, DirectoryStream.Filter<Path> assetFilter) throws IOException {
 		try (DirectoryStream<Resource> directoryStream = directory.newResourceDirectoryStream(assetFilter)) {
 			for (Resource resource : directoryStream) {
 				if (resource.isDirectory()) {
@@ -430,11 +444,11 @@ public class AssetStore {
 		}
 	}
 
-	List<Resource> collectAssetResources(Resource directory, ProgressHandler progressHandler, DirectoryStream.Filter<Path> assetFilter) throws IOException {
+	Set<Resource> collectAssetResources(Resource directory, ProgressHandler progressHandler, DirectoryStream.Filter<Path> assetFilter) throws IOException {
 		if (progressHandler != null) {
 			progressHandler.beginTask(-1, "Scanning directory for assets...");
 		}
-		List<Resource> assetResources = new ArrayList<>();
+		Set<Resource> assetResources = new LinkedHashSet<>();
 		collectAssetResources(assetResources, directory, progressHandler, assetFilter);
 		if (progressHandler != null) {
 			progressHandler.endTask();
@@ -448,7 +462,7 @@ public class AssetStore {
 		/*
 		 * collect resources
 		 */
-		List<Resource> assetResources = collectAssetResources(directory, progressHandler, new DirectoryStream.Filter<Path>() {
+		Set<Resource> assetResources = collectAssetResources(directory, progressHandler, new DirectoryStream.Filter<Path>() {
 			public boolean accept(Path path) {
 				try {
 					return !path.getFileName().toString().startsWith(".") && (assetParser.isAssetPath(path) || directory.getProvider().isDirectory(path));
