@@ -297,6 +297,9 @@ public class MusicMountTestServer {
 		tomcat.getConnector().setProperty("compressableMimeType", "text/json");
 		tomcat.setSilent(true);
 
+		// TODO: this fixes a resource-loading problem in WebappClassLoader when running through com.javafx.main.Main
+		tomcat.getEngine().setParentClassLoader(Thread.currentThread().getContextClassLoader());
+
 		Context mountContext = addContext(tomcat, mountContextPath(musicPath), mountFolder.getPath().toFile());
 		mountContext.addWelcomeFile("index.json");
 		mountContext.addMimeMapping("json", "text/json");
