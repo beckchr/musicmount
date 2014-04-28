@@ -36,7 +36,7 @@ public class LoggingUtil {
 	    handler.setFormatter(new Formatter() {
 			final MessageFormat messageFormat = new MessageFormat("{0}{1,date,HH:mm:ss} {2} - {3}{4}\n");
 			@Override
-			public String format(LogRecord record) {
+			public synchronized String format(LogRecord record) {
 				Object[] arguments = new Object[] {
 					String.format("%-8s", record.getLevel()),
 					new Date(record.getMillis()),
