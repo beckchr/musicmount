@@ -23,6 +23,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TitledPane;
+import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
@@ -30,6 +31,9 @@ import javafx.stage.Stage;
 public class MusicMountApplication extends Application {
 	@Override
 	public void start(final Stage primaryStage) {
+//		Platform.setImplicitExit(false);
+		primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("favicon.png")));
+		
 		FXConsole console = new FXConsole();
 		console.getTextArea().setId("console");
 		console.getTextArea().setEditable(false);
