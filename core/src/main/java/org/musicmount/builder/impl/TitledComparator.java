@@ -17,6 +17,7 @@ package org.musicmount.builder.impl;
 
 import java.text.Collator;
 import java.util.Comparator;
+import java.util.HashMap;
 
 import org.musicmount.builder.model.Titled;
 
@@ -30,6 +31,7 @@ public class TitledComparator<T extends Titled> implements Comparator<T> {
 	private final String[] sortTitlePrefixes;
 	private final String defaultTitle;
 	private final Comparator<? super T> secondaryItemComparator;
+	private final HashMap<T, String> sortTitles = new HashMap<>();
 
 	/**
 	 * @param localStrings locale and sort title prefixes ('a', 'the', ...)
@@ -54,7 +56,7 @@ public class TitledComparator<T extends Titled> implements Comparator<T> {
 		return result;
 	}
 
-	public String sortTitle(T titled) {
+	String calculateSortTitle(T titled) {
 		String title = titled.getTitle() == null ? defaultTitle : titled.getTitle();
 		for (String prefix : sortTitlePrefixes) {
 			if (title.length() > prefix.length() && title.toUpperCase().startsWith(prefix.toUpperCase())) {
@@ -74,5 +76,13 @@ public class TitledComparator<T extends Titled> implements Comparator<T> {
 			letterOrDigit++;
 		}
 		return letterOrDigit < title.length() ? title.substring(letterOrDigit) : title;
+	}
+
+	public String sortTitle(T titled) {
+		String sortTitle = sortTitles.get(titled);
+		if (sortTitle == null) {
+			sortTitles.put(titled, sortTitle = calculateSortTitle(titled));
+		}
+		return sortTitle;
 	}
 }
