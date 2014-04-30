@@ -8,7 +8,7 @@ to a web server.
 Build Site
 ----------
 
-Usage: java -jar musicmount-${project.version}.jar build [options] <musicFolder> <mountFolder>
+Usage: java -jar lib/musicmount-${project.version}.jar build [options] <musicFolder> <mountFolder>
 
 Generate MusicMount site from music in <musicFolder> into <mountFolder>
 
@@ -33,7 +33,7 @@ Options:
 Test Site
 ---------
 
-Usage: java -jar musicmount-${project.version}.jar test [options] [<musicFolder>] <mountFolder>
+Usage: java -jar lib/musicmount-${project.version}.jar test [options] [<musicFolder>] <mountFolder>
 
 Launch MusicMount site in <mountFolder> with music from <musicFolder>
 
@@ -48,3 +48,10 @@ Options:
        --user <user>     login user id
        --password <pass> login password
        --verbose         more detailed console output
+
+ JavaFX UI
+ ---------
+ 
+ Usage: java -jar musicmount-ui.jar
+ 
+ The UI does not support remote URLs (CIFS/WebDAV).
