@@ -57,6 +57,7 @@ import org.musicmount.io.ResourceProvider;
 import org.musicmount.io.file.FileResourceProvider;
 import org.musicmount.io.server.dav.DAVResourceProvider;
 import org.musicmount.io.server.smb.SMBResourceProvider;
+import org.musicmount.util.LoggingProgressHandler;
 import org.musicmount.util.LoggingUtil;
 import org.musicmount.util.ProgressHandler;
 
@@ -194,7 +195,7 @@ public class MusicMountBuilder {
 	private boolean directoryIndex = false;
 	private Normalizer.Form normalizer = null;
 
-	private ProgressHandler progressHandler = ProgressHandler.NOOP;
+	private ProgressHandler progressHandler = new LoggingProgressHandler(LOGGER, Level.FINE);
 
 	private final int maxAssetThreads;
 	private final int maxImageThreads;
@@ -673,26 +674,6 @@ public class MusicMountBuilder {
 		if (!"file".equals(musicFolder.getPath().toUri().getScheme()) || !"file".equals(mountFolder.getPath().toUri().getScheme())) {
 			LOGGER.warning("Remote file system support is experimental/alpha!");
 		}
-
-		builder.setProgressHandler(new ProgressHandler() {
-			@Override
-			public void beginTask(int totalWork, String title) {
-				if (LOGGER.isLoggable(Level.FINE)) {
-					if (title != null) {
-						LOGGER.fine(String.format("Progress: %s", title));
-					}
-				}
-			}
-			@Override
-			public void progress(int workDone, String message) {
-				if (LOGGER.isLoggable(Level.FINE)) {
-					LOGGER.fine(String.format("Progress: %s", message));
-				}
-			}
-			@Override
-			public void endTask() {
-			}
-		});
 
 		/**
 		 * Run builder

@@ -15,6 +15,9 @@
  */
 package org.musicmount.fx;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import javafx.application.Application;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -28,10 +31,15 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 
-public class MusicMountApplication extends Application {
+import org.musicmount.MusicMount;
+import org.musicmount.util.LoggingUtil;
+
+public class FXMusicMount extends Application {
+	static final Logger LOGGER = Logger.getLogger(FXMusicMount.class.getName());
+
 	@Override
 	public void start(final Stage primaryStage) {
-//		Platform.setImplicitExit(false);
+		//		Platform.setImplicitExit(false);
 		primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("favicon.png")));
 		
 		FXConsole console = new FXConsole();
@@ -40,7 +48,9 @@ public class MusicMountApplication extends Application {
 		console.getTextArea().setPrefHeight(200);
 		console.start();
 		
-		System.out.println("java version: " + System.getProperty("java.version"));
+		LoggingUtil.configure(FXMusicMount.class.getPackage().getName(), Level.FINE);
+		String version = MusicMount.class.getPackage().getImplementationVersion();
+		LOGGER.info("version " + (version != null ? version : "<unknown>") + " (java version " + System.getProperty("java.version") + ")");
 
 		TitledPane consolePane = new TitledPane("Console", console.getTextArea());
 		consolePane.setExpanded(false);
@@ -53,11 +63,11 @@ public class MusicMountApplication extends Application {
 		});
 
 		FXCommandModel model = new FXCommandModel();
-		BuildController buildController = new BuildController(model);
+		FXBuildController buildController = new FXBuildController(model);
 		Pane buildPane = buildController.getPane();
 		buildPane.setId("build-pane");
 
-		TestController testController = new TestController(model);
+		FXTestController testController = new FXTestController(model);
 		Pane testPane = testController.getPane();
 		testPane.setId("test-pane");
 

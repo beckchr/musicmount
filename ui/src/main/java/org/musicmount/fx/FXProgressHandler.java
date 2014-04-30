@@ -24,17 +24,20 @@ import org.musicmount.util.ProgressHandler;
 public class FXProgressHandler implements ProgressHandler {
 	private final Text statusText;
 	private final ProgressIndicator progressIndicator;
+	private final ProgressHandler delegate;
 	
 	private double taskWork;
 	private String taskTitle;
 	
-	public FXProgressHandler(Text statusText, ProgressIndicator progressIndicator) {
+	public FXProgressHandler(Text statusText, ProgressIndicator progressIndicator, ProgressHandler delegate) {
 		this.statusText = statusText;
 		this.progressIndicator = progressIndicator;
+		this.delegate = delegate != null ? delegate : ProgressHandler.NOOP;
 	}
 
 	@Override
 	public void beginTask(final int totalWork, final String title) {
+		delegate.beginTask(totalWork, title);
 		Platform.runLater(new Runnable() {
             @Override public void run() {
             	taskTitle = title;
@@ -48,6 +51,7 @@ public class FXProgressHandler implements ProgressHandler {
 
 	@Override
 	public void progress(final int work, final String message) {
+		delegate.progress(work, message);
 		Platform.runLater(new Runnable() {
             @Override public void run() {
 				if (taskWork > 0) {
@@ -61,6 +65,7 @@ public class FXProgressHandler implements ProgressHandler {
 
 	@Override
 	public void endTask() {
+		delegate.endTask();
 		Platform.runLater(new Runnable() {
             @Override public void run() {
 				statusText.setText(null);

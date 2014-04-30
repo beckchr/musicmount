@@ -50,7 +50,7 @@ public class MusicMount {
 
 	public static void main(String[] args) throws Exception {
 		String version = MusicMount.class.getPackage().getImplementationVersion();
-		LOGGER.info("version " + (version == null ? "<unknown>" : version));
+		LOGGER.info("version " + (version != null ? version : "<unknown>") + " (java version " + System.getProperty("java.version") + ")");
 		if (args.length == 0) {
 			exitWithError("missing arguments");
 		}
