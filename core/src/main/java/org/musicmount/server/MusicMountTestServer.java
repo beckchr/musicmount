@@ -366,7 +366,7 @@ public class MusicMountTestServer {
 		LOGGER.info(String.format("Site: %s", getSiteURL(musicPath, port)));
 		if (user != null) {
 			LOGGER.info(String.format("User: %s", user));
-			LOGGER.info(String.format("Pass: %s", password));
+			LOGGER.info(String.format("Pass: %s", "<not logged>"));
 		}
 		LOGGER.info(String.format("--------------"));
 		LOGGER.info("Done.");
