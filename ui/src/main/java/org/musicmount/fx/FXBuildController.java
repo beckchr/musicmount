@@ -17,6 +17,7 @@ package org.musicmount.fx;
 
 import java.io.File;
 import java.util.logging.Level;
+import java.util.prefs.Preferences;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -56,6 +57,14 @@ public class FXBuildController {
 
 	private static final String STATUS_NO_RELATIVE_MUSIC_PATH = "Cannot calculate relative music path, custom path path required";
 
+	private static final Preferences PREFERENCES = Preferences.userNodeForPackage(FXBuildController.class);
+	private static final String PREFERENCE_KEY_FULL = "builder.full";
+	private static final String PREFERENCE_KEY_GROUPING = "builder.grouping";
+	private static final String PREFERENCE_KEY_NO_TRACK_INDEX = "builder.noTrackIndex";
+	private static final String PREFERENCE_KEY_NO_VARIOUS_ARTISTS = "builder.noVariousArtists";
+	private static final String PREFERENCE_KEY_RETINA = "builder.retina";
+	private static final String PREFERENCE_KEY_UNKNOWN_GENRE = "builder.unknownGenre";
+
 	private Pane pane;
 	private TextField musicFolderTextField;
 	private Button musicFolderChooseButton;
@@ -91,7 +100,9 @@ public class FXBuildController {
 	public FXBuildController(final FXCommandModel model) {
 		this.model = model;
 		this.pane = createView(); 
-
+		
+		loadPreferences();
+		
 		pane.visibleProperty().addListener(new ChangeListener<Boolean>() {
 			@Override
 			public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
@@ -206,15 +217,14 @@ public class FXBuildController {
     	service.setOnRunning(new EventHandler<WorkerStateEvent>() {
 			public void handle(WorkerStateEvent event) {
 				statusText.setText(null);
-            	progressIndicator.setVisible(true);
             	disableControls(true);
 			}
 		});
 		service.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
 			public void handle(WorkerStateEvent event) {
 				statusText.setText("Site generation succeeded");
-            	progressIndicator.setVisible(false);
             	disableControls(false);
+            	savePreferences();
 			}
 		});
 		service.setOnFailed(new EventHandler<WorkerStateEvent>() {
@@ -235,6 +245,24 @@ public class FXBuildController {
 		});
 		
 		updateAll();
+	}
+
+	private void loadPreferences() {
+		builder.setFull(PREFERENCES.getBoolean(PREFERENCE_KEY_FULL, false));
+		builder.setGrouping(PREFERENCES.getBoolean(PREFERENCE_KEY_GROUPING, false));
+		builder.setNoTrackIndex(PREFERENCES.getBoolean(PREFERENCE_KEY_NO_TRACK_INDEX, false));
+		builder.setNoVariousArtists(PREFERENCES.getBoolean(PREFERENCE_KEY_NO_VARIOUS_ARTISTS, false));
+		builder.setRetina(PREFERENCES.getBoolean(PREFERENCE_KEY_RETINA, false));
+		builder.setUnknownGenre(PREFERENCES.getBoolean(PREFERENCE_KEY_UNKNOWN_GENRE, false));
+	}
+
+	private void savePreferences() {
+		PREFERENCES.putBoolean(PREFERENCE_KEY_FULL, builder.isFull());
+		PREFERENCES.putBoolean(PREFERENCE_KEY_GROUPING, builder.isGrouping());
+		PREFERENCES.putBoolean(PREFERENCE_KEY_NO_TRACK_INDEX, builder.isNoTrackIndex());
+		PREFERENCES.putBoolean(PREFERENCE_KEY_NO_VARIOUS_ARTISTS, builder.isNoVariousArtists());
+		PREFERENCES.putBoolean(PREFERENCE_KEY_RETINA, builder.isRetina());
+		PREFERENCES.putBoolean(PREFERENCE_KEY_UNKNOWN_GENRE, builder.isUnknownGenre());				
 	}
 	
 	void disableControls(boolean disable) {
@@ -312,27 +340,21 @@ public class FXBuildController {
 		GridPane.setHalignment(optionsLabel, HPos.RIGHT);
 		retinaCheckBox = new CheckBox("Retina Images");
 		retinaCheckBox.setTooltip(new Tooltip("Double image resolution, better for tables"));
-		retinaCheckBox.setSelected(builder.isRetina());
 		grid.add(retinaCheckBox, 1, 4);
 		groupingCheckBox = new CheckBox("Track Grouping");
 		groupingCheckBox.setTooltip(new Tooltip("Use grouping tag to group album tracks"));
-		groupingCheckBox.setSelected(builder.isGrouping());
 		grid.add(groupingCheckBox, 1, 5);
 		fullCheckBox = new CheckBox("Full Parse/Build");
 		fullCheckBox.setTooltip(new Tooltip("Force full parse/build, don't use asset store"));
-		fullCheckBox.setSelected(builder.isFull());
 		grid.add(fullCheckBox, 1, 6);
 		noTrackIndexCheckBox = new CheckBox("No Track Index");
 		noTrackIndexCheckBox.setTooltip(new Tooltip("Do not generate a track index"));
-		noTrackIndexCheckBox.setSelected(builder.isNoTrackIndex());
 		grid.add(noTrackIndexCheckBox, 2, 4);
 		noVariousArtistsCheckBox = new CheckBox("No 'Various Artists' Item");
 		noVariousArtistsCheckBox.setTooltip(new Tooltip("Exclude 'Various Artists' from album artist index"));
-		noVariousArtistsCheckBox.setSelected(builder.isNoVariousArtists());
 		grid.add(noVariousArtistsCheckBox, 2, 5);
 		unknownGenreCheckBox = new CheckBox("Add 'Unknown' Genre");
 		unknownGenreCheckBox.setTooltip(new Tooltip("Report missing genre as 'Unknown'"));
-		unknownGenreCheckBox.setSelected(builder.isUnknownGenre());
 		grid.add(unknownGenreCheckBox, 2, 6);
 
 		/*
@@ -382,6 +404,7 @@ public class FXBuildController {
 		updateMusicFolder();
 		updateMountFolder();
 		updateMusicPath();
+		updateOptions();
 		updateRunButton();
 	}
 
@@ -404,7 +427,16 @@ public class FXBuildController {
 			statusText.setText(null);
 		}
 	}
-	
+
+	void updateOptions() {
+		fullCheckBox.setSelected(builder.isFull());
+		groupingCheckBox.setSelected(builder.isGrouping());
+		noTrackIndexCheckBox.setSelected(builder.isNoTrackIndex());
+		noVariousArtistsCheckBox.setSelected(builder.isNoVariousArtists());
+		retinaCheckBox.setSelected(builder.isRetina());
+		unknownGenreCheckBox.setSelected(builder.isUnknownGenre());
+	}
+
 	void updateRunButton() {
 		runButton.setDisable(service.isRunning() || !model.isValid());
 	}

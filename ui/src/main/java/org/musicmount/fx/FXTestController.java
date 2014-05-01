@@ -17,6 +17,7 @@ package org.musicmount.fx;
 
 import java.io.File;
 import java.util.logging.Level;
+import java.util.prefs.Preferences;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -53,6 +54,10 @@ public class FXTestController {
 	
 	private static final String STATUS_NO_RELATIVE_MUSIC_PATH = "Cannot calculate relative music path, custom path path required";
 	
+	private static final Preferences PREFERENCES = Preferences.userNodeForPackage(FXTestController.class);;
+	private static final String PREFERENCE_KEY_PORT = "test.port";
+	private static final String PREFERENCE_KEY_USER = "test.user";
+
 	private Pane pane;
 	private TextField musicFolderTextField;
 	private Button musicFolderChooseButton;
@@ -68,14 +73,14 @@ public class FXTestController {
 	
 	private final MusicMountTestServer server;
 	private final FXCommandModel model;
-	private Integer port = 8080;
+	private Integer port;
 	private final Service<Object> service = new Service<Object>() {
 		@Override
 		protected Task<Object> createTask() {
 			return new Task<Object>() {
 				@Override
 				protected Object call() throws Exception {
-					server.start(model.getMusicFolder(), model.getMountFolder(), model.getMusicPath(), port, getUser(), getPassword());
+					server.start(model.getMusicFolder(), model.getMountFolder(), model.getMusicPath(), port.intValue(), getUser(), getPassword());
 					server.await();
 					return null;
 				}
@@ -95,6 +100,8 @@ public class FXTestController {
 	public FXTestController(final FXCommandModel model) {
 		this.model = model;
 		this.pane = createView();
+		
+		loadPreferences();
 
 		pane.visibleProperty().addListener(new ChangeListener<Boolean>() {
 			@Override
@@ -208,6 +215,7 @@ public class FXTestController {
 				statusText.setText("Server stopped");
 				runButton.setText("Start Server");
 				disableControls(false);
+				savePreferences();
 			}
 		});
 		service.setOnFailed(new EventHandler<WorkerStateEvent>() {
@@ -235,6 +243,27 @@ public class FXTestController {
 		});
 		
 		updateAll();
+	}
+
+	private void loadPreferences() {
+		port = Integer.valueOf(PREFERENCES.getInt(PREFERENCE_KEY_PORT, 8080));
+		if (port == 0) {
+			port = null;
+		}
+		userTextField.setText(PREFERENCES.get(PREFERENCE_KEY_USER, null));
+	}
+
+	private void savePreferences() {
+		if (port != null) {
+			PREFERENCES.putInt(PREFERENCE_KEY_PORT, port.intValue());
+		} else {
+			PREFERENCES.remove(PREFERENCE_KEY_PORT);
+		}
+		if (getUser() != null) {
+			PREFERENCES.put(PREFERENCE_KEY_USER, getUser());
+		} else {
+			PREFERENCES.remove(PREFERENCE_KEY_USER);
+		}
 	}
 
 	void disableControls(boolean disable) {
@@ -400,16 +429,16 @@ public class FXTestController {
 	}
 
 	void updateUserAndPassword() {
-		userTextField.setPromptText(getPassword() == null ? "Optional" : null);
-		passwordField.setPromptText(getUser() == null ? "Optional" : null);
+		userTextField.setPromptText(getPassword() == null ? "Optional" : "Required");
+		passwordField.setPromptText(getUser() == null ? "Optional" : "Required");
 	}
 	
 	String getUser() {
-		return userTextField == null || userTextField.getText().trim().isEmpty() ? null : userTextField.getText().trim();
+		return userTextField.getText() == null || userTextField.getText().trim().isEmpty() ? null : userTextField.getText().trim();
 	}
 	
 	String getPassword() {
-		return passwordField == null || passwordField.getText().trim().isEmpty() ? null : passwordField.getText().trim();
+		return passwordField.getText() == null || passwordField.getText().trim().isEmpty() ? null : passwordField.getText().trim();
 	}
 
 	public Pane getPane() {
