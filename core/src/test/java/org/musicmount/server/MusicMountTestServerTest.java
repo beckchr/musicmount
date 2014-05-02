@@ -21,8 +21,8 @@ public class MusicMountTestServerTest {
 		Assert.assertEquals("/musicmount", server.mountContextPath("/path"));
 		Assert.assertEquals("/musicmount", server.mountContextPath("path"));
 		Assert.assertEquals("/musicmount", server.mountContextPath("../path"));
-		Assert.assertEquals("/1/musicmount", server.mountContextPath("../../path"));
-		Assert.assertEquals("/1/2/musicmount", server.mountContextPath("../../../path"));
+		Assert.assertEquals("/musicmount/2", server.mountContextPath("../../path"));
+		Assert.assertEquals("/musicmount/2/3", server.mountContextPath("../../../path"));
 		Assert.assertEquals("/musicmount", server.mountContextPath("/path/"));
 	}
 
