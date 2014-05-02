@@ -241,15 +241,11 @@ public class MusicMountTestServer {
 	String mountContextPath(String musicPath) {
 		musicPath = normalizeMusicPath(musicPath);
 		int upLevels = upLevels(musicPath.split("/"));
-		if (upLevels < 2) {
-			return "/musicmount";
-		} else {
-			StringBuilder builder = new StringBuilder();
-			for (int i = 1; i < upLevels; i++) {
-				builder.append("/").append(i);
-			}
-			return builder.append("/musicmount").toString();
+		StringBuilder builder = new StringBuilder("/musicmount");
+		for (int i = 1; i < upLevels; i++) {
+			builder.append("/").append(i + 1);
 		}
+		return builder.toString();
 	}
 	
 	public String getSiteURL(String musicPath, int port) {
