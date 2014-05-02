@@ -16,7 +16,7 @@ Once your site is built and deployed, you can access your site from your mobile 
 
 ## Features
 
-- Easy to use command line interface
+- Easy to use graphical user interface
 - High performance ID3/MP4 tag parsers
 - Embedded test server to get you started quickly
 - Remote file system support via CIFS (SMB) or WebDAV
@@ -27,6 +27,12 @@ Once your site is built and deployed, you can access your site from your mobile 
 Documentation is available [here](http://musicmount.org/tool/).
 
 ## Change History
+
+#### Version 1.5 (2014/05/02)
+
+- generate track index
+- added JavaFX user interface
+- minor improvements/fixes
 
 #### Version 1.4.1 (2014/04/04)
 
