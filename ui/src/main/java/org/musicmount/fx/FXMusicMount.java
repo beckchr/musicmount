@@ -60,11 +60,11 @@ public class FXMusicMount extends Application {
 
 		FXCommandModel model = new FXCommandModel();
 
-		FXBuildController buildController = new FXBuildController(model);
+		final FXBuildController buildController = new FXBuildController(model);
 		Pane buildPane = buildController.getPane();
 		buildPane.setId("build-pane");
 
-		FXTestController testController = new FXTestController(model);
+		final FXTestController testController = new FXTestController(model);
 		Pane testPane = testController.getPane();
 		testPane.setId("test-pane");
 
@@ -72,6 +72,12 @@ public class FXMusicMount extends Application {
 		primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
 			@Override
 			public void handle(WindowEvent event) {
+				if (buildController.getService().isRunning()) {
+					buildController.getService().cancel();
+				}
+				if (testController.getService().isRunning()) {
+					testController.getService().cancel();
+				}
 				console.stop();
 			}
 		});
