@@ -39,6 +39,10 @@ import org.musicmount.util.LoggingUtil;
 public class FXMusicMount extends Application {
 	static final Logger LOGGER = Logger.getLogger(FXMusicMount.class.getName());
 
+	static {
+		LoggingUtil.configure("org.musicmount", Level.FINE);
+	}
+	
 	@Override
 	public void start(final Stage primaryStage) {
 		//		Platform.setImplicitExit(false);
@@ -120,7 +124,6 @@ public class FXMusicMount extends Application {
 
 		console.start();
 		
-		LoggingUtil.configure(FXMusicMount.class.getPackage().getName(), Level.FINE);
 		String version = MusicMount.class.getPackage().getImplementationVersion();
 		LOGGER.info("version " + (version != null ? version : "<unknown>") + " (java version " + System.getProperty("java.version") + ")");
 	}

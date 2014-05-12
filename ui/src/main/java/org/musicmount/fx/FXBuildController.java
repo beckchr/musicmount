@@ -16,7 +16,6 @@
 package org.musicmount.fx;
 
 import java.io.File;
-import java.util.logging.Level;
 import java.util.prefs.Preferences;
 
 import javafx.beans.value.ChangeListener;
@@ -48,13 +47,8 @@ import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 
 import org.musicmount.builder.MusicMountBuilder;
-import org.musicmount.util.LoggingUtil;
 
 public class FXBuildController {
-	static {
-		LoggingUtil.configure(MusicMountBuilder.class.getPackage().getName(), Level.FINE);
-	}
-
 	private static final String STATUS_NO_RELATIVE_MUSIC_PATH = "Cannot calculate relative music path, custom path path required";
 
 	private static final Preferences PREFERENCES = Preferences.userNodeForPackage(FXBuildController.class);

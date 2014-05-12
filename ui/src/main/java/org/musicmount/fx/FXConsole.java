@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 
+import org.musicmount.util.LoggingUtil;
+
 import javafx.application.Platform;
 import javafx.scene.control.TextArea;
 
@@ -112,6 +114,7 @@ public class FXConsole {
 		};
 		System.setErr(printStream);
 		System.setOut(printStream);
+		LoggingUtil.updateConsoleHandlers();
 		running = true;
 		flushThread.start();
     }
@@ -119,6 +122,7 @@ public class FXConsole {
     public void stop() {
 		System.setErr(saveErr);
 		System.setOut(saveOut);
+		LoggingUtil.updateConsoleHandlers();
 		running = false;
 		try {
 			flushThread.join();
