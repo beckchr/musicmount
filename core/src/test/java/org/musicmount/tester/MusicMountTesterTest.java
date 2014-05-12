@@ -1,10 +1,11 @@
-package org.musicmount.server;
+package org.musicmount.tester;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.musicmount.tester.MusicMountTester;
 
-public class MusicMountTestServerTest {
-	MusicMountTestServer server = new MusicMountTestServer();
+public class MusicMountTesterTest {
+	MusicMountTester server = new MusicMountTester();
 
 	@Test
 	public void testNormalizeMusicPath() {

@@ -23,8 +23,8 @@ import java.util.logging.Logger;
 
 import org.musicmount.util.LoggingUtil;
 
-public class MusicMountLinker {
-	static final Logger LOGGER = Logger.getLogger(MusicMountLinker.class.getName());
+public class MusicMountLinkCommand {
+	static final Logger LOGGER = Logger.getLogger(MusicMountLinkCommand.class.getName());
 
 	static void exitWithError(String command, String error) {
 		System.err.println();
@@ -130,7 +130,7 @@ public class MusicMountLinker {
 		/**
 		 * Configure logging
 		 */
-		LoggingUtil.configure(MusicMountLinker.class.getPackage().getName(), optionVerbose ? Level.FINER : Level.FINE);
+		LoggingUtil.configure(MusicMountLinkCommand.class.getPackage().getName(), optionVerbose ? Level.FINER : Level.FINE);
 		
 		/*
 		 * create symbolic link: <mount_folder>/<value of --music option> -> <music_folder>
@@ -168,6 +168,6 @@ public class MusicMountLinker {
 	}
 	
 	public static void main(String[] args) throws Exception {
-		execute(MusicMountLinker.class.getSimpleName(), args);
+		execute(MusicMountLinkCommand.class.getSimpleName(), args);
 	}
 }

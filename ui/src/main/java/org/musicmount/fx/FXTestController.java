@@ -43,7 +43,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 
-import org.musicmount.server.MusicMountTestServer;
+import org.musicmount.tester.MusicMountTester;
 
 public class FXTestController {
 	private static final String STATUS_NO_RELATIVE_MUSIC_PATH = "Cannot calculate relative music path, custom path path required";
@@ -65,7 +65,7 @@ public class FXTestController {
 	private Button runButton;
 	private Text statusText;
 	
-	private final MusicMountTestServer server;
+	private final MusicMountTester tester;
 	private final FXCommandModel model;
 	private Integer port;
 	private final Service<Object> service = new Service<Object>() {
@@ -74,14 +74,14 @@ public class FXTestController {
 			return new Task<Object>() {
 				@Override
 				protected Object call() throws Exception {
-					server.start(model.getMusicFolder(), model.getMountFolder(), model.getMusicPath(), port.intValue(), getUser(), getPassword());
-					server.await();
+					tester.start(model.getMusicFolder(), model.getMountFolder(), model.getMusicPath(), port.intValue(), getUser(), getPassword());
+					tester.await();
 					return null;
 				}
 				@Override
 				public boolean cancel(boolean mayInterruptIfRunning) {
 					try {
-						server.stop();
+						tester.stop();
 					} catch (Exception e) {
 						return false;
 					}
@@ -106,7 +106,7 @@ public class FXTestController {
 			}
 		});
 
-		server = new MusicMountTestServer();
+		tester = new MusicMountTester();
 
 		musicFolderTextField.textProperty().addListener(new ChangeListener<String>() {
 			@Override
@@ -199,7 +199,7 @@ public class FXTestController {
 
     	service.setOnRunning(new EventHandler<WorkerStateEvent>() {
 			public void handle(WorkerStateEvent event) {
-				statusText.setText("Server started - " + server.getSiteURL(model.getMusicPath(), port));
+				statusText.setText("Server started - " + tester.getSiteURL(model.getMusicPath(), port));
 				runButton.setText("Stop Server");
             	disableControls(true);
 			}
@@ -415,7 +415,7 @@ public class FXTestController {
 	}
 	
 	void updateRunButton() {
-		runButton.setDisable(!model.isSite() || port == null || !server.checkMusicPath(model.getMusicPath()) || (getUser() == null) != (getPassword() == null));
+		runButton.setDisable(!model.isSite() || port == null || !tester.checkMusicPath(model.getMusicPath()) || (getUser() == null) != (getPassword() == null));
 	}
 	
 	void updatePort() {

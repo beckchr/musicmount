@@ -18,9 +18,9 @@ package org.musicmount;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.musicmount.builder.MusicMountBuilder;
-import org.musicmount.linker.MusicMountLinker;
-import org.musicmount.server.MusicMountTestServer;
+import org.musicmount.builder.MusicMountBuildCommand;
+import org.musicmount.linker.MusicMountLinkCommand;
+import org.musicmount.tester.MusicMountTestCommand;
 import org.musicmount.util.LoggingUtil;
 
 public class MusicMount {
@@ -63,13 +63,13 @@ public class MusicMount {
 
 		switch (command) {
 		case "link":
-			MusicMountLinker.execute(executeCommand, executeArgs);
+			MusicMountLinkCommand.execute(executeCommand, executeArgs);
 			break;
 		case "build":
-			MusicMountBuilder.execute(executeCommand, executeArgs);
+			MusicMountBuildCommand.execute(executeCommand, executeArgs);
 			break;
 		case "test":
-			MusicMountTestServer.execute(executeCommand, executeArgs);
+			MusicMountTestCommand.execute(executeCommand, executeArgs);
 			break;
 		default:
 			exitWithError("unknown command: " + command);

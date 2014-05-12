@@ -56,14 +56,6 @@ public class MusicMountBuilderTest {
 	}
 	
 	@Test
-	public void testMain() throws Exception {
-		String input = new File(inputFolder.toURI()).getAbsolutePath();
-		String output = outputFolder.getRoot().getAbsolutePath();
-		MusicMountBuilder.main(new String[]{ "--pretty", "--full", input, output });
-		MusicMountBuilder.main(new String[]{ "--pretty", input, output }); // use asset store
-	}
-
-	@Test
 	public void testGenerateResponseFiles() throws Exception {
 		ResourceProvider resourceProvider = new FileResourceProvider();
 		Resource musicFolder = resourceProvider.newResource(new File(inputFolder.toURI()).toPath());
