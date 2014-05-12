@@ -58,7 +58,6 @@ public class FXBuildController {
 	private static final String STATUS_NO_RELATIVE_MUSIC_PATH = "Cannot calculate relative music path, custom path path required";
 
 	private static final Preferences PREFERENCES = Preferences.userNodeForPackage(FXBuildController.class);
-	private static final String PREFERENCE_KEY_FULL = "builder.full";
 	private static final String PREFERENCE_KEY_GROUPING = "builder.grouping";
 	private static final String PREFERENCE_KEY_NO_TRACK_INDEX = "builder.noTrackIndex";
 	private static final String PREFERENCE_KEY_NO_VARIOUS_ARTISTS = "builder.noVariousArtists";
@@ -248,7 +247,6 @@ public class FXBuildController {
 	}
 
 	private void loadPreferences() {
-		builder.setFull(PREFERENCES.getBoolean(PREFERENCE_KEY_FULL, false));
 		builder.setGrouping(PREFERENCES.getBoolean(PREFERENCE_KEY_GROUPING, false));
 		builder.setNoTrackIndex(PREFERENCES.getBoolean(PREFERENCE_KEY_NO_TRACK_INDEX, false));
 		builder.setNoVariousArtists(PREFERENCES.getBoolean(PREFERENCE_KEY_NO_VARIOUS_ARTISTS, false));
@@ -257,7 +255,6 @@ public class FXBuildController {
 	}
 
 	private void savePreferences() {
-		PREFERENCES.putBoolean(PREFERENCE_KEY_FULL, builder.isFull());
 		PREFERENCES.putBoolean(PREFERENCE_KEY_GROUPING, builder.isGrouping());
 		PREFERENCES.putBoolean(PREFERENCE_KEY_NO_TRACK_INDEX, builder.isNoTrackIndex());
 		PREFERENCES.putBoolean(PREFERENCE_KEY_NO_VARIOUS_ARTISTS, builder.isNoVariousArtists());
