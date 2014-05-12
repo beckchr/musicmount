@@ -92,6 +92,8 @@ public class FXConsole {
     
     public FXConsole(TextArea textArea) {
 		this.textArea = textArea;
+		this.saveErr = System.err;
+		this.saveOut = System.out;
 		
 		flushThread.setDaemon(true);
 	}
@@ -108,9 +110,7 @@ public class FXConsole {
 				stop();
 			}
 		};
-		saveErr = System.err;
 		System.setErr(printStream);
-		saveOut = System.out;
 		System.setOut(printStream);
 		running = true;
 		flushThread.start();
@@ -118,10 +118,12 @@ public class FXConsole {
     
     public void stop() {
 		System.setErr(saveErr);
-		saveErr = null;
 		System.setOut(saveOut);
-		saveOut = null;
 		running = false;
+		try {
+			flushThread.join();
+		} catch (InterruptedException e) {
+		}
     }
     
 	void flush(byte[] b, int off, int len) {

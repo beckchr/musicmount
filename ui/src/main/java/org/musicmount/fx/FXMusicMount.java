@@ -21,6 +21,7 @@ import java.util.logging.Logger;
 import javafx.application.Application;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.event.EventHandler;
 import javafx.geometry.Side;
 import javafx.scene.Scene;
 import javafx.scene.control.Tab;
@@ -30,6 +31,7 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 import org.musicmount.MusicMount;
 import org.musicmount.util.LoggingUtil;
@@ -40,17 +42,11 @@ public class FXMusicMount extends Application {
 	@Override
 	public void start(final Stage primaryStage) {
 		//		Platform.setImplicitExit(false);
-		primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("favicon.png")));
 		
-		FXConsole console = new FXConsole();
+		final FXConsole console = new FXConsole();
 		console.getTextArea().setId("console");
 		console.getTextArea().setEditable(false);
 		console.getTextArea().setPrefHeight(200);
-		console.start();
-		
-		LoggingUtil.configure(FXMusicMount.class.getPackage().getName(), Level.FINE);
-		String version = MusicMount.class.getPackage().getImplementationVersion();
-		LOGGER.info("version " + (version != null ? version : "<unknown>") + " (java version " + System.getProperty("java.version") + ")");
 
 		TitledPane consolePane = new TitledPane("Console", console.getTextArea());
 		consolePane.setExpanded(false);
@@ -63,6 +59,7 @@ public class FXMusicMount extends Application {
 		});
 
 		FXCommandModel model = new FXCommandModel();
+
 		FXBuildController buildController = new FXBuildController(model);
 		Pane buildPane = buildController.getPane();
 		buildPane.setId("build-pane");
@@ -70,6 +67,14 @@ public class FXMusicMount extends Application {
 		FXTestController testController = new FXTestController(model);
 		Pane testPane = testController.getPane();
 		testPane.setId("test-pane");
+
+		primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("favicon.png")));
+		primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+			@Override
+			public void handle(WindowEvent event) {
+				console.stop();
+			}
+		});
 
 		final TabPane tabPane = new TabPane();
 		tabPane.setId("tab-pane");
@@ -106,6 +111,12 @@ public class FXMusicMount extends Application {
 		primaryStage.setScene(scene);
 		primaryStage.show();
 //		primaryStage.setResizable(false);
+
+		console.start();
+		
+		LoggingUtil.configure(FXMusicMount.class.getPackage().getName(), Level.FINE);
+		String version = MusicMount.class.getPackage().getImplementationVersion();
+		LOGGER.info("version " + (version != null ? version : "<unknown>") + " (java version " + System.getProperty("java.version") + ")");
 	}
 
 	/**
