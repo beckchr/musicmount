@@ -23,16 +23,6 @@
 			<version>0.4.7</version>
 		</dependency>
  		<dependency>
-			<groupId>org.apache.tomcat.embed</groupId>
-			<artifactId>tomcat-embed-core</artifactId>
-			<version>7.0.53</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.tomcat.embed</groupId>
-			<artifactId>tomcat-embed-logging-juli</artifactId>
-			<version>7.0.53</version>
-		</dependency>
- 		<dependency>
 			<groupId>com.github.lookfirst</groupId>
 			<artifactId>sardine</artifactId>
 			<version>5.1</version>
@@ -68,15 +58,27 @@
 		<dependency>
 			<groupId>org.eclipse.jetty.aggregate</groupId>
 			<artifactId>jetty-servlet</artifactId>
-			<version>8.1.14.v20131031</version>
-			<scope>test</scope>
+			<version>8.1.15.v20140411</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty.orbit</groupId>
 			<artifactId>javax.servlet</artifactId>
 			<version>3.0.0.v201112011016</version>
-			<scope>test</scope>
 		</dependency>
+
+ 		<dependency>
+			<groupId>org.apache.tomcat.embed</groupId>
+			<artifactId>tomcat-embed-core</artifactId>
+			<version>7.0.53</version>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.tomcat.embed</groupId>
+			<artifactId>tomcat-embed-logging-juli</artifactId>
+			<version>7.0.53</version>
+			<optional>true</optional>
+		</dependency>
+
 		<dependency>
 			<groupId>fi.iki.elonen</groupId>
 			<artifactId>nanohttpd</artifactId>
@@ -108,58 +110,6 @@
 					</archive>
 				</configuration>
 			</plugin>
-		
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
-				<version>2.0</version>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-						<configuration>
-							<minimizeJar>true</minimizeJar>
-							<createDependencyReducedPom>false</createDependencyReducedPom>
-							<shadedArtifactAttached>true</shadedArtifactAttached>
-							<shadedClassifierName>uber</shadedClassifierName>
-							<filters>
-								<filter>
-									<artifact>*:*</artifact>
-									<excludes>
-										<exclude>META-INF/*.SF</exclude>
-										<exclude>META-INF/*.DSA</exclude>
-										<exclude>META-INF/*.RSA</exclude>
-									</excludes>
-								</filter>
-								<filter>
-									<artifact>org.apache.tomcat.embed:tomcat-embed-core</artifact>
-									<includes>
-										<include>org/apache/**</include>
-										<include>javax/servlet/**</include>
-									</includes>
-								</filter>
-								<filter>
-									<artifact>de.odysseus.staxon:staxon</artifact>
-									<includes>
-										<include>de/odysseus/staxon/**</include>
-									</includes>
-								</filter>
-							</filters>
-							<transformers>
-								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<manifestEntries>
-										<Class-Path />
-										<Main-Class>org.musicmount.MusicMount</Main-Class>
-									</manifestEntries>
-								</transformer>
-							</transformers>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-
  		</plugins>
 	</build>
 

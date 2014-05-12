@@ -27,9 +27,9 @@ import java.util.logging.Logger;
 
 import org.musicmount.io.file.FileResource;
 import org.musicmount.server.MusicMountServer;
+import org.musicmount.server.MusicMountServerJetty;
 import org.musicmount.server.MusicMountServer.AccessLog;
 import org.musicmount.server.MusicMountServer.FolderContext;
-import org.musicmount.server.MusicMountServerTomcat;
 
 public class MusicMountTester {
 	protected static final Logger LOGGER = Logger.getLogger(MusicMountTester.class.getName());
@@ -68,7 +68,7 @@ public class MusicMountTester {
 	private final MusicMountServer engine;
 	
 	public MusicMountTester() {
-		this(new MusicMountServerTomcat(LOGGER_ACCESS_LOG));
+		this(new MusicMountServerJetty(LOGGER_ACCESS_LOG));
 	}
 	
 	public MusicMountTester(MusicMountServer engine) {
