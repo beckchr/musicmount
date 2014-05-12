@@ -20,157 +20,22 @@ import java.io.FileInputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.xml.bind.DatatypeConverter;
 
-import org.musicmount.util.LoggingUtil;
-
 import fi.iki.elonen.NanoHTTPD;
+import fi.iki.elonen.NanoHTTPD.Response;
 
-public class MusicMountNanoServer extends NanoHTTPD {
-	static final Logger LOGGER = Logger.getLogger(MusicMountNanoServer.class.getName());
-		
-	static void exitWithError(String command, String error) {
-		System.err.println();
-		System.err.println("*** " + (error == null ? "internal error" : error));
-		System.err.println();
-		System.err.println(String.format("Usage: %s [options] <music_folder> <mount_folder>", command));
-		System.err.println();
-		System.err.println("Launch MusicMount site in <mount_folder> with music from <music_folder>");
-		System.err.println();
-		System.err.println("Options:");
-		System.err.println("       --music <path>    music path prefix, default is 'music'");
-		System.err.println("       --port <port>     launch HTTP server on specified port (default 8080)");
-		System.err.println("       --user <user>     login user");
-		System.err.println("       --password <pass> login password");
-		System.err.println("       --verbose         more detailed console output");
-		System.err.close();
-		System.exit(1);	
-	}
+/**
+ * Experimental!
+ * 
+ * not really working... 
+ */
+public class MusicMountServerNano implements MusicMountServer {
+	static final Logger LOGGER = Logger.getLogger(MusicMountServerNano.class.getName());
 	
-	/**
-	 * Launch HTTP Server
-	 * @param args inputFolder, outputFolder
-	 * @throws Exception
-	 */
-	public static void execute(String command, String[] args) throws Exception {
-		if (args.length < 2) {
-			exitWithError(command, "missing arguments");
-		}
-		String optionMusic = "music";
-		int optionPort = 8080;
-		String optionUser = null;
-		String optionPassword = null;
-		boolean optionVerbose = false;
-
-		int optionsLength = args.length - 2;
-		for (int i = 0; i < optionsLength; i++) {
-			switch (args[i]) {
-			case "--music":
-				if (++i == optionsLength) {
-					exitWithError(command, "invalid arguments");
-				}
-				optionMusic = args[i];
-				break;
-			case "--port":
-				if (++i == optionsLength) {
-					exitWithError(command, "invalid arguments");
-				}
-				optionPort = Integer.parseInt(args[i]);
-				break;
-			case "--user":
-				if (++i == optionsLength) {
-					exitWithError(command, "invalid arguments");
-				}
-				optionUser = args[i];
-				break;
-			case "--password":
-				if (++i == optionsLength) {
-					exitWithError(command, "invalid arguments");
-				}
-				optionPassword = args[i];
-				break;
-			case "--verbose":
-				optionVerbose = true;
-				break;
-			default:
-				if (args[i].startsWith("-")) {
-					exitWithError(command, "unknown option: " + args[i]);
-				} else {
-					exitWithError(command, "invalid arguments");
-				}
-			}
-		}
-		for (int i = optionsLength; i < args.length; i++) {
-			if (args[i].startsWith("-")) {
-				exitWithError(command, "invalid arguments");
-			}
-		}
-
-		File musicFolder = new File(args[optionsLength]);
-		if (!musicFolder.exists() || musicFolder.isFile()) {
-			exitWithError(command, String.format("music folder doesn't exist: %s", musicFolder));
-		}
-		File mountFolder = new File(args[optionsLength + 1]);
-		if (!mountFolder.exists() || mountFolder.isFile()) {
-			exitWithError(command, String.format("output folder doesn't exist: %s", mountFolder));
-		}
-		if ((optionUser == null) != (optionPassword == null)) {
-			exitWithError(command, String.format("either both or none of user/password must be given: %s/%s", optionUser, optionPassword));
-		}
-		
-		/**
-		 * Configure logging
-		 */
-		LoggingUtil.configure(MusicMountNanoServer.class.getPackage().getName(), optionVerbose ? Level.FINER : Level.FINE);
-
-		String hostname = InetAddress.getLoopbackAddress().getHostName();
-		try {
-			hostname = InetAddress.getLocalHost().getHostName();
-		} catch (UnknownHostException e) {
-			LOGGER.log(Level.WARNING, "Could not determine local host name, showing loopback name", e);
-		}
-
-		LOGGER.info(String.format("Mount Settings"));
-		LOGGER.info(String.format("--------------"));
-		LOGGER.info(String.format("Site: http://%s:%d", hostname, optionPort));
-		if (optionUser != null) {
-			LOGGER.info(String.format("User: %s", optionUser));
-			LOGGER.info(String.format("Pass: %s", optionPassword));
-		}
-		LOGGER.info(String.format("--------------"));
-		LOGGER.info(String.format("Starting Server..."));
-		final MusicMountNanoServer server = new MusicMountNanoServer(optionPort, mountFolder, musicFolder, optionMusic, optionUser, optionPassword);
-
-        try {
-            server.start();
-        } catch (IOException e) {
-    		LOGGER.log(Level.SEVERE, "Couldn't start server", e);
-            System.exit(-1);
-        }
-
-		LOGGER.info("Press CTRL-C to exit...");
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-			@Override
-			public void run() {
-				if (server.isAlive()) {
-					server.stop();
-				}
-			}
-		}));
-
-		Thread.sleep(Long.MAX_VALUE); // sleep forever
-	}
-	
-	public static void main(String[] args) throws Exception {
-		execute(MusicMountNanoServer.class.getSimpleName(), args);
-	}
-
 	/**
 	 * Hack: nanohttpd uses <code>available()</code> to determine Content-Length!
 	 * See https://github.com/NanoHttpd/nanohttpd/issues/51
@@ -212,20 +77,7 @@ public class MusicMountNanoServer extends NanoHTTPD {
 		}
 	}
 	
-	private final File mountBase;
-	private final File musicBase;
-	private final String musicPath;
-	private final String basicAuth;
-
-	public MusicMountNanoServer(int port, File mountBase, File musicBase, String musicPath, String user, String password) {
-		super(port);
-		this.mountBase = mountBase;
-		this.musicBase = musicBase;
-		this.musicPath = musicPath.startsWith("/") ? musicPath : "/" + musicPath;
-		this.basicAuth = user != null ? "Basic " + DatatypeConverter.printBase64Binary((user + ":" + password).getBytes()) : null;
-	}
-	
-	private String mimeType(File file) {
+	private static String mimeType(File file) {
         int dot = file.getName().lastIndexOf('.');
         String fileType =  dot > 0 ? file.getName().substring(dot + 1).toLowerCase() : null;
         if (fileType != null) {
@@ -245,30 +97,112 @@ public class MusicMountNanoServer extends NanoHTTPD {
         }
         return null;
 	}
-	
-    public Response serve(IHTTPSession session) {
-    	MusicMountResponse response = serve(session.getUri(), session.getHeaders());
-		if (LOGGER.isLoggable(Level.FINER)) {
-			int methodAndURIFormatLength = 50;
-			StringBuilder builder = new StringBuilder();
-			String uri = session.getUri();
-	        int maxURILength = methodAndURIFormatLength - 1 - session.getMethod().name().length();
-	        if (uri.length() > maxURILength) {
-	        	uri = "..." +  uri.substring(uri.length() - maxURILength + 3);
-	        }
-	        String methodAndURI = String.format("%s %s", session.getMethod().name(), uri);
-	        builder.append(String.format(String.format("%%-%ds", methodAndURIFormatLength), methodAndURI));
-			builder.append(String.format("%4d", response.getStatus().getRequestStatus()));
-	        if (response.contentLength != null) {
-	        	builder.append(String.format("%,11dB", response.contentLength));
-	        } else {
-	            builder.append("            ");
-	        }
-	        LOGGER.finer(builder.toString());
-		}
-    	return response;
-    }
 
+	private FolderContext mountContext;
+	private FolderContext musicContext;
+	private String basicAuth;
+	private NanoHTTPD nano;
+	private final AccessLog accessLog;
+	
+	public MusicMountServerNano(AccessLog accessLog) {
+		this.accessLog = accessLog;
+//      Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+//			@Override
+//			public void run() {
+//				if (isAlive()) {
+//					stop();
+//				}
+//			}
+//		}));
+	}
+	
+	@Override
+	public void start(FolderContext music, FolderContext mount, int port, String user, String password) throws Exception {
+		this.mountContext = mount;
+		this.musicContext = music;
+		this.basicAuth = user != null ? "Basic " + DatatypeConverter.printBase64Binary((user + ":" + password).getBytes()) : null;
+		this.nano = new NanoHTTPD(port) {
+			@Override
+		    public Response serve(final IHTTPSession session) {
+				final long requestTimestamp = System.currentTimeMillis();
+		    	final MusicMountResponse response = MusicMountServerNano.this.serve(session.getUri(), session.getHeaders());
+				if (accessLog != null) {
+					final long responseTimestamp = System.currentTimeMillis();
+					accessLog.log(new AccessLog.Entry() {
+						@Override
+						public long getResponseTimestamp() {
+							return responseTimestamp;
+						}
+						@Override
+						public int getResponseStatus() {
+							return response.getStatus() != null ? response.getStatus().getRequestStatus() : 0;
+						}
+						@Override
+						public String getResponseHeader(String header) {
+							if (header.equalsIgnoreCase("Content-Length")) {
+								if (response.contentLength != null) {
+									return String.valueOf(response.contentLength);
+								}
+							}
+							return null;
+						}
+						@Override
+						public String getRequestURI() {
+							return session.getUri();
+						}
+						@Override
+						public long getRequestTimestamp() {
+							return requestTimestamp;
+						}
+						@Override
+						public String getRequestMethod() {
+							return session.getMethod().name();
+						}
+					});
+					int methodAndURIFormatLength = 50;
+					StringBuilder builder = new StringBuilder();
+					String uri = session.getUri();
+			        int maxURILength = methodAndURIFormatLength - 1 - session.getMethod().name().length();
+			        if (uri.length() > maxURILength) {
+			        	uri = "..." +  uri.substring(uri.length() - maxURILength + 3);
+			        }
+			        String methodAndURI = String.format("%s %s", session.getMethod().name(), uri);
+			        builder.append(String.format(String.format("%%-%ds", methodAndURIFormatLength), methodAndURI));
+					builder.append(String.format("%4d", response.getStatus().getRequestStatus()));
+			        if (response.contentLength != null) {
+			        	builder.append(String.format("%,11dB", response.contentLength));
+			        } else {
+			            builder.append("            ");
+			        }
+			        LOGGER.finer(builder.toString());
+				}
+		    	return response;
+		    }
+		};
+		nano.start();
+	}
+	
+	@Override
+	public boolean isStarted() {
+		return nano != null && nano.isAlive();
+	}
+	
+	@Override
+	public void await() {
+		try {
+			Thread.sleep(Long.MAX_VALUE);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} // sleep forever
+	}
+	
+	@Override
+	public void stop() {
+		nano.stop();
+		nano = null;
+	}
+	
     MusicMountResponse serve(String uri, Map<String, String> headers) {
         // strip down URI to relevant path 
         uri = uri.trim().replace(File.separatorChar, '/');
@@ -283,25 +217,27 @@ public class MusicMountNanoServer extends NanoHTTPD {
 			return response;
 		}
 		
-        File base = null;
-        File file = null;
-        if (uri.startsWith(musicPath)) {
-        	base = musicBase;
-        	file = new File(musicBase, uri.substring(musicPath.length()));
+        FolderContext context = null;
+        if (uri.startsWith(musicContext.getPath())) {
+        	context = musicContext;
+        } else if (uri.startsWith(mountContext.getPath())) {
+        	context = mountContext;
         } else {
-        	base = mountBase;
-        	file = new File(mountBase, uri);
-        	if (file.isDirectory()) {
-                if (!uri.endsWith("/")) {
-                    uri += "/";
-                }
-                uri += "index.json";
-        		file = new File(file, "index.json");
-        	}
+            return new MusicMountResponse(Response.Status.NOT_FOUND, NanoHTTPD.MIME_PLAINTEXT, "File not found.");
         }
+
+    	File file = new File(context.getFolder(), uri.substring(context.getPath().length()));
+    	if (context == mountContext && file.isDirectory()) {
+            if (!uri.endsWith("/")) {
+                uri += "/";
+            }
+            uri += "index.json";
+    		file = new File(file, "index.json");
+    	}
+    	
         String mimeType = mimeType(file);
 
-        if (mimeType == null || !file.getAbsolutePath().startsWith(base.getAbsolutePath())) {
+        if (mimeType == null || !file.getAbsolutePath().startsWith(context.getFolder().getAbsolutePath())) {
             return new MusicMountResponse(Response.Status.FORBIDDEN, NanoHTTPD.MIME_PLAINTEXT, "Won't serve.");
         }
         if (!file.exists()) {
