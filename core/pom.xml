@@ -110,6 +110,32 @@
 					</archive>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>appassembler-maven-plugin</artifactId>
+				<version>1.8</version>
+				<configuration>
+					<generateRepository>false</generateRepository>
+					<includeConfigurationDirectoryInClasspath>false</includeConfigurationDirectoryInClasspath>
+					<repositoryName>lib</repositoryName>
+					<repositoryLayout>flat</repositoryLayout>
+					<useWildcardClassPath>true</useWildcardClassPath>
+ 					<programs>
+						<program>
+							<mainClass>org.musicmount.MusicMount</mainClass>
+							<id>musicmount</id>
+						</program>
+					</programs>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>assemble</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
  		</plugins>
 	</build>
 
