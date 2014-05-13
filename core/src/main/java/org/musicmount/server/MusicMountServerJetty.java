@@ -38,6 +38,7 @@ import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
+import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.security.Credential;
 import org.musicmount.util.LoggingUtil;
@@ -120,24 +121,26 @@ public class MusicMountServerJetty implements MusicMountServer {
 		ServletContextHandler mountContext = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
         mountContext.setContextPath(mount.getPath());
         mountContext.setSecurityHandler(user == null ? null : basicAuthentication("MusicMount", user, password));
-        mountContext.setResourceBase(mount.getFolder().getAbsolutePath());
+        mountContext.setBaseResource(Resource.newResource(mount.getFolder()));
         mountContext.setWelcomeFiles(new String[] { "index.json" });
-        mountContext.setInitParameter("org.eclipse.jetty.servlet.Default.dirAllowed", "true");
         MimeTypes mountTypes = new MimeTypes();
         mountTypes.addMimeMapping("json", MimeTypes.TEXT_JSON_UTF_8);
         mountContext.setMimeTypes(mountTypes);
-        mountContext.addServlet(new ServletHolder(new DefaultServlet()), "/*");
+        ServletHolder mountServlet = new ServletHolder(new DefaultServlet());
+        mountServlet.setInitParameter("dirAllowed", "false");
+        mountContext.addServlet(mountServlet, "/*");
 
         ServletContextHandler musicContext = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
         musicContext.setContextPath(music.getPath());
         musicContext.setSecurityHandler(user == null ? null : basicAuthentication("MusicMount", user, password));
-        musicContext.setResourceBase(music.getFolder().getAbsolutePath());
-        mountContext.setInitParameter("org.eclipse.jetty.servlet.Default.dirAllowed", "false");
+        musicContext.setBaseResource(Resource.newResource(music.getFolder()));
         MimeTypes musicTypes = new MimeTypes();
         musicTypes.addMimeMapping("m4a", "audio/mp4");
         musicTypes.addMimeMapping("mp3", "audio/mpeg");
         musicContext.setMimeTypes(musicTypes);
-        musicContext.addServlet(new ServletHolder(new DefaultServlet()), "/*");
+        ServletHolder musicServlet = new ServletHolder(new DefaultServlet());
+        musicServlet.setInitParameter("dirAllowed", "false");
+        musicContext.addServlet(musicServlet, "/*");
 
         GzipHandler gzipMountContext = new GzipHandler();
         gzipMountContext.setMimeTypes(MimeTypes.TEXT_JSON);
@@ -155,6 +158,7 @@ public class MusicMountServerJetty implements MusicMountServer {
         server = new Server(port);
         server.setHandler(handlers);
         server.setGracefulShutdown(1000);
+        server.setStopAtShutdown(true);
         server.start();
 	}
 	
