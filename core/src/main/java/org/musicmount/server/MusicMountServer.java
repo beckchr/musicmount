@@ -17,6 +17,8 @@ package org.musicmount.server;
 
 import java.io.File;
 
+import org.musicmount.live.LiveContext;
+
 public interface MusicMountServer {
 	interface AccessLog {
 		interface Entry {
@@ -47,6 +49,7 @@ public interface MusicMountServer {
 	}
 	
 	public void start(FolderContext music, FolderContext mount, int port, String user, String password) throws Exception;
+	public void start(LiveContext context, int port, String user, String password) throws Exception;
 	public void await();
 	public boolean isStarted();
 	public void stop() throws Exception;

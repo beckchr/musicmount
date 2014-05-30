@@ -41,6 +41,8 @@ import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.security.Credential;
+import org.musicmount.live.LiveContext;
+import org.musicmount.live.LiveServlet;
 import org.musicmount.util.LoggingUtil;
 
 public class MusicMountServerJetty implements MusicMountServer {
@@ -71,7 +73,7 @@ public class MusicMountServerJetty implements MusicMountServer {
 					}
 					@Override
 					public String getRequestURI() {
-						return request.getUri().toString();
+						return request.getRequestURI();
 					}
 					@Override
 					public long getRequestTimestamp() {
@@ -162,6 +164,45 @@ public class MusicMountServerJetty implements MusicMountServer {
         server.start();
 	}
 	
+	public void start(LiveContext context, int port, String user, String password) throws Exception {
+		ServletContextHandler mountContext = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
+        mountContext.setContextPath(context.getMountPath());
+        mountContext.setSecurityHandler(user == null ? null : basicAuthentication("MusicMount", user, password));
+        ServletHolder mountServlet = new ServletHolder(new LiveServlet(context));
+        mountContext.addServlet(mountServlet, "/*");
+
+        ServletContextHandler musicContext = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
+        musicContext.setContextPath(context.getMusic().getPath());
+        musicContext.setSecurityHandler(user == null ? null : basicAuthentication("MusicMount", user, password));
+        musicContext.setBaseResource(Resource.newResource(context.getMusic().getFolder()));
+        MimeTypes musicTypes = new MimeTypes();
+        musicTypes.addMimeMapping("m4a", "audio/mp4");
+        musicTypes.addMimeMapping("mp3", "audio/mpeg");
+        musicContext.setMimeTypes(musicTypes);
+        ServletHolder musicServlet = new ServletHolder(new DefaultServlet());
+        musicServlet.setInitParameter("dirAllowed", "false");
+        musicContext.addServlet(musicServlet, "/*");
+
+        GzipHandler gzipMountContext = new GzipHandler();
+        gzipMountContext.setMimeTypes(MimeTypes.TEXT_JSON);
+        gzipMountContext.setHandler(mountContext);
+
+        ContextHandlerCollection contexHandlers = new ContextHandlerCollection();
+        contexHandlers.setHandlers(new Handler[] { gzipMountContext, musicContext });
+        
+        RequestLogHandler requestLogHandler = new RequestLogHandler();
+        requestLogHandler.setRequestLog(new ConsoleRequestLog());   
+
+        HandlerCollection handlers = new HandlerCollection();
+        handlers.setHandlers(new Handler[]{ contexHandlers, new DefaultHandler(), requestLogHandler });
+
+        server = new Server(port);
+        server.setHandler(handlers);
+        server.setGracefulShutdown(1000);
+        server.setStopAtShutdown(true);
+        server.start();
+	}
+
 	@Override
 	public void await() {
         try {

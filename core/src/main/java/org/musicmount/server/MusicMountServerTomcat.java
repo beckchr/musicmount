@@ -47,6 +47,8 @@ import org.apache.catalina.realm.GenericPrincipal;
 import org.apache.catalina.realm.RealmBase;
 import org.apache.catalina.servlets.DefaultServlet;
 import org.apache.catalina.startup.Tomcat;
+import org.musicmount.live.LiveContext;
+import org.musicmount.live.LiveServlet;
 import org.musicmount.util.LoggingUtil;
 
 public class MusicMountServerTomcat implements MusicMountServer {
@@ -122,23 +124,36 @@ public class MusicMountServerTomcat implements MusicMountServer {
 		}
 	};
 
-	private static Context addContext(Tomcat tomcat, String contextPath, File baseDir) {
-		Context mountContext = tomcat.addContext(contextPath, baseDir.getAbsolutePath());
-		mountContext.addWelcomeFile("index.json");
-		mountContext.addMimeMapping("json", "text/json");
-
-		Wrapper defaultServlet = mountContext.createWrapper();
+	private static Context addContext(Tomcat tomcat, String contextPath, File baseDir, String servletMapping) {
+		Context context = tomcat.addContext(contextPath, baseDir.getAbsolutePath());
+		Wrapper defaultServlet = context.createWrapper();
 		defaultServlet.setName("default");
 		defaultServlet.setServlet(new DefaultServlet());
 		defaultServlet.addInitParameter("debug", "0");
 		defaultServlet.addInitParameter("listings", "false");
 		defaultServlet.setLoadOnStartup(1);
-		mountContext.addChild(defaultServlet);
-		mountContext.addServletMapping("/", "default");
+		context.addChild(defaultServlet);
+		context.addServletMapping(servletMapping, "default");
 
-		return mountContext;
+		return context;
 	}
 
+	private static Context addContext(Tomcat tomcat, String contextPath, File baseDir) {
+		return addContext(tomcat, contextPath, baseDir, "/*");
+	}
+
+	private static void addUTF8Filter(Context context) {
+		FilterDef utf8FilterDef = new FilterDef();
+		utf8FilterDef.setFilterName("utf8-filter");
+		utf8FilterDef.setFilter(UTF8Filter);
+		FilterMap utf8FilterMap = new FilterMap();
+		utf8FilterMap.setFilterName("utf8-filter");
+		utf8FilterMap.addURLPattern("*");
+
+		context.addFilterDef(utf8FilterDef);
+		context.addFilterMap(utf8FilterMap);
+	}
+	
 	private static void addBasicAuth(StandardContext context) {
 		SecurityConstraint securityConstraint = new SecurityConstraint();
 		securityConstraint.addAuthRole("user");
@@ -154,6 +169,26 @@ public class MusicMountServerTomcat implements MusicMountServer {
 		context.addConstraint(securityConstraint);
 		context.setLoginConfig(loginConfig);
 		context.addValve(new BasicAuthenticator());
+	}
+
+	private static RealmBase createRealm(final String user, final String password) {
+		return new RealmBase() {
+			@Override
+			protected Principal getPrincipal(String username) {
+				String password = getPassword(username);
+				return password != null ? new GenericPrincipal(username, password, Arrays.asList("user")) : null;
+			}
+
+			@Override
+			protected String getPassword(String username) {
+				return user.equals(username) ? password : null;
+			}
+
+			@Override
+			protected String getName() {
+				return "MusicMount";
+			}
+		};
 	}
 
 	private static boolean deleteRecursive(File parent) {
@@ -173,12 +208,9 @@ public class MusicMountServerTomcat implements MusicMountServer {
 		this.accessLog = accessLog;
 	}
 
-	@Override
-	public void start(FolderContext music, FolderContext mount, int port, final String user, final String password) throws Exception {
-		tomcat = new Tomcat();
+	private Tomcat createTomcat(int port) throws IOException {
 		workDir = Files.createTempDirectory("musicmount-");
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-			Path workDir = MusicMountServerTomcat.this.workDir;
 			@Override
 			public void run() {
 				if (Files.exists(workDir) && !deleteRecursive(workDir.toFile())) {
@@ -186,6 +218,7 @@ public class MusicMountServerTomcat implements MusicMountServer {
 				}
 			}
 		}));
+		tomcat = new Tomcat();
 		tomcat.setBaseDir(workDir.toFile().getAbsolutePath());
 		tomcat.setPort(port);
 		tomcat.getConnector().setURIEncoding("UTF-8");
@@ -196,6 +229,25 @@ public class MusicMountServerTomcat implements MusicMountServer {
 
 		// TODO: this fixes a resource-loading problem in WebappClassLoader when running through com.javafx.main.Main
 		tomcat.getEngine().setParentClassLoader(Thread.currentThread().getContextClassLoader());
+		return tomcat;
+	}
+	
+	private void addLogFilter(Context... contexts) {
+		FilterDef logFilterDef = new FilterDef();
+		logFilterDef.setFilterName("log-filter");
+		logFilterDef.setFilter(AccessLogFilter);
+		FilterMap logFilterMap = new FilterMap();
+		logFilterMap.setFilterName("log-filter");
+		logFilterMap.addURLPattern("*");
+		for (Context context : contexts) {
+			context.addFilterDef(logFilterDef);
+			context.addFilterMap(logFilterMap);
+		}
+	}
+	
+	@Override
+	public void start(FolderContext music, FolderContext mount, int port, final String user, final String password) throws Exception {
+		Tomcat tomcat = createTomcat(port);
 
 		Context mountContext = addContext(tomcat, mount.getPath(), mount.getFolder().getAbsoluteFile());
 		mountContext.addWelcomeFile("index.json");
@@ -205,61 +257,46 @@ public class MusicMountServerTomcat implements MusicMountServer {
 		musicContext.addMimeMapping("m4a", "audio/mp4");
 		musicContext.addMimeMapping("mp3", "audio/mpeg");
 		
-		FilterDef utf8FilterDef = new FilterDef();
-		utf8FilterDef.setFilterName("utf8-filter");
-		utf8FilterDef.setFilter(UTF8Filter);
-		FilterMap utf8FilterMap = new FilterMap();
-		utf8FilterMap.setFilterName("utf8-filter");
-		utf8FilterMap.addURLPattern("*");
-
-		mountContext.addFilterDef(utf8FilterDef);
-		mountContext.addFilterMap(utf8FilterMap);
-
-		if (LOGGER.isLoggable(Level.FINE)) {
-			FilterDef logFilterDef = new FilterDef();
-			logFilterDef.setFilterName("log-filter");
-			logFilterDef.setFilter(AccessLogFilter);
-			FilterMap logFilterMap = new FilterMap();
-			logFilterMap.setFilterName("log-filter");
-			logFilterMap.addURLPattern("*");
-
-			mountContext.addFilterDef(logFilterDef);
-			mountContext.addFilterMap(logFilterMap);
-
-			if (musicContext != null) {
-				musicContext.addFilterDef(logFilterDef);
-				musicContext.addFilterMap(logFilterMap);
-			}
-		}
+		addUTF8Filter(mountContext);
+		addLogFilter(mountContext, musicContext);
 
 		if (user != null && password != null) {
-			tomcat.getEngine().setRealm(new RealmBase() {
-				@Override
-				protected Principal getPrincipal(String username) {
-					String password = getPassword(username);
-					return password != null ? new GenericPrincipal(username, password, Arrays.asList("user")) : null;
-				}
-
-				@Override
-				protected String getPassword(String username) {
-					return user.equals(username) ? password : null;
-				}
-
-				@Override
-				protected String getName() {
-					return "MusicMount";
-				}
-			});
-
+			tomcat.getEngine().setRealm(createRealm(user, password));
 			addBasicAuth((StandardContext) mountContext);
-			if (musicContext != null) {
-				addBasicAuth((StandardContext) musicContext);
-			}
+			addBasicAuth((StandardContext) musicContext);
 		}
 
 		tomcat.start();
 	}
-	
+
+	public void start(LiveContext context, int port, String user, String password) throws Exception {
+		Tomcat tomcat = createTomcat(port);
+
+		Context mountContext = addContext(tomcat, context.getMountPath(), workDir.toFile());
+		Wrapper liveServlet = mountContext.createWrapper();
+		liveServlet.setName("mount");
+		liveServlet.setServlet(new LiveServlet(context));
+		liveServlet.setLoadOnStartup(1);
+		mountContext.addChild(liveServlet);
+		mountContext.addServletMapping("/*", "mount");
+
+		FolderContext music = context.getMusic();
+		Context musicContext = addContext(tomcat, music.getPath(), music.getFolder().getAbsoluteFile());
+		musicContext.addMimeMapping("m4a", "audio/mp4");
+		musicContext.addMimeMapping("mp3", "audio/mpeg");
+		
+		addUTF8Filter(mountContext);
+		addLogFilter(mountContext, musicContext);
+
+		if (user != null && password != null) {
+			tomcat.getEngine().setRealm(createRealm(user, password));
+			addBasicAuth((StandardContext) mountContext);
+			addBasicAuth((StandardContext) musicContext);
+		}
+
+		tomcat.start();
+	}
+
 	public void await() {
 		tomcat.getServer().await();
 	}

@@ -26,6 +26,7 @@ import io.undertow.util.MimeMappings;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.musicmount.live.LiveContext;
 import org.musicmount.util.LoggingUtil;
 
 /**
@@ -72,6 +73,11 @@ public class MusicMountServerUndertow implements MusicMountServer {
 		
 		undertow = Undertow.builder().addHttpListener(port, null).setHandler(handler).build();
 		undertow.start();
+	}
+
+	@Override
+	public void start(LiveContext context, int port, String user, String password) throws Exception {
+		throw new UnsupportedOperationException();
 	}
 	
 	@Override

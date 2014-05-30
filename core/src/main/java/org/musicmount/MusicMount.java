@@ -20,6 +20,7 @@ import java.util.logging.Logger;
 
 import org.musicmount.builder.MusicMountBuildCommand;
 import org.musicmount.linker.MusicMountLinkCommand;
+import org.musicmount.live.MusicMountLiveCommand;
 import org.musicmount.tester.MusicMountTestCommand;
 import org.musicmount.util.LoggingUtil;
 
@@ -44,6 +45,7 @@ public class MusicMount {
 		System.err.println("Commands:");
 		System.err.println("       build      generate MusicMount site");
 		System.err.println("       test       launch MusicMount test server");
+//		System.err.println("       live       launch MusicMount live server");
 		System.err.close();
 		System.exit(1);	
 	}
@@ -70,6 +72,9 @@ public class MusicMount {
 			break;
 		case "test":
 			MusicMountTestCommand.execute(executeCommand, executeArgs);
+			break;
+		case "live":
+			MusicMountLiveCommand.execute(executeCommand, executeArgs);
 			break;
 		default:
 			exitWithError("unknown command: " + command);

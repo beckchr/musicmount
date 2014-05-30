@@ -25,6 +25,8 @@ import java.util.logging.Logger;
 
 import javax.xml.bind.DatatypeConverter;
 
+import org.musicmount.live.LiveContext;
+
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoHTTPD.Response;
 
@@ -180,6 +182,11 @@ public class MusicMountServerNano implements MusicMountServer {
 		    }
 		};
 		nano.start();
+	}
+	
+	@Override
+	public void start(LiveContext context, int port, String user, String password) throws Exception {
+		throw new UnsupportedOperationException();
 	}
 	
 	@Override
