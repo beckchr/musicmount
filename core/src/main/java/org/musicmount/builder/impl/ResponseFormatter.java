@@ -15,6 +15,7 @@
  */
 package org.musicmount.builder.impl;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -217,7 +218,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		return maximumYear != null ? maximumYear : defaultValue;
 	}
 	
-	private void formatArtistSections(T writer, Iterable<CollectionSection<Artist>> sections, ResourceLocator resourceLocator, ImageType imageType, ArtistType artistType, Map<Artist, Album> representativeAlbums) throws Exception {
+	private void formatArtistSections(T writer, Iterable<CollectionSection<Artist>> sections, ResourceLocator resourceLocator, ImageType imageType, ArtistType artistType, Map<Artist, Album> representativeAlbums) throws IOException, XMLStreamException {
 		writeStartArray(writer);
 		for (CollectionSection<Artist> section : sections) {
 			writer.writeStartElement("section");
@@ -230,7 +231,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 				writeStringProperty(writer, "title", item.getTitle() == null ? getDefaultArtistTitle(artistType) : item.getTitle());
 				Album representativeAlbum = representativeAlbums != null ? representativeAlbums.get(item) : null;
 				String imagePath = representativeAlbum != null ? resourceLocator.getAlbumImagePath(representativeAlbum, imageType) : null;
-				if (imagePath != null && resourceLocator.getResource(imagePath).exists()) {
+				if (imagePath != null) {
 					writeStringProperty(writer, "imagePath", imagePath);
 				}
 				writeStringProperty(writer, "albumCollectionPath", getDocumentPath(resourceLocator.getAlbumCollectionPath(item)));
@@ -248,7 +249,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		}
 	}
 
-	private void formatAlbumSections(T writer, Iterable<CollectionSection<Album>> sections, ResourceLocator resourceLocator, ImageType imageType, boolean writeCompilationInfo) throws Exception {
+	private void formatAlbumSections(T writer, Iterable<CollectionSection<Album>> sections, ResourceLocator resourceLocator, ImageType imageType, boolean writeCompilationInfo) throws IOException, XMLStreamException {
 		writeStartArray(writer);
 		for (CollectionSection<Album> section : sections) {
 			writer.writeStartElement("section");
@@ -260,7 +261,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 				writer.writeStartElement("item");
 				writeStringProperty(writer, "title", item.getTitle() == null ? getDefaultAlbumTitle() : item.getTitle());
 				String imagePath = resourceLocator.getAlbumImagePath(item, imageType);
-				if (imagePath != null && resourceLocator.getResource(imagePath).exists()) {
+				if (imagePath != null) {
 					writeStringProperty(writer, "imagePath", imagePath);
 				}
 				if (writeCompilationInfo && item.isCompilation() && item.getArtist().getTitle() != null) {
@@ -285,7 +286,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		}
 	}
 
-	private void formatTrackSections(T writer, Iterable<CollectionSection<Track>> sections, ResourceLocator resourceLocator, AssetLocator assetLocator, ImageType imageType) throws Exception {
+	private void formatTrackSections(T writer, Iterable<CollectionSection<Track>> sections, ResourceLocator resourceLocator, AssetLocator assetLocator, ImageType imageType) throws IOException, XMLStreamException {
 		writeStartArray(writer);
 		for (CollectionSection<Track> section : sections) {
 			writer.writeStartElement("section");
@@ -305,7 +306,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 				}
 				if (item.getAlbum() != null) {
 					String imagePath = resourceLocator.getAlbumImagePath(item.getAlbum(), imageType);
-					if (imagePath != null && resourceLocator.getResource(imagePath).exists()) {
+					if (imagePath != null) {
 						writeStringProperty(writer, "imagePath", imagePath);
 					}
 					writeStringProperty(writer, "albumPath", getDocumentPath(resourceLocator.getAlbumPath(item.getAlbum())));
@@ -367,7 +368,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		return sections;
 	}
 
-	public void formatServiceIndex(ResourceLocator resourceLocator, OutputStream output) throws Exception {
+	public void formatServiceIndex(ResourceLocator resourceLocator, OutputStream output) throws IOException, XMLStreamException {
 		T writer = createStreamWriter(output);
 		startResponse(writer, "serviceIndex");
 		String albumArtistIndexPath = resourceLocator.getArtistIndexPath(ArtistType.AlbumArtist);
@@ -389,7 +390,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		endResponse(writer);
 	}
 
-	public void formatArtistIndex(Iterable<? extends Artist> artists, ArtistType artistType, OutputStream output, ResourceLocator resourceLocator, Map<Artist, Album> representativeAlbums) throws Exception {
+	public void formatArtistIndex(Iterable<? extends Artist> artists, ArtistType artistType, OutputStream output, ResourceLocator resourceLocator, Map<Artist, Album> representativeAlbums) throws IOException, XMLStreamException {
 		T writer = createStreamWriter(output);
 		startResponse(writer, "artistCollection");
 		writeStringProperty(writer, "title", localStrings.getArtistIndexTitle(artistType));
@@ -404,7 +405,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		endResponse(writer);
 	}
 	
-	public void formatAlbumIndex(Iterable<Album> albums, OutputStream output, ResourceLocator resourceLocator) throws Exception {
+	public void formatAlbumIndex(Iterable<Album> albums, OutputStream output, ResourceLocator resourceLocator) throws IOException, XMLStreamException {
 		T writer = createStreamWriter(output);
 		startResponse(writer, "albumCollection");
 		writeStringProperty(writer, "title", "Albums");
@@ -421,7 +422,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		endResponse(writer);
 	}
 
-	public void formatTrackIndex(Iterable<Track> tracks, OutputStream output, ResourceLocator resourceLocator, AssetLocator assetLocator) throws Exception {
+	public void formatTrackIndex(Iterable<Track> tracks, OutputStream output, ResourceLocator resourceLocator, AssetLocator assetLocator) throws IOException, XMLStreamException {
 		T writer = createStreamWriter(output);
 		startResponse(writer, "trackCollection");
 		writeStringProperty(writer, "title", "Tracks");
@@ -438,7 +439,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		endResponse(writer);
 	}
 
-	public Album formatAlbumCollection(Artist artist, OutputStream output, ResourceLocator resourceLocator) throws Exception {
+	public Album formatAlbumCollection(Artist artist, OutputStream output, ResourceLocator resourceLocator) throws IOException, XMLStreamException {
 		String title = artist.getTitle() == null ? getDefaultArtistTitle(artist.getArtistType()) : artist.getTitle();
 		Iterable<CollectionSection<Album>> sections = createAlbumCollectionSections(artist);
 
@@ -459,7 +460,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		return null; // no representative album for unknown/various artist
 	}
 
-	public void formatAlbum(Album album, OutputStream output, ResourceLocator resourceLocator, AssetLocator assetLocator) throws Exception {
+	public void formatAlbum(Album album, OutputStream output, ResourceLocator resourceLocator, AssetLocator assetLocator) throws IOException, XMLStreamException {
 		T writer = createStreamWriter(output);
 		startResponse(writer, "album");
 		writeStringProperty(writer, "title", album.getTitle() == null ? getDefaultAlbumTitle() : album.getTitle());
@@ -480,7 +481,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 			writeNumberProperty(writer, "year", year);					
 		}
 		String albumImagePath = resourceLocator.getAlbumImagePath(album, ImageType.Artwork);
-		if (albumImagePath != null && resourceLocator.getResource(albumImagePath).exists()) {
+		if (albumImagePath != null) {
 			writeStringProperty(writer, "imagePath", albumImagePath);
 		}
 
@@ -488,7 +489,7 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		 * format tracks
 		 */
 		String trackImagePath = resourceLocator.getAlbumImagePath(album, ImageType.Thumbnail);
-		if (trackImagePath != null && !resourceLocator.getResource(trackImagePath).exists()) {
+		if (trackImagePath != null) {
 			trackImagePath = null;
 		}
 		writer.writeStartElement("trackCollection");
