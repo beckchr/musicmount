@@ -17,21 +17,23 @@ package org.musicmount.builder.impl;
 
 
 public enum ImageType {
-	Thumbnail(64, 64, false, "JPG", "thumbnail.jpg"),
-	Tile(192, 128, true, "JPG", "tile.jpg"),
-	Artwork(256, 512, true, "JPG", "artwork.jpg");
+	Thumbnail(64, 64, false, "JPG", "image/jpeg", "thumbnail.jpg"),
+	Tile(192, 128, true, "JPG", "image/jpeg", "tile.jpg"),
+	Artwork(256, 512, true, "JPG", "image/jpeg", "artwork.jpg");
 
 	private final int targetWidth;
 	private final int targetHeight;
 	private final boolean fitToTarget;
 	private final String fileType;
 	private final String fileName;
+	private final String mimeType;
 	
-	private ImageType(int targetWidth, int targetHeight, boolean fitToTarget, String fileType, String fileName) {
+	private ImageType(int targetWidth, int targetHeight, boolean fitToTarget, String fileType, String mimeType, String fileName) {
 		this.targetWidth = targetWidth;
 		this.targetHeight = targetHeight;
 		this.fitToTarget = fitToTarget;
 		this.fileType = fileType;
+		this.mimeType = mimeType;
 		this.fileName = fileName;
 	}
 	
@@ -43,6 +45,10 @@ public enum ImageType {
 	
 	public String getFileType() {
 		return fileType;
+	}
+	
+	public String getMimeType() {
+		return mimeType;
 	}
 	
 	public String getFileName() {
