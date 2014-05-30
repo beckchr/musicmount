@@ -489,9 +489,6 @@ public abstract class ResponseFormatter<T extends XMLStreamWriter> {
 		 * format tracks
 		 */
 		String trackImagePath = resourceLocator.getAlbumImagePath(album, ImageType.Thumbnail);
-		if (trackImagePath != null) {
-			trackImagePath = null;
-		}
 		writer.writeStartElement("trackCollection");
 		writeStringProperty(writer, "title", "Tracks");
 		writeStartArray(writer);
