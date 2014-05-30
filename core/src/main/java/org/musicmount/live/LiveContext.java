@@ -147,7 +147,7 @@ public class LiveContext {
 	
 	public void formatTrackIndex(ResourceLocator resourceLocator, OutputStream output) throws IOException, ServletException {
 		try {
-			responseFormatter.formatTrackIndex(library.getTracks(), output, resourceLocator, assetLocator);
+			responseFormatter.formatTrackIndex(library.getTracks(), output, resourceLocator, null);
 		} catch (XMLStreamException e) {
 			throw new ServletException(e);
 		}
