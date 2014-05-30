@@ -15,6 +15,7 @@
  */
 package org.musicmount.builder.impl;
 
+import java.text.CollationKey;
 import java.text.Collator;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -31,7 +32,7 @@ public class TitledComparator<T extends Titled> implements Comparator<T> {
 	private final String[] sortTitlePrefixes;
 	private final String defaultTitle;
 	private final Comparator<? super T> secondaryItemComparator;
-	private final HashMap<T, String> sortTitles = new HashMap<>();
+	private final HashMap<T, CollationKey> collationKeys = new HashMap<>();
 
 	/**
 	 * @param localStrings locale and sort title prefixes ('a', 'the', ...)
@@ -49,7 +50,7 @@ public class TitledComparator<T extends Titled> implements Comparator<T> {
 
 	@Override
 	public int compare(T o1, T o2) {
-		int result = collator.compare(sortTitle(o1), sortTitle(o2));
+		int result = collationKey(o1).compareTo(collationKey(o2));
 		if (result == 0 && secondaryItemComparator != null) {
 			result = secondaryItemComparator.compare(o1, o2);
 		}
@@ -78,11 +79,15 @@ public class TitledComparator<T extends Titled> implements Comparator<T> {
 		return letterOrDigit < title.length() ? title.substring(letterOrDigit) : title;
 	}
 
-	public String sortTitle(T titled) {
-		String sortTitle = sortTitles.get(titled);
-		if (sortTitle == null) {
-			sortTitles.put(titled, sortTitle = calculateSortTitle(titled));
+	CollationKey collationKey(T titled) {
+		CollationKey collationKey = collationKeys.get(titled);
+		if (collationKey == null) {
+			collationKeys.put(titled, collationKey = collator.getCollationKey(calculateSortTitle(titled)));
 		}
-		return sortTitle;
+		return collationKey;
+	}
+
+	public String sortTitle(T titled) {
+		return collationKey(titled).getSourceString();
 	}
 }
