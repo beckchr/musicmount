@@ -52,8 +52,8 @@ public class ImageFormatter {
 		this.assetParser = assetParser;
 		this.retina = retina;
 	}
-	
-	private void writeImage(BufferedImage image, ImageType type, Resource resource, boolean retina) throws IOException {
+
+	private void writeImage(BufferedImage image, ImageType type, OutputStream output) throws IOException {
 		double scaleFactor = type.getScaleFactor(image.getWidth(), image.getHeight());
 		if (retina) {
 			scaleFactor = scaleFactor + scaleFactor;
@@ -62,7 +62,7 @@ public class ImageFormatter {
 		if (scaleFactor < 1.0) { // scale down only
 			scaledImage = Thumbnails.of(image).scale(scaleFactor).asBufferedImage();
 		}
-		try (OutputStream output = resource.getOutputStream()) {
+		try {
 			ImageIO.write(scaledImage != null ? scaledImage : image, type.getFileType(), output);
 		} finally {
 			if (scaledImage != null) {
@@ -75,9 +75,8 @@ public class ImageFormatter {
 		for (Map.Entry<ImageType, Resource> targetEntry : targets.entrySet()) {
 			ImageType imageType = targetEntry.getKey();
 			Resource imageResource = targetEntry.getValue();
-			try {
-				imageResource.getParent().mkdirs();
-				writeImage(image, imageType, imageResource, retina);
+			try (OutputStream output = imageResource.getOutputStream()) {
+				writeImage(image, imageType, output);
 			} catch (IOException e) {
 				LOGGER.log(Level.WARNING, "Could not write image file: " + imageResource.getPath().toAbsolutePath(), e);
 				try {
@@ -91,26 +90,30 @@ public class ImageFormatter {
 		}
 	}
 
+	private BufferedImage extractImage(Resource asset) {
+		BufferedImage image = null;
+		try {
+			image = assetParser.extractArtwork(asset);
+			if (image.getTransparency() != Transparency.OPAQUE) {
+				BufferedImage tmpImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
+				Graphics2D graphics = tmpImage.createGraphics();
+				graphics.drawImage(image, 0, 0, Color.WHITE, null);
+				graphics.dispose();
+				image.flush();
+				image = tmpImage;
+			}
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "Could not extract image from: " + asset, e);
+		}
+		return image;
+	}
+
 	private void formatImages(Resource source, Map<ImageType, Resource> targets) {
 		if (!targets.isEmpty()) {
 			if (LOGGER.isLoggable(Level.FINER)) {
 				LOGGER.finer("Formatting images from: " + source);
 			}
-			BufferedImage image;
-			try {
-				image = assetParser.extractArtwork(source);
-				if (image.getTransparency() != Transparency.OPAQUE) {
-					BufferedImage tmpImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
-					Graphics2D graphics = tmpImage.createGraphics();
-					graphics.drawImage(image, 0, 0, Color.WHITE, null);
-					graphics.dispose();
-					image.flush();
-					image = tmpImage;
-				}
-			} catch (Exception e) {
-				LOGGER.log(Level.WARNING, "Could not extract image from: " + source, e);
-				return;
-			}
+			BufferedImage image = extractImage(source);
 			formatImages(image, targets);
 			image.flush();
 		}
@@ -128,6 +131,7 @@ public class ImageFormatter {
 						Resource resource = resourceLocator.getResource(imagePath);
 						try {
 							if (changedAlbums.contains(album) || !resource.exists()) {
+								resource.getParent().mkdirs();
 								targets.put(type, resource);
 							}
 						} catch (IOException e) {
@@ -200,5 +204,11 @@ public class ImageFormatter {
 		if (progressHandler != null) {
 			progressHandler.endTask();
 		}
+	}
+	
+	public void formatAsset(Resource asset, ImageType type, OutputStream output) throws IOException {
+		BufferedImage image = extractImage(asset);
+		writeImage(image, type, output);
+		image.flush();
 	}
 }
