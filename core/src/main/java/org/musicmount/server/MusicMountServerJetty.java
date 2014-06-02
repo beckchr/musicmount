@@ -41,8 +41,6 @@ import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.security.Credential;
-import org.musicmount.live.LiveContext;
-import org.musicmount.live.LiveServlet;
 import org.musicmount.util.LoggingUtil;
 
 public class MusicMountServerJetty implements MusicMountServer {
@@ -164,17 +162,18 @@ public class MusicMountServerJetty implements MusicMountServer {
         server.start();
 	}
 	
-	public void start(LiveContext context, int port, String user, String password) throws Exception {
+	@Override
+	public void start(FolderContext music, MountContext mount, int port, String user, String password) throws Exception {
 		ServletContextHandler mountContext = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
-        mountContext.setContextPath(context.getMountPath());
+        mountContext.setContextPath(mount.getPath());
         mountContext.setSecurityHandler(user == null ? null : basicAuthentication("MusicMount", user, password));
-        ServletHolder mountServlet = new ServletHolder(new LiveServlet(context));
+        ServletHolder mountServlet = new ServletHolder(mount.getServlet());
         mountContext.addServlet(mountServlet, "/*");
 
         ServletContextHandler musicContext = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
-        musicContext.setContextPath(context.getMusic().getPath());
+        musicContext.setContextPath(music.getPath());
         musicContext.setSecurityHandler(user == null ? null : basicAuthentication("MusicMount", user, password));
-        musicContext.setBaseResource(Resource.newResource(context.getMusic().getFolder()));
+        musicContext.setBaseResource(Resource.newResource(music.getFolder()));
         MimeTypes musicTypes = new MimeTypes();
         musicTypes.addMimeMapping("m4a", "audio/mp4");
         musicTypes.addMimeMapping("mp3", "audio/mpeg");

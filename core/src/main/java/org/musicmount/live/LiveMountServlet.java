@@ -30,7 +30,7 @@ import org.musicmount.builder.model.Artist;
 import org.musicmount.builder.model.ArtistType;
 import org.musicmount.io.Resource;
 
-public class LiveServlet extends HttpServlet implements ResourceLocator {
+public class LiveMountServlet extends HttpServlet implements ResourceLocator {
 	private static final long serialVersionUID = 1L;
 
 	private static final String SERVICE_INDEX_PATH = "serviceIndex";
@@ -47,10 +47,10 @@ public class LiveServlet extends HttpServlet implements ResourceLocator {
 	private static final String ARTIST_ID_PARAM = "artistId";
 	private static final String ALBUM_ID_PARAM = "albumId";
 
-	private final LiveContext context;
+	private final LiveMount mount;
 
-	public LiveServlet(LiveContext context) {
-		this.context = context;
+	public LiveMountServlet(LiveMount mount) {
+		this.mount = mount;
 	}
 
 	@Override
@@ -70,7 +70,7 @@ public class LiveServlet extends HttpServlet implements ResourceLocator {
 
 	@Override
 	public String getTrackIndexPath() {
-		return context.isNoTrackIndex() ? null : TRACK_INDEX_PATH;
+		return mount.isNoTrackIndex() ? null : TRACK_INDEX_PATH;
 	}
 
 	@Override
@@ -114,7 +114,7 @@ public class LiveServlet extends HttpServlet implements ResourceLocator {
 	
 	private Artist findArtist(String artistTypeName, String artistIdString) {
 		try {
-			return context.getArtist(parseArtistType(artistTypeName), Long.valueOf(artistIdString));
+			return mount.getArtist(parseArtistType(artistTypeName), Long.valueOf(artistIdString));
 		} catch (NumberFormatException e) {
 			return null;
 		}
@@ -122,7 +122,7 @@ public class LiveServlet extends HttpServlet implements ResourceLocator {
 
 	private Album findAlbum(String albumIdString) {
 		try {
-			return context.getAlbum(Long.valueOf(albumIdString));
+			return mount.getAlbum(Long.valueOf(albumIdString));
 		} catch (NumberFormatException e) {
 			return null;
 		}
@@ -153,14 +153,14 @@ public class LiveServlet extends HttpServlet implements ResourceLocator {
 		ByteArrayOutputStream content = new ByteArrayOutputStream(1024);
 		switch (path) {
 		case SERVICE_INDEX_PATH:
-			context.formatServiceIndex(this, content);
+			mount.formatServiceIndex(this, content);
 			resp.setContentType("text/json");
 			resp.setCharacterEncoding("UTF-8");
 			break;
 		case ARTIST_INDEX_PATH:
 			ArtistType artistType = parseArtistType(req.getParameter(ARTIST_TYPE_PARAM));
 			if (artistType != null) {
-				context.formatArtistIndex(this, content, artistType);
+				mount.formatArtistIndex(this, content, artistType);
 				resp.setContentType("text/json");
 				resp.setCharacterEncoding("UTF-8");
 			} else {
@@ -168,19 +168,19 @@ public class LiveServlet extends HttpServlet implements ResourceLocator {
 			}
 			break;
 		case ALBUM_INDEX_PATH:
-			context.formatAlbumIndex(this, content);
+			mount.formatAlbumIndex(this, content);
 			resp.setContentType("text/json");
 			resp.setCharacterEncoding("UTF-8");
 			break;
 		case TRACK_INDEX_PATH:
-			context.formatTrackIndex(this, content);
+			mount.formatTrackIndex(this, content);
 			resp.setContentType("text/json");
 			resp.setCharacterEncoding("UTF-8");
 			break;
 		case ALBUM_COLLECTION_PATH:
 			Artist artist = findArtist(req.getParameter(ARTIST_TYPE_PARAM), req.getParameter(ARTIST_ID_PARAM));
 			if (artist != null) {
-				context.formatAlbumCollection(this, content, artist);
+				mount.formatAlbumCollection(this, content, artist);
 				resp.setContentType("text/json");
 				resp.setCharacterEncoding("UTF-8");
 			} else {
@@ -190,7 +190,7 @@ public class LiveServlet extends HttpServlet implements ResourceLocator {
 		case ALBUM_PATH:
 			Album album = findAlbum(req.getParameter(ALBUM_ID_PARAM));
 			if (album != null) {
-				context.formatAlbum(this, content, album);
+				mount.formatAlbum(this, content, album);
 				resp.setContentType("text/json");
 				resp.setCharacterEncoding("UTF-8");
 			} else {
@@ -202,7 +202,7 @@ public class LiveServlet extends HttpServlet implements ResourceLocator {
 			if (imageType != null) {
 				Resource assetResource = findArtworkAssetResource(req.getParameter(ALBUM_ID_PARAM));
 				if (assetResource != null) {
-					context.formatImage(assetResource, content, imageType);
+					mount.formatImage(assetResource, content, imageType);
 					resp.setContentType(imageType.getMimeType());
 				} else {
 					resp.sendError(404);

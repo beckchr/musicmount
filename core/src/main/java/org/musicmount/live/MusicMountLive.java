@@ -39,6 +39,7 @@ import org.musicmount.io.file.FileResource;
 import org.musicmount.server.MusicMountServer;
 import org.musicmount.server.MusicMountServer.AccessLog;
 import org.musicmount.server.MusicMountServer.FolderContext;
+import org.musicmount.server.MusicMountServer.MountContext;
 import org.musicmount.server.MusicMountServerJetty;
 import org.musicmount.util.LoggingProgressHandler;
 import org.musicmount.util.ProgressHandler;
@@ -163,14 +164,16 @@ public class MusicMountLive {
 			progressHandler.endTask();
 		}
 
-		ResponseFormatter<?> responseFormatter = new ResponseFormatter.JSON(MusicMountBuilder.API_VERSION, new LocalStrings(), false, unknownGenre, grouping, false);
-		ImageFormatter imageFormatter = new ImageFormatter(assetParser, retina);
 		FolderContext music = new FolderContext("/music", musicFolder.getPath().toFile());
+		ResponseFormatter<?> responseFormatter =
+				new ResponseFormatter.JSON(MusicMountBuilder.API_VERSION, new LocalStrings(), false, unknownGenre, grouping, false);
+		ImageFormatter imageFormatter = new ImageFormatter(assetParser, retina);
 		AssetLocator assetLocator = new SimpleAssetLocator(musicFolder, music.getPath(), null);
-		LiveContext context = new LiveContext(music, "/musicmount", library, responseFormatter, imageFormatter, assetLocator, noTrackIndex);
+		LiveMount liveMount = new LiveMount(library, responseFormatter, imageFormatter, assetLocator, noTrackIndex);
+		MountContext mount = new MountContext("/musicmount", new LiveMountServlet(liveMount));
 		
 		LOGGER.info("Starting Server...");
-		server.start(context, port, user, password);
+		server.start(music, mount, port, user, password);
 		LOGGER.info(String.format("Mount Settings"));
 		LOGGER.info(String.format("--------------"));
 		LOGGER.info(String.format("Site: %s", getSiteURL(port)));

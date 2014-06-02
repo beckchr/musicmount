@@ -17,7 +17,7 @@ package org.musicmount.server;
 
 import java.io.File;
 
-import org.musicmount.live.LiveContext;
+import javax.servlet.Servlet;
 
 public interface MusicMountServer {
 	interface AccessLog {
@@ -48,8 +48,24 @@ public interface MusicMountServer {
 		}
 	}
 	
+	public static class MountContext {
+		private final String path;
+		private final Servlet servlet;
+
+		public MountContext(String path, Servlet servlet) {
+			this.path = path;
+			this.servlet = servlet;
+		}
+		public String getPath() {
+			return path;
+		}		
+		public Servlet getServlet() {
+			return servlet;
+		}
+	}
+	
 	public void start(FolderContext music, FolderContext mount, int port, String user, String password) throws Exception;
-	public void start(LiveContext context, int port, String user, String password) throws Exception;
+	public void start(FolderContext music, MountContext mount, int port, String user, String password) throws Exception;
 	public void await();
 	public boolean isStarted();
 	public void stop() throws Exception;

@@ -47,8 +47,6 @@ import org.apache.catalina.realm.GenericPrincipal;
 import org.apache.catalina.realm.RealmBase;
 import org.apache.catalina.servlets.DefaultServlet;
 import org.apache.catalina.startup.Tomcat;
-import org.musicmount.live.LiveContext;
-import org.musicmount.live.LiveServlet;
 import org.musicmount.util.LoggingUtil;
 
 public class MusicMountServerTomcat implements MusicMountServer {
@@ -269,18 +267,18 @@ public class MusicMountServerTomcat implements MusicMountServer {
 		tomcat.start();
 	}
 
-	public void start(LiveContext context, int port, String user, String password) throws Exception {
+	@Override
+	public void start(FolderContext music, MountContext mount, int port, String user, String password) throws Exception {
 		Tomcat tomcat = createTomcat(port);
 
-		Context mountContext = addContext(tomcat, context.getMountPath(), workDir.toFile());
-		Wrapper liveServlet = mountContext.createWrapper();
-		liveServlet.setName("mount");
-		liveServlet.setServlet(new LiveServlet(context));
-		liveServlet.setLoadOnStartup(1);
-		mountContext.addChild(liveServlet);
+		Context mountContext = addContext(tomcat, mount.getPath(), workDir.toFile());
+		Wrapper mountServlet = mountContext.createWrapper();
+		mountServlet.setName("mount");
+		mountServlet.setServlet(mount.getServlet());
+		mountServlet.setLoadOnStartup(1);
+		mountContext.addChild(mountServlet);
 		mountContext.addServletMapping("/*", "mount");
 
-		FolderContext music = context.getMusic();
 		Context musicContext = addContext(tomcat, music.getPath(), music.getFolder().getAbsoluteFile());
 		musicContext.addMimeMapping("m4a", "audio/mp4");
 		musicContext.addMimeMapping("mp3", "audio/mpeg");

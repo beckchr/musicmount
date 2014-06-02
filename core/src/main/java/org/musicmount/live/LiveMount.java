@@ -36,12 +36,9 @@ import org.musicmount.builder.model.ArtistType;
 import org.musicmount.builder.model.Library;
 import org.musicmount.builder.model.TrackArtist;
 import org.musicmount.io.Resource;
-import org.musicmount.server.MusicMountServer.FolderContext;
 
-public class LiveContext {
+public class LiveMount {
 
-	private final FolderContext music;
-	private final String mountPath;
 	private final Library library;
 	private final ResponseFormatter<?> responseFormatter;
 	private final ImageFormatter imageFormatter;
@@ -53,13 +50,11 @@ public class LiveContext {
 	private final Map<Long, TrackArtist> trackArtistLookup;
 	private final Map<Artist, Album> representativeAlbums;
 
-	public LiveContext(FolderContext music, String mountPath, Library library, ResponseFormatter<?> responseFormatter, ImageFormatter imageFormatter, AssetLocator assetLocator, boolean noTrackIndex) {
+	public LiveMount(Library library, ResponseFormatter<?> responseFormatter, ImageFormatter imageFormatter, AssetLocator assetLocator, boolean noTrackIndex) {
 		this.library = library;
-		this.mountPath = mountPath;
 		this.responseFormatter = responseFormatter;
 		this.imageFormatter = imageFormatter;
 		this.assetLocator = assetLocator;
-		this.music = music;
 		this.noTrackIndex = noTrackIndex;
 
 		this.albumArtistLookup = new HashMap<>();
@@ -107,14 +102,6 @@ public class LiveContext {
 		default:
 			return null;
 		}
-	}
-	
-	public FolderContext getMusic() {
-		return music;
-	}
-	
-	public String getMountPath() {
-		return mountPath;
 	}
 	
 	public boolean isNoTrackIndex() {
