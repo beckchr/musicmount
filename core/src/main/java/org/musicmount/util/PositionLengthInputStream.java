@@ -46,6 +46,9 @@ public class PositionLengthInputStream extends PositionInputStream {
 	public int read(byte[] b, int off, int len) throws IOException {
 		if (getPosition() + len > endPosition) {
 			len  = (int)(endPosition - getPosition());
+			if (len == 0) {
+				return -1;
+			}
 		}
 		return super.read(b, off, len);
 	}
