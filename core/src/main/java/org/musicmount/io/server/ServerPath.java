@@ -148,7 +148,7 @@ public class ServerPath implements Path {
 			return false;
 		}
 		for (int i = 0; i < other.getNameCount(); i++) {
-			if (!elems.get(i).equals(other.getName(i))) {
+			if (!elems.get(i).equals(other.getName(i).toString())) {
 				return false;
 			}
 		}
@@ -162,11 +162,16 @@ public class ServerPath implements Path {
 
 	@Override
 	public boolean endsWith(Path other) {
+		if (other.isAbsolute()) {
+			if (!absolute || elems.size() > other.getNameCount()) {
+				return false;
+			}
+		}
 		if (elems.size() < other.getNameCount()) {
 			return false;
 		}
 		for (int i = 0; i < other.getNameCount(); i++) {
-			if (!elems.get(elems.size() - 1 - i).equals(other.getName(other.getNameCount() - 1 - i))) {
+			if (!elems.get(elems.size() - 1 - i).equals(other.getName(other.getNameCount() - 1 - i).toString())) {
 				return false;
 			}
 		}
@@ -204,23 +209,21 @@ public class ServerPath implements Path {
 
 	@Override
 	public Path resolve(Path other) {
-		ServerPath path = (ServerPath) other;
-
-		if (path.isAbsolute()) {
-			return path;
+		if (other.isAbsolute()) {
+			return other;
 		}
-		if (path.getNameCount() == 0) {
+		if (other.getNameCount() == 0) {
 			return this;
 		}
-
+		ServerPath path = (ServerPath) other;
 		List<String> resolvedElems = new ArrayList<>(elems);
-		resolvedElems.addAll(((ServerPath) path).elems);
+		resolvedElems.addAll(path.elems);
 		return new ServerPath(fileSystem, absolute, path.directory, resolvedElems);
 	}
 
 	@Override
-	public Path resolve(String other) {
-		return resolve(new ServerPath(fileSystem, other));
+	public ServerPath resolve(String other) {
+		return (ServerPath) resolve(new ServerPath(fileSystem, other));
 	}
 
 	@Override

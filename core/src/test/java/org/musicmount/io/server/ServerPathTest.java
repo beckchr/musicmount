@@ -138,4 +138,38 @@ public class ServerPathTest {
 
 		Assert.assertEquals( 0, new ServerPath(fileSystem, "/abc").compareTo(new ServerPath(fileSystem, "abc")));
 	}
+
+	@Test
+	public void testToUri() {
+		ServerFileSystem fileSystem = new ServerFileSystem(URI.create("foo://bar:80/foobar/"));
+		Assert.assertEquals("foo://bar:80/foobar/a", new ServerPath(fileSystem, "a").toUri().toString());
+
+		fileSystem = new ServerFileSystem(URI.create("foobar/"));
+		Assert.assertEquals("/foobar/a", new ServerPath(fileSystem, "a").toUri().toString());
+		Assert.assertEquals("/a", new ServerPath(fileSystem, "../a").toUri().toString());
+		Assert.assertEquals("/../a", new ServerPath(fileSystem, "../../a").toUri().toString());
+	}
+
+	@Test
+	public void testStartsWith() {
+		Assert.assertTrue(new ServerPath(fileSystem, "/a/").startsWith("/"));
+		Assert.assertTrue(new ServerPath(fileSystem, "/a/").startsWith("/a"));
+		Assert.assertTrue(new ServerPath(fileSystem, "/a/").startsWith("/a/"));
+		Assert.assertFalse(new ServerPath(fileSystem, "/a/").startsWith("/a/b"));
+		Assert.assertTrue(new ServerPath(fileSystem, "/a").startsWith("/a"));
+		Assert.assertTrue(new ServerPath(fileSystem, "/a").startsWith("/a/"));
+		Assert.assertFalse(new ServerPath(fileSystem, "/a").startsWith("/a/b"));
+	}
+
+	@Test
+	public void testEndsWith() {
+		Assert.assertFalse(new ServerPath(fileSystem, "/a/").endsWith("/"));
+		Assert.assertFalse(new ServerPath(fileSystem, "/a").endsWith("/"));
+		Assert.assertTrue(new ServerPath(fileSystem, "/a/").endsWith("/a"));
+		Assert.assertTrue(new ServerPath(fileSystem, "/a/").endsWith("a"));
+		Assert.assertTrue(new ServerPath(fileSystem, "/a/b").endsWith("b"));
+		Assert.assertFalse(new ServerPath(fileSystem, "/a/b").endsWith("/b"));
+		Assert.assertTrue(new ServerPath(fileSystem, "/a/b").endsWith("/a/b"));
+		Assert.assertFalse(new ServerPath(fileSystem, "/ab").endsWith("b"));
+	}
 }
