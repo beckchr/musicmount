@@ -18,6 +18,7 @@ package org.musicmount.live;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.musicmount.io.Resource;
 import org.musicmount.io.file.FileResource;
 import org.musicmount.io.file.FileResourceProvider;
 import org.musicmount.util.LoggingUtil;
@@ -140,13 +141,21 @@ public class MusicMountLiveCommand {
 		if ((optionUser == null) != (optionPassword == null)) {
 			exitWithError(command, String.format("either both or none of user/password must be given: %s/%s", optionUser, optionPassword));
 		}
+		
+		Resource home = musicFolder.getProvider().newResource(System.getProperty("user.home"));
+		Resource assetStoreFolder = home.resolve(".musicmount");
+		if (!assetStoreFolder.exists()) {
+			assetStoreFolder.mkdirs();
+		}
+		int key = musicFolder.getPath().toUri().hashCode();
+		Resource assetStore = assetStoreFolder.resolve((key < 0  ? "assetStore" : "assetStore-") + key + ".gz");
 
 		/**
 		 * Configure logging
 		 */
 		LoggingUtil.configure(MusicMountLiveCommand.class.getPackage().getName(), optionVerbose ? Level.FINER : Level.FINE);
 		try {
-			live.start(musicFolder, optionPort, optionUser, optionPassword);
+			live.start(musicFolder, assetStore, optionPort, optionUser, optionPassword);
 		} catch (Exception e) {
 			LOGGER.log(Level.SEVERE, "Could not start server", e);
 			e.printStackTrace();

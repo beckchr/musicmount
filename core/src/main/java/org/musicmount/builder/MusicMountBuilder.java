@@ -213,19 +213,18 @@ public class MusicMountBuilder {
 		LOGGER.info("Mount folder: " + mountFolder.getPath());
 		LOGGER.info("Music path  : " + musicPath);
 
-		AssetLocator assetStoreAssetLocator = new SimpleAssetLocator(musicFolder, null, null); // no prefix, no normalization
-		AssetStore assetStore = new AssetStore(API_VERSION);
+		AssetStore assetStore = new AssetStore(API_VERSION, musicFolder);
 		boolean assetStoreLoaded = false;
 		if (!full && assetStoreFile.exists()) {
 			if (progressHandler != null) {
 				progressHandler.beginTask(-1, "Loading asset store...");
 			}
 			try (InputStream assetStoreInput = createInputStream(assetStoreFile)) {
-				assetStore.load(assetStoreInput, assetStoreAssetLocator);
+				assetStore.load(assetStoreInput);
 				assetStoreLoaded = true;
 			} catch (Exception e) {
 				LOGGER.log(Level.WARNING, "Failed to load asset store", e);
-				assetStore = new AssetStore(API_VERSION);
+				assetStore = new AssetStore(API_VERSION, musicFolder);
 			}
 			if (progressHandler != null) {
 				progressHandler.endTask();
@@ -234,7 +233,7 @@ public class MusicMountBuilder {
 
 		AssetParser assetParser = new SimpleAssetParser();
 
-		assetStore.update(musicFolder, assetParser, maxAssetThreads, progressHandler);
+		assetStore.update(assetParser, maxAssetThreads, progressHandler);
 
 		if (progressHandler != null) {
 			progressHandler.beginTask(-1, "Building music libary...");
@@ -271,7 +270,7 @@ public class MusicMountBuilder {
 			progressHandler.beginTask(-1, "Saving asset store...");
 		}
 		try (OutputStream assetStoreOutput = createOutputStream(assetStoreFile)) {
-			assetStore.save(assetStoreOutput, assetStoreAssetLocator);
+			assetStore.save(assetStoreOutput);
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to save asset store", e);
 			assetStoreFile.delete();

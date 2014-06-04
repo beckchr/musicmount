@@ -15,14 +15,21 @@
  */
 package org.musicmount.live;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import org.musicmount.builder.MusicMountBuilder;
 import org.musicmount.builder.impl.AssetLocator;
@@ -34,7 +41,9 @@ import org.musicmount.builder.impl.LocalStrings;
 import org.musicmount.builder.impl.ResponseFormatter;
 import org.musicmount.builder.impl.SimpleAssetLocator;
 import org.musicmount.builder.impl.SimpleAssetParser;
+import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.Library;
+import org.musicmount.io.Resource;
 import org.musicmount.io.file.FileResource;
 import org.musicmount.server.MusicMountServer;
 import org.musicmount.server.MusicMountServer.AccessLog;
@@ -85,14 +94,16 @@ public class MusicMountLive {
 	private boolean noVariousArtists = false;
 	private boolean verbose = false;
 	
+	private final AssetParser assetParser;	
 	private final MusicMountServer server;
 
 	public MusicMountLive() {
-		this(new MusicMountServerJetty(LOGGER_ACCESS_LOG));
+		this(new MusicMountServerJetty(LOGGER_ACCESS_LOG), new SimpleAssetParser());
 	}
 
-	public MusicMountLive(MusicMountServer server) {
+	public MusicMountLive(MusicMountServer server, AssetParser assetParser) {
 		this.server = server;
+		this.assetParser = assetParser;
 	}
 
 	public boolean isRetina() {
@@ -147,11 +158,33 @@ public class MusicMountLive {
 		return String.format("http://%s:%d/musicmount/", host, port);
 	}
 
-	public void start(FileResource musicFolder, int port, String user, String password) throws Exception {
-		AssetStore assetStore = new AssetStore(MusicMountBuilder.API_VERSION);
-		AssetParser assetParser = new SimpleAssetParser();
+	Library loadLibrary(FileResource musicFolder, Resource assetStoreFile) throws Exception {
 		ProgressHandler progressHandler = new LoggingProgressHandler(LOGGER, verbose ? Level.FINER : Level.FINE);
-		assetStore.update(musicFolder, assetParser, 1, progressHandler);
+
+		AssetStore assetStore = new AssetStore(MusicMountBuilder.API_VERSION, musicFolder);
+		boolean assetStoreLoaded = false;
+		if (assetStoreFile != null && assetStoreFile.exists()) {
+			if (progressHandler != null) {
+				progressHandler.beginTask(-1, "Loading asset store...");
+			}
+			InputStream input = assetStoreFile.getInputStream();
+			if (assetStoreFile.getName().endsWith(".gz")) {
+				input = new GZIPInputStream(input);
+			}
+			try (InputStream assetStoreInput = new BufferedInputStream(input)) {
+				assetStore.load(assetStoreInput);
+				assetStoreLoaded = true;
+			} catch (Exception e) {
+				LOGGER.log(Level.WARNING, "Failed to load asset store", e);
+				assetStore = new AssetStore(MusicMountBuilder.API_VERSION, musicFolder);
+			}
+			if (progressHandler != null) {
+				progressHandler.endTask();
+			}
+		}
+
+		assetStore.update(assetParser, 1, progressHandler);
+
 		if (progressHandler != null) {
 			progressHandler.beginTask(-1, "Building music libary...");
 		}
@@ -159,10 +192,43 @@ public class MusicMountLive {
 		if (noVariousArtists) { // remove "various artists" album artist (hack)
 			library.getAlbumArtists().remove(null);
 		}
-		assetStore.sync(library.getAlbums());
+		Set<Album> changedAlbums = assetStore.sync(library.getAlbums());
+		if (assetStoreLoaded) {
+			LOGGER.fine(String.format("Number of albums changed: %d", changedAlbums.size()));
+		}
 		if (progressHandler != null) {
 			progressHandler.endTask();
 		}
+		if (assetStoreFile != null && changedAlbums.size() > 0) {
+			if (progressHandler != null) {
+				progressHandler.beginTask(-1, "Saving asset store...");
+			}
+			OutputStream output = assetStoreFile.getOutputStream();
+			if (assetStoreFile.getName().endsWith(".gz")) {
+				output = new GZIPOutputStream(output);
+			}
+			try (OutputStream assetStoreOutput = new BufferedOutputStream(output)) {
+				assetStore.save(assetStoreOutput);
+			} catch (Exception e) {
+				LOGGER.log(Level.WARNING, "Failed to save asset store", e);
+				assetStoreFile.delete();
+			}
+			if (progressHandler != null) {
+				progressHandler.endTask();
+			}
+		}
+		LOGGER.fine("Done.");
+		
+		return library;
+	}
+	
+	public void start(FileResource musicFolder, Resource assetStore, int port, String user, String password) throws Exception {
+		LOGGER.info("Starting Build...");
+		LOGGER.info("Music folder: " + musicFolder.getPath());
+//		LOGGER.info("Mount folder: " + mountFolder.getPath());
+		LOGGER.info("Music path  : " + musicFolder.getPath());
+
+		Library library = loadLibrary(musicFolder, assetStore);
 
 		FolderContext music = new FolderContext("/music", musicFolder.getPath().toFile());
 		ResponseFormatter<?> responseFormatter =

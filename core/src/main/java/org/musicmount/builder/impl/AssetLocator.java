@@ -21,5 +21,4 @@ import org.musicmount.io.Resource;
 
 public interface AssetLocator {
 	public String getAssetPath(Resource assetResource) throws IOException;
-	public Resource getAssetResource(String assetPath) throws IOException;
 }

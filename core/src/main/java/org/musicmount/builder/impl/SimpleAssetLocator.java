@@ -16,13 +16,15 @@
 package org.musicmount.builder.impl;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.file.FileSystem;
+import java.nio.file.Path;
 import java.text.Normalizer;
 
 import org.musicmount.io.Resource;
-import org.musicmount.io.ResourceProvider;
+import org.musicmount.io.server.ServerFileSystem;
+import org.musicmount.io.server.ServerPath;
 
 public class SimpleAssetLocator implements AssetLocator {
 	/**
@@ -35,38 +37,35 @@ public class SimpleAssetLocator implements AssetLocator {
 	 * @return URL-encoded path
 	 * @throws UnsupportedEncodingException
 	 */
-	static String encodeURIPath(String path, Normalizer.Form form) throws UnsupportedEncodingException {
+	static String encodeURIPath(ServerPath path, Normalizer.Form form) throws UnsupportedEncodingException {
 		StringBuilder builder = new StringBuilder();
-		String[] pathSegments = path.split("/+");
-		for (int i = 0; i < pathSegments.length; i++) {
+		if (path.isAbsolute()) {
+			builder.append('/');
+		}
+		for (int i = 0; i < path.getNameCount(); i++) {
 			if (i > 0) {
 				builder.append('/');
 			}
-			String decodedString = pathSegments[i];
+			String decodedString = path.getName(i).toString();
 			String normalizedString = form == null ? decodedString : Normalizer.normalize(decodedString, form);
 			String reencodedString = URLEncoder.encode(normalizedString, "UTF-8").replace("+", "%20");
 			builder.append(reencodedString);
 		}
-		if (path.endsWith("/")) {
+		if (path.isDirectory()) {
 			builder.append('/');
 		}
 		return builder.toString();
 	}
 
-	private final String filePrefix; // asset folder
-	private final String pathPrefix; // asset link
+	private final Path basePath;
+	private final ServerPath serverPath;
 	private final Normalizer.Form normalizerForm;
-	private final FileSystem fileSystem;
-	private final ResourceProvider fileProvider;
+	private final FileSystem fileSystem;	
 	
 	public SimpleAssetLocator(Resource baseFolder, String pathPrefix, Normalizer.Form normalizerForm) {
-		// avoid URI.toASCIIString() because it does normalization -> may not be able to restore files
-		// avoid File.getCanonicalPath() because Java 7 (Mac) replaces non-ASCII with '?'
-//		this.basePrefix = baseFolder.getAbsoluteFile().toURI().toString(); // ends with "/"
 		this.fileSystem = baseFolder.getPath().getFileSystem();
-		this.fileProvider = baseFolder.getProvider();
-		this.filePrefix = filePrefix(baseFolder); // ends with fileSystem.separator
-		this.pathPrefix = pathPrefix(pathPrefix); // ends with "/"
+		this.basePath = baseFolder.getPath().toAbsolutePath();
+		this.serverPath = new ServerPath(new ServerFileSystem(URI.create("/")), pathPrefix(pathPrefix));
 		this.normalizerForm = normalizerForm;
 	}
 
@@ -85,34 +84,18 @@ public class SimpleAssetLocator implements AssetLocator {
 		return path;
 	}
 
-	private String filePrefix(Resource baseFolder) {
-		String path = baseFolder.getPath().toAbsolutePath().toString();
-		if (!path.endsWith(fileSystem.getSeparator())) {
-			path += fileSystem.getSeparator();
-		}
-		return path;
-	}
-
 	@Override
 	public String getAssetPath(Resource assetResource) throws UnsupportedEncodingException {
-		// avoid URI.toASCIIString() because it always does normalization -> may not be able to restore files
-		// avoid File.getCanonicalPath() because Java 7 (Mac) replaces non-ASCII with '?'
-		String assetPath = assetResource.getPath().toAbsolutePath().toString();
-		if (assetPath.startsWith(filePrefix)) { // asset lives below base folder?
-			String pathSuffix = assetPath.substring(filePrefix.length());
-			pathSuffix = pathSuffix.replace(fileSystem.getSeparator(), "/");
-			return encodeURIPath(pathPrefix + pathSuffix, normalizerForm);
+		Path path = assetResource.getPath().toAbsolutePath();
+		if (!path.startsWith(basePath)) {
+			return null;
 		}
-		return null;
-	}
-	
-	@Override
-	public Resource getAssetResource(String assetPath) throws UnsupportedEncodingException {
-		String filePath = URLDecoder.decode(assetPath.replace("+", "%2B"), "UTF-8");
-		if (filePath.startsWith(pathPrefix)) {
-			filePath = filePath.replace("/", fileSystem.getSeparator());
-			return fileProvider.newResource(filePrefix + filePath.substring(pathPrefix.length()));
+		try {
+			path = basePath.relativize(path);
+		} catch (IllegalArgumentException e) {
+			return null;
 		}
-		return null;
+		String pathString = path.toString().replace(fileSystem.getSeparator(), "/");
+		return encodeURIPath(serverPath.resolve(pathString), normalizerForm);
 	}
 }

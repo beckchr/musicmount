@@ -15,8 +15,8 @@
  */
 package org.musicmount.builder.impl;
 
-import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.text.Normalizer;
@@ -27,24 +27,21 @@ import org.junit.Test;
 import org.musicmount.io.Resource;
 import org.musicmount.io.ResourceProvider;
 import org.musicmount.io.file.FileResourceProvider;
+import org.musicmount.io.server.ServerFileSystem;
+import org.musicmount.io.server.ServerPath;
 
 public class SimpleAssetLocatorTest {
-	@Test
-	@Ignore
-	public void testReencodeURIPathNormalize() throws Exception {
-		String path = "/Track/U%CC%88ber%20Den%20Da%CC%88chern%20Von%20Stuttgart%2F21.m4a";
-		String normalizedPath = SimpleAssetLocator.encodeURIPath(path, Normalizer.Form.NFC);
-		Assert.assertEquals("/Track/%C3%9Cber%20Den%20D%C3%A4chern%20Von%20Stuttgart%2F21.m4a", normalizedPath);
-		Assert.assertEquals(path, SimpleAssetLocator.encodeURIPath(path, null));
+	ServerPath createServerPath(String path) {
+		return new ServerPath(new ServerFileSystem(URI.create("/")), path);
 	}
-
+	
 	@Test
 	public void testEncodeURIPath() throws Exception {
-		Assert.assertEquals("Me%20%2B%20You", SimpleAssetLocator.encodeURIPath("Me + You", null));
-		Assert.assertEquals("Me%20%2B%20You/", SimpleAssetLocator.encodeURIPath("Me + You/", null));
-		Assert.assertEquals("/Me%20%2B%20You", SimpleAssetLocator.encodeURIPath("/Me + You", null));
-		Assert.assertEquals("/Me%20%2B%20You/", SimpleAssetLocator.encodeURIPath("/Me + You/", null));
-		Assert.assertEquals("/Me%20%2B%20You/And%20Them", SimpleAssetLocator.encodeURIPath("/Me + You/And Them", null));
+		Assert.assertEquals("Me%20%2B%20You", SimpleAssetLocator.encodeURIPath(createServerPath("Me + You"), null));
+		Assert.assertEquals("Me%20%2B%20You/", SimpleAssetLocator.encodeURIPath(createServerPath("Me + You/"), null));
+		Assert.assertEquals("/Me%20%2B%20You", SimpleAssetLocator.encodeURIPath(createServerPath("/Me + You"), null));
+		Assert.assertEquals("/Me%20%2B%20You/", SimpleAssetLocator.encodeURIPath(createServerPath("/Me + You/"), null));
+		Assert.assertEquals("/Me%20%2B%20You/And%20Them", SimpleAssetLocator.encodeURIPath(createServerPath("/Me + You/And Them"), null));
 	}
 
 	@Test
@@ -84,14 +81,4 @@ public class SimpleAssetLocatorTest {
 		locator = new SimpleAssetLocator(baseFolder, "my music", null);
 		Assert.assertEquals("my%20music/sample-aac.m4a", locator.getAssetPath(baseFolder.resolve("sample-aac.m4a")));
 	}
-
-	@Test
-	public void testGetAssetFile() throws IOException, URISyntaxException {
-		ResourceProvider resourceProvider = new FileResourceProvider();
-
-		Resource assetFile = resourceProvider.newResource(new File(getClass().getResource("/sample-album/sample.mp3").toURI()).toPath());
-		SimpleAssetLocator locator = new SimpleAssetLocator(assetFile.getParent(), "music", null);
-		Assert.assertEquals(assetFile, locator.getAssetResource("music/sample.mp3"));
-	}
-
 }

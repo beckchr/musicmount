@@ -40,9 +40,9 @@ public class ImageFormatterTest {
 		ResourceProvider resourceProvider = new FileResourceProvider();
 
 		File input = new File(getClass().getResource("/sample-album").toURI()); // has a square image
-		AssetStore assetStore = new AssetStore("test");
+		AssetStore assetStore = new AssetStore("test", resourceProvider.newResource(input.toPath()));
 		AssetParser assetParser = new SimpleAssetParser();
-		assetStore.update(resourceProvider.newResource(input.toPath()), assetParser, 1, ProgressHandler.NOOP);
+		assetStore.update(assetParser, 1, ProgressHandler.NOOP);
 		Library library = new LibraryParser(true).parse(assetStore.assets());
 		File output = outputFolder.getRoot();
 		ResourceLocator resourceLocator = new SimpleResourceLocator(resourceProvider.newResource(output.toPath()), false, false, false);

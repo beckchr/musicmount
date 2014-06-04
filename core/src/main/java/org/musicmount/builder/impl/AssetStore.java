@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.DirectoryStream;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -77,14 +78,16 @@ public class AssetStore {
 	
 	final Map<Resource, AssetEntity> entities = new LinkedHashMap<Resource, AssetEntity>();
 	final Set<Long> deletedAlbumIds = new HashSet<Long>();
+	final Resource musicFolder;
 
 	final String version; // store format version
 	
 	long timestamp = System.currentTimeMillis();
 	Boolean retina = null; // null means "unknown"
 
-	public AssetStore(String apiVersion) {
-		this.version = apiVersion + "-1";
+	public AssetStore(String apiVersion, Resource musicFolder) {
+		this.version = apiVersion + "-2";
+		this.musicFolder = musicFolder;
 	}
 	
 	/*
@@ -263,7 +266,7 @@ public class AssetStore {
 		}
 	}
 
-	public void save(OutputStream output, AssetLocator assetLocator) throws IOException, XMLStreamException {
+	public void save(OutputStream output) throws IOException, XMLStreamException {
 		JsonXMLOutputFactory factory = new JsonXMLOutputFactory(new JsonXMLConfigBuilder().prettyPrint(false).virtualRoot("assetStore").build());
 		JsonXMLStreamWriter writer = factory.createXMLStreamWriter(output);
 		try {
@@ -276,26 +279,30 @@ public class AssetStore {
 			}
 			writer.writeProcessingInstruction(JsonXMLStreamConstants.MULTIPLE_PI_TARGET);
 			for (AssetEntity entity : entities.values()) {
-				String assetPath = assetLocator.getAssetPath(entity.asset.getResource());
-				if (assetPath != null) {
-					writer.writeStartElement("asset");
-					writeNumberProperty(writer, "albumId", entity.albumId);
-					writeStringProperty(writer, "album", entity.asset.getAlbum());
-					writeStringProperty(writer, "albumArtist", entity.asset.getAlbumArtist());
-					writeStringProperty(writer, "artist", entity.asset.getArtist());
-					writeBooleanProperty(writer, "artworkAvailable", entity.asset.isArtworkAvailable());
-					writeStringProperty(writer, "assetPath", assetPath);
-					writeBooleanProperty(writer, "compilation", entity.asset.isCompilation());
-					writeStringProperty(writer, "composer", entity.asset.getComposer());
-					writeNumberProperty(writer, "discNumber", entity.asset.getDiscNumber());
-					writeNumberProperty(writer, "duration", entity.asset.getDuration());
-					writeStringProperty(writer, "genre", entity.asset.getGenre());
-					writeStringProperty(writer, "grouping", entity.asset.getGrouping());
-					writeStringProperty(writer, "name", entity.asset.getName());
-					writeNumberProperty(writer, "trackNumber", entity.asset.getTrackNumber());
-					writeNumberProperty(writer, "year", entity.asset.getYear());
-					writer.writeEndElement();
+				String assetPath;
+				try {
+					assetPath = musicFolder.getPath().relativize(entity.asset.getResource().getPath()).toString();
+				} catch (IllegalArgumentException e) {
+					LOGGER.warning("Could not determine path for asset resource: " + entity.asset.getResource());
+					continue;
 				}
+				writer.writeStartElement("asset");
+				writeNumberProperty(writer, "albumId", entity.albumId);
+				writeStringProperty(writer, "album", entity.asset.getAlbum());
+				writeStringProperty(writer, "albumArtist", entity.asset.getAlbumArtist());
+				writeStringProperty(writer, "artist", entity.asset.getArtist());
+				writeBooleanProperty(writer, "artworkAvailable", entity.asset.isArtworkAvailable());
+				writeStringProperty(writer, "assetPath", assetPath);
+				writeBooleanProperty(writer, "compilation", entity.asset.isCompilation());
+				writeStringProperty(writer, "composer", entity.asset.getComposer());
+				writeNumberProperty(writer, "discNumber", entity.asset.getDiscNumber());
+				writeNumberProperty(writer, "duration", entity.asset.getDuration());
+				writeStringProperty(writer, "genre", entity.asset.getGenre());
+				writeStringProperty(writer, "grouping", entity.asset.getGrouping());
+				writeStringProperty(writer, "name", entity.asset.getName());
+				writeNumberProperty(writer, "trackNumber", entity.asset.getTrackNumber());
+				writeNumberProperty(writer, "year", entity.asset.getYear());
+				writer.writeEndElement();
 			}
 			writer.writeEndElement();
 			writer.writeEndDocument();
@@ -444,28 +451,28 @@ public class AssetStore {
 		}
 	}
 
-	Set<Resource> collectAssetResources(Resource directory, ProgressHandler progressHandler, DirectoryStream.Filter<Path> assetFilter) throws IOException {
+	Set<Resource> collectAssetResources(ProgressHandler progressHandler, DirectoryStream.Filter<Path> assetFilter) throws IOException {
 		if (progressHandler != null) {
 			progressHandler.beginTask(-1, "Scanning directory for assets...");
 		}
 		Set<Resource> assetResources = new LinkedHashSet<>();
-		collectAssetResources(assetResources, directory, progressHandler, assetFilter);
+		collectAssetResources(assetResources, musicFolder, progressHandler, assetFilter);
 		if (progressHandler != null) {
 			progressHandler.endTask();
 		}
 		return assetResources;
 	}
 
-	public void update(final Resource directory, final AssetParser assetParser, int maxThreads, ProgressHandler progressHandler) throws IOException, XMLStreamException {
+	public void update(final AssetParser assetParser, int maxThreads, ProgressHandler progressHandler) throws IOException, XMLStreamException {
 		long updateTimestamp = System.currentTimeMillis();
 
 		/*
 		 * collect resources
 		 */
-		Set<Resource> assetResources = collectAssetResources(directory, progressHandler, new DirectoryStream.Filter<Path>() {
+		Set<Resource> assetResources = collectAssetResources(progressHandler, new DirectoryStream.Filter<Path>() {
 			public boolean accept(Path path) {
 				try {
-					return !path.getFileName().toString().startsWith(".") && (assetParser.isAssetPath(path) || directory.getProvider().isDirectory(path));
+					return !path.getFileName().toString().startsWith(".") && (assetParser.isAssetPath(path) || musicFolder.getProvider().isDirectory(path));
 				} catch (IOException e) {
 					return false;
 				}
@@ -483,7 +490,7 @@ public class AssetStore {
 		timestamp = updateTimestamp;
 	}
 
-	private AssetEntity loadEntity(XMLStreamReader reader, AssetLocator assetLocator) throws IOException, XMLStreamException {
+	private AssetEntity loadEntity(XMLStreamReader reader) throws IOException, XMLStreamException {
 		reader.require(XMLStreamConstants.START_ELEMENT, null, "asset");
 		reader.nextTag();
 
@@ -561,30 +568,31 @@ public class AssetStore {
 			throw new XMLStreamException("Missing 'assetPath'");
 		}
 		
-		Resource resource = assetLocator.getAssetResource(assetPath);
-		if (resource != null) {
-			Asset asset = new Asset(resource);
-			asset.setAlbum(album);
-			asset.setAlbumArtist(albumArtist);
-			asset.setArtist(artist);
-			asset.setArtworkAvailable(artworkAvailable);
-			asset.setCompilation(compilation);
-			asset.setComposer(composer);
-			asset.setDiscNumber(discNumber);
-			asset.setDuration(duration);
-			asset.setGenre(genre);
-			asset.setGrouping(grouping);
-			asset.setName(name);
-			asset.setTrackNumber(trackNumber);
-			asset.setYear(year);
-			return new AssetEntity(albumId, asset, AssetEntity.State.Synced);
+		Asset asset = null;
+		try {
+			asset = new Asset(musicFolder.resolve(assetPath));
+		} catch (InvalidPathException e) {
+			LOGGER.warning("Could not locate asset resource for path: " + assetPath);
+			return null;
 		}
+		asset.setAlbum(album);
+		asset.setAlbumArtist(albumArtist);
+		asset.setArtist(artist);
+		asset.setArtworkAvailable(artworkAvailable);
+		asset.setCompilation(compilation);
+		asset.setComposer(composer);
+		asset.setDiscNumber(discNumber);
+		asset.setDuration(duration);
+		asset.setGenre(genre);
+		asset.setGrouping(grouping);
+		asset.setName(name);
+		asset.setTrackNumber(trackNumber);
+		asset.setYear(year);
 
-		LOGGER.warning("Could not locate asset file for path: " + assetPath);
-		return null;
+		return new AssetEntity(albumId, asset, AssetEntity.State.Synced);
 	}
 
-	public void load(InputStream input, AssetLocator assetLocator) throws IOException, XMLStreamException {
+	public void load(InputStream input) throws IOException, XMLStreamException {
 		XMLInputFactory factory = new JsonXMLInputFactory(new JsonXMLConfigBuilder().virtualRoot("assetStore").build());
 		XMLStreamReader reader = factory.createXMLStreamReader(input);
 		try {
@@ -605,7 +613,7 @@ public class AssetStore {
 					timestamp = Long.valueOf(reader.getElementText());
 					break;
 				case "asset":
-					AssetEntity entity = loadEntity(reader, assetLocator);
+					AssetEntity entity = loadEntity(reader);
 					if (entity != null) {
 						entities.put(entity.asset.getResource(), entity);
 						if (LOGGER.isLoggable(Level.FINEST)) {

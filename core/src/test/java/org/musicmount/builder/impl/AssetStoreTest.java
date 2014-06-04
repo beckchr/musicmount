@@ -35,9 +35,8 @@ public class AssetStoreTest {
 		ResourceProvider resourceProvider = new FileResourceProvider();
 
 		File assetDir = new File(getClass().getResource("/sample-album/sample.mp3").toURI()).getParentFile();
-		AssetLocator assetLocator = new SimpleAssetLocator(resourceProvider.newResource(assetDir.toPath()), null, null);
-		AssetStore assetStore = new AssetStore("test");
-		assetStore.update(resourceProvider.newResource(assetDir.toPath()), new SimpleAssetParser(), 1, ProgressHandler.NOOP);
+		AssetStore assetStore = new AssetStore("test", resourceProvider.newResource(assetDir.toPath()));
+		assetStore.update(new SimpleAssetParser(), 1, ProgressHandler.NOOP);
 		Library library = new LibraryParser(true).parse(assetStore.assets());
 
 		Assert.assertEquals(1, library.getAlbumArtists().size());
@@ -49,16 +48,16 @@ public class AssetStoreTest {
 		Assert.assertEquals(3, assetStore.getEntities().size());
 
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		assetStore.save(output, assetLocator);
+		assetStore.save(output);
 		output.close();
 
 		ByteArrayInputStream input = new ByteArrayInputStream(output.toByteArray());
-		assetStore = new AssetStore("test");
-		assetStore.load(input, assetLocator);
+		assetStore = new AssetStore("test", resourceProvider.newResource(assetDir.toPath()));
+		assetStore.load(input);
 		input.close();
 		
 		Assert.assertEquals(3, assetStore.getEntities().size());
-		assetStore.update(resourceProvider.newResource(assetDir.toPath()), new SimpleAssetParser(), 4, ProgressHandler.NOOP);
+		assetStore.update(new SimpleAssetParser(), 4, ProgressHandler.NOOP);
 
 		library = new LibraryParser(true).parse(assetStore.assets());
 		Assert.assertEquals(1, library.getAlbumArtists().size());
