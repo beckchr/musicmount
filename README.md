@@ -28,6 +28,16 @@ Documentation is available [here](http://musicmount.org/tool/).
 
 ## Change History
 
+#### Version 1.5.1 (2014/06/04)
+
+- fixed m4a issue with parsing year with length != 4
+- generate scripts via "Application Assembler" (maven plugin)
+- make Jetty the default server (was: tomcat)
+- [UI] update loggers with ConsoleHandler after redirecting stdout/stderr
+- [UI] cancel running service before closing stage
+- [UI] don't make "Full Parse/Build" option a user preference
+- minor improvements/fixes
+
 #### Version 1.5 (2014/05/02)
 
 - generate track index
