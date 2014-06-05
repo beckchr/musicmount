@@ -15,6 +15,8 @@
  */
 package org.musicmount.live;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -142,13 +144,21 @@ public class MusicMountLiveCommand {
 			exitWithError(command, String.format("either both or none of user/password must be given: %s/%s", optionUser, optionPassword));
 		}
 		
-		Resource home = musicFolder.getProvider().newResource(System.getProperty("user.home"));
-		Resource assetStoreFolder = home.resolve(".musicmount");
-		if (!assetStoreFolder.exists()) {
-			assetStoreFolder.mkdirs();
+		Resource assetStore = null;
+		try {
+			String userHome = System.getProperty("user.home");
+			if (userHome == null) {
+				throw new FileNotFoundException("user.home property not set");
+			}
+			Resource repository = new FileResourceProvider(userHome).getBaseDirectory().resolve(".musicmount");
+			if (!repository.exists()) {
+				repository.mkdirs();
+			}
+			int hashCode = musicFolder.getPath().toUri().toString().hashCode();
+			assetStore = repository.resolve(String.format("live-%08x.gz", hashCode));
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, "Could not locate asset store", e);
 		}
-		int key = musicFolder.getPath().toUri().hashCode();
-		Resource assetStore = assetStoreFolder.resolve((key < 0  ? "assetStore" : "assetStore-") + key + ".gz");
 
 		/**
 		 * Configure logging

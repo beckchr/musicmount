@@ -199,6 +199,7 @@ public class MusicMountLive {
 		if (progressHandler != null) {
 			progressHandler.endTask();
 		}
+
 		if (assetStoreFile != null && changedAlbums.size() > 0) {
 			if (progressHandler != null) {
 				progressHandler.beginTask(-1, "Saving asset store...");
@@ -225,8 +226,6 @@ public class MusicMountLive {
 	public void start(FileResource musicFolder, Resource assetStore, int port, String user, String password) throws Exception {
 		LOGGER.info("Starting Build...");
 		LOGGER.info("Music folder: " + musicFolder.getPath());
-//		LOGGER.info("Mount folder: " + mountFolder.getPath());
-		LOGGER.info("Music path  : " + musicFolder.getPath());
 
 		Library library = loadLibrary(musicFolder, assetStore);
 
