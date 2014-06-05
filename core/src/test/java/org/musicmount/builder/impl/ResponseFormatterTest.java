@@ -42,8 +42,8 @@ public class ResponseFormatterTest {
 		ResponseFormatter.JSON responseFormatter = new ResponseFormatter.JSON("test", new LocalStrings(), false, false, false, true);
 
 		File inputFolder = new File(getClass().getResource("/sample-library").toURI());
-		AssetStore assetStore = new AssetStore("test");
-		assetStore.update(resourceProvider.newResource(inputFolder.toPath()), new SimpleAssetParser(), 1, ProgressHandler.NOOP);
+		AssetStore assetStore = new AssetStore("test", resourceProvider.newResource(inputFolder.toPath()));
+		assetStore.update(new SimpleAssetParser(), 1, ProgressHandler.NOOP);
 		Library library = new LibraryParser(true).parse(assetStore.assets());
 
 		SimpleAssetLocator assetLocator = new SimpleAssetLocator(resourceProvider.newResource(outputFolder.getRoot().toPath()), "music", null);
