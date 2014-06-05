@@ -43,9 +43,9 @@ public class MusicMount {
 		System.err.println("Execute MusicMount command");
 		System.err.println();
 		System.err.println("Commands:");
-		System.err.println("       build      generate MusicMount site");
-		System.err.println("       test       launch MusicMount test server");
-//		System.err.println("       live       launch MusicMount live server");
+		System.err.println("       live     launch an in-memory MusicMount server");
+		System.err.println("       build    generate/update a static MusicMount site");
+		System.err.println("       test     web server to test a static MusicMount site");
 		System.err.close();
 		System.exit(1);	
 	}

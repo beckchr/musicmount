@@ -92,6 +92,7 @@ public class MusicMountLive {
 	private boolean unknownGenre = false;
 	private boolean noTrackIndex = false;
 	private boolean noVariousArtists = false;
+	private boolean full = false;
 	private boolean verbose = false;
 	
 	private final AssetParser assetParser;	
@@ -140,6 +141,13 @@ public class MusicMountLive {
 	public void setNoVariousArtists(boolean noVariousArtists) {
 		this.noVariousArtists = noVariousArtists;
 	}
+	
+	public boolean isFull() {
+		return full;
+	}
+	public void setFull(boolean full) {
+		this.full = full;
+	}
 
 	public boolean isVerbose() {
 		return verbose;
@@ -163,7 +171,7 @@ public class MusicMountLive {
 
 		AssetStore assetStore = new AssetStore(MusicMountBuilder.API_VERSION, musicFolder);
 		boolean assetStoreLoaded = false;
-		if (assetStoreFile != null && assetStoreFile.exists()) {
+		if (!full && assetStoreFile != null && assetStoreFile.exists()) {
 			if (progressHandler != null) {
 				progressHandler.beginTask(-1, "Loading asset store...");
 			}

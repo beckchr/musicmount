@@ -34,7 +34,7 @@ public class MusicMountLiveCommand {
 		System.err.println();
 		System.err.println(String.format("Usage: %s [options] <music_folder>", command));
 		System.err.println();
-		System.err.println("Launch MusicMount live site from <music_folder>");
+		System.err.println("Launch in-memory MusicMount server from music in <music_folder>");
 		System.err.println();
 		System.err.println("         <music_folder>   input folder (containing the music library)");
 		System.err.println();
@@ -49,6 +49,7 @@ public class MusicMountLiveCommand {
 		System.err.println("       --port <port>      launch HTTP server on specified port (default 8080)");
 		System.err.println("       --user <user>      login user");
 		System.err.println("       --password <pass>  login password");
+		System.err.println("       --full             full parse, don't use asset store");
 		System.err.println("       --verbose          more detailed console output");
 		System.err.close();
 		System.exit(1);
@@ -104,6 +105,9 @@ public class MusicMountLiveCommand {
 					exitWithError(command, "invalid arguments");
 				}
 				optionPassword = args[optionsLength];
+				break;
+			case "--full":
+				live.setFull(true);
 				break;
 			case "--verbose":
 				optionVerbose = true;

@@ -144,7 +144,7 @@ public class MusicMountBuildCommand {
 		System.err.println();
 		System.err.println(String.format("Usage: %s [options] <musicFolder> <mountFolder>", command));
 		System.err.println();
-		System.err.println("Generate MusicMount site from music in <musicFolder> into <mountFolder>");
+		System.err.println("Generate static MusicMount site from music in <musicFolder> into <mountFolder>");
 		System.err.println();
 		System.err.println("         <music_folder>   input folder (containing the music library)");
 		System.err.println("         <mount_folder>   output folder (to contain the generated site)");
@@ -155,12 +155,12 @@ public class MusicMountBuildCommand {
 		System.err.println("       --music <path>     music path, default is relative path from <mountFolder> to <musicFolder>");
 		System.err.println("       --base <folder>    base folder, <musicFolder> and <mountFolder> are relative to this folder");
 		System.err.println("       --retina           double image resolution");
-		System.err.println("       --full             full parse, don't use asset store");
 		System.err.println("       --grouping         use grouping tag to group album tracks");
 		System.err.println("       --unknownGenre     report missing genre as 'Unknown'");
 		System.err.println("       --noTrackIndex     do not generate a track index");
 		System.err.println("       --noVariousArtists exclude 'Various Artists' from album artist index");
 		System.err.println("       --directoryIndex   use 'path/' instead of 'path/index.ext'");
+		System.err.println("       --full             full parse, don't use asset store");
 		System.err.println("       --pretty           pretty-print JSON documents");
 		System.err.println("       --verbose          more detailed console output");
 //		System.err.println("       --normalize <form> normalize asset paths, 'NFC'|'NFD' (experimental)");
