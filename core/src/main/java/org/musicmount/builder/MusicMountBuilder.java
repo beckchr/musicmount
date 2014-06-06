@@ -51,6 +51,7 @@ import org.musicmount.builder.model.Library;
 import org.musicmount.io.Resource;
 import org.musicmount.util.LoggingProgressHandler;
 import org.musicmount.util.ProgressHandler;
+import org.musicmount.util.VersionUtil;
 
 public class MusicMountBuilder {
 	static final Logger LOGGER = Logger.getLogger(MusicMountBuilder.class.getName());
@@ -65,7 +66,7 @@ public class MusicMountBuilder {
 	/**
 	 * API version string
 	 */
-	public static final String API_VERSION = "1.0";	
+	static final String API_VERSION = VersionUtil.getSpecificationVersion();	
 
 	/**
 	 * Name of asset store file.

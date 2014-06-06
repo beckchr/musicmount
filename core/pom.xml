@@ -9,7 +9,7 @@
 	</parent>
 
 	<artifactId>musicmount</artifactId>
-	<name>MusicMount Core</name>
+	<name>MusicMount</name>
 
 	<dependencies>
     <dependency>
@@ -109,9 +109,14 @@
 					<archive>
 						<manifest>
 							<addClasspath>true</addClasspath>
+							<addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
 							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
 							<mainClass>org.musicmount.MusicMount</mainClass>
 						</manifest>
+						<manifestEntries>
+							<Specification-Title>${project.name} API</Specification-Title>
+							<Specification-Version>1.0</Specification-Version>
+						</manifestEntries>
 					</archive>
 				</configuration>
 			</plugin>

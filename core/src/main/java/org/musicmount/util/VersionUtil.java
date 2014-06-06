@@ -15,20 +15,20 @@
  */
 package org.musicmount.util;
 
-public interface ProgressHandler {
-	public static final ProgressHandler NOOP = new ProgressHandler() {
-		@Override
-		public void beginTask(int totalWork, String title) {
+public class VersionUtil {
+	public static String getSpecificationVersion() {
+		String version = VersionUtil.class.getPackage().getSpecificationVersion();
+		if (version == null) {
+			version = "1.0";
 		}
-		@Override
-		public void progress(int work, String message) {
-		}
-		@Override
-		public void endTask() {
-		}
-	};
+		return version;
+	}
 
-	public void beginTask(int totalWork, String title);
-	public void progress(int work, String message);
-	public void endTask();
+	public static String getImplementationVersion() {
+		String version = VersionUtil.class.getPackage().getImplementationVersion();
+		if (version == null) {
+			version = "<unknown>";
+		}
+		return version;
+	}
 }
