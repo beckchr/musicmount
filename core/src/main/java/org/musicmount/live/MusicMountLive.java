@@ -31,6 +31,8 @@ import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import javax.imageio.ImageIO;
+
 import org.musicmount.builder.impl.AssetLocator;
 import org.musicmount.builder.impl.AssetParser;
 import org.musicmount.builder.impl.AssetStore;
@@ -55,6 +57,13 @@ import org.musicmount.util.VersionUtil;
 
 public class MusicMountLive {
 	protected static final Logger LOGGER = Logger.getLogger(MusicMountLive.class.getName());
+
+	/**
+	 * prevent ImageIO from using file cache
+	 */
+	static {
+		ImageIO.setUseCache(false); // TODO not sure if this is really useful...
+	}
 
 	/**
 	 * API version string
