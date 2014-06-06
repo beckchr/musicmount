@@ -75,25 +75,41 @@ public class LiveMountServlet extends HttpServlet implements ResourceLocator {
 
 	@Override
 	public String getArtistIndexPath(ArtistType artistType) {
-		return String.format("%s?%s=%s", ARTIST_INDEX_PATH, ARTIST_TYPE_PARAM, artistType.name());
+		return new StringBuilder(ARTIST_INDEX_PATH)
+			.append('?')
+			.append(ARTIST_TYPE_PARAM).append('=').append(artistType.name())
+			.toString();
 	}
 	
 	@Override
 	public String getAlbumCollectionPath(Artist artist) {
-		return String.format("%s?%s=%s&%s=%d", ALBUM_COLLECTION_PATH, ARTIST_TYPE_PARAM, artist.getArtistType().name(), ARTIST_ID_PARAM, artist.getArtistId());
+		return new StringBuilder(ALBUM_COLLECTION_PATH)
+			.append('?')
+			.append(ARTIST_TYPE_PARAM).append('=').append(artist.getArtistType().name())
+			.append('&')
+			.append(ARTIST_ID_PARAM).append('=').append(artist.getArtistId())
+			.toString();
 	}
 
 	@Override
 	public String getAlbumImagePath(Album album, ImageType type) {
-		if (album.artworkAssetResource() == null) {
+		if (mount.getArtworkAssetResource(album) == null) {
 			return null;
 		}
-		return String.format("%s?%s=%s&%s=%d", ALBUM_IMAGE_PATH, IMAGE_TYPE_PARAM, type.name(), ALBUM_ID_PARAM, album.getAlbumId());
+		return new StringBuilder(ALBUM_IMAGE_PATH)
+			.append('?')
+			.append(IMAGE_TYPE_PARAM).append('=').append(type.name())
+			.append('&')
+			.append(ALBUM_ID_PARAM).append('=').append(album.getAlbumId())
+			.toString();
 	}
 
 	@Override
 	public String getAlbumPath(Album album) {
-		return String.format("%s?%s=%d", ALBUM_PATH, ALBUM_ID_PARAM, album.getAlbumId());
+		return new StringBuilder(ALBUM_PATH)
+			.append('?')
+			.append(ALBUM_ID_PARAM).append('=').append(album.getAlbumId())
+			.toString();
 	}
 	
 	private ArtistType parseArtistType(String string) {
@@ -126,11 +142,6 @@ public class LiveMountServlet extends HttpServlet implements ResourceLocator {
 		} catch (NumberFormatException e) {
 			return null;
 		}
-	}
-
-	private Resource findArtworkAssetResource(String albumIdString) {
-		Album album = findAlbum(albumIdString);
-		return album != null ? album.artworkAssetResource() : null;
 	}
 
 	@Override
@@ -200,7 +211,7 @@ public class LiveMountServlet extends HttpServlet implements ResourceLocator {
 		case ALBUM_IMAGE_PATH:
 			ImageType imageType = parseImageType(req.getParameter(IMAGE_TYPE_PARAM));
 			if (imageType != null) {
-				Resource assetResource = findArtworkAssetResource(req.getParameter(ALBUM_ID_PARAM));
+				Resource assetResource = mount.getArtworkAssetResource(findAlbum(req.getParameter(ALBUM_ID_PARAM)));
 				if (assetResource != null) {
 					mount.formatImage(assetResource, content, imageType);
 					resp.setContentType(imageType.getMimeType());

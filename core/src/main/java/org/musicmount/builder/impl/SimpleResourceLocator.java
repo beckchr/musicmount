@@ -80,7 +80,13 @@ public class SimpleResourceLocator implements ResourceLocator {
 	
 	@Override
 	public String getAlbumCollectionPath(Artist artist) {
-		return String.format("%s/%s-albums.%s", getArtistPathPrefix(artist.getArtistType()), getIdPath(artist.getArtistId()), extension);
+		return new StringBuilder()
+			.append(getArtistPathPrefix(artist.getArtistType()))
+			.append('/')
+			.append(getIdPath(artist.getArtistId()))
+			.append("-albums.")
+			.append(extension)
+			.toString();
 	}
 
 	@Override
@@ -88,11 +94,21 @@ public class SimpleResourceLocator implements ResourceLocator {
 		if (noImages || album.artworkAssetResource() == null) {
 			return null;
 		}
-		return String.format("albums/%s/%s", getIdPath(album.getAlbumId()), type.getFileName());
+		return new StringBuilder()
+			.append("albums/")
+			.append(getIdPath(album.getAlbumId()))
+			.append('/')
+			.append(type.getFileName())
+			.toString();
 	}
 
 	@Override
 	public String getAlbumPath(Album album) {
-		return String.format("albums/%s/album.%s", getIdPath(album.getAlbumId()), extension);
+		return new StringBuilder()
+			.append("albums/")
+			.append(getIdPath(album.getAlbumId()))
+			.append("/album.")
+			.append(extension)
+			.toString();
 	}
 }

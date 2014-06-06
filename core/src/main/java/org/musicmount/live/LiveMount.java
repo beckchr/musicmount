@@ -49,6 +49,7 @@ public class LiveMount {
 	private final Map<Long, AlbumArtist> albumArtistLookup;
 	private final Map<Long, TrackArtist> trackArtistLookup;
 	private final Map<Artist, Album> representativeAlbums;
+	private final Map<Album, Resource> artworkAssetResources;
 
 	public LiveMount(Library library, ResponseFormatter<?> responseFormatter, ImageFormatter imageFormatter, AssetLocator assetLocator, boolean noTrackIndex) {
 		this.library = library;
@@ -61,9 +62,11 @@ public class LiveMount {
 		this.trackArtistLookup = new HashMap<>();
 		this.albumLookup = new HashMap<>();
 		this.representativeAlbums = new HashMap<>();
+		this.artworkAssetResources = new HashMap<>();
 
 		for (Album album : library.getAlbums()) {
 			albumLookup.put(album.getAlbumId(), album);
+			artworkAssetResources.put(album, album.artworkAssetResource());
 		}
 		for (AlbumArtist albumArtist : library.getAlbumArtists().values()) {
 			albumArtistLookup.put(albumArtist.getArtistId(), albumArtist);
@@ -102,6 +105,10 @@ public class LiveMount {
 		default:
 			return null;
 		}
+	}
+	
+	public Resource getArtworkAssetResource(Album album) {
+		return artworkAssetResources.get(album);
 	}
 	
 	public boolean isNoTrackIndex() {
