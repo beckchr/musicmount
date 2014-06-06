@@ -31,7 +31,6 @@ import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import org.musicmount.builder.MusicMountBuilder;
 import org.musicmount.builder.impl.AssetLocator;
 import org.musicmount.builder.impl.AssetParser;
 import org.musicmount.builder.impl.AssetStore;
@@ -52,9 +51,15 @@ import org.musicmount.server.MusicMountServer.MountContext;
 import org.musicmount.server.MusicMountServerJetty;
 import org.musicmount.util.LoggingProgressHandler;
 import org.musicmount.util.ProgressHandler;
+import org.musicmount.util.VersionUtil;
 
 public class MusicMountLive {
 	protected static final Logger LOGGER = Logger.getLogger(MusicMountLive.class.getName());
+
+	/**
+	 * API version string
+	 */
+	static final String API_VERSION = VersionUtil.getSpecificationVersion();	
 
 	public static final AccessLog LOGGER_ACCESS_LOG = new AccessLog() {
 		@Override
@@ -169,7 +174,7 @@ public class MusicMountLive {
 	Library loadLibrary(FileResource musicFolder, Resource assetStoreFile) throws Exception {
 		ProgressHandler progressHandler = new LoggingProgressHandler(LOGGER, verbose ? Level.FINER : Level.FINE);
 
-		AssetStore assetStore = new AssetStore(MusicMountBuilder.API_VERSION, musicFolder);
+		AssetStore assetStore = new AssetStore(API_VERSION, musicFolder);
 		boolean assetStoreLoaded = false;
 		if (!full && assetStoreFile != null && assetStoreFile.exists()) {
 			if (progressHandler != null) {
@@ -184,7 +189,7 @@ public class MusicMountLive {
 				assetStoreLoaded = true;
 			} catch (Exception e) {
 				LOGGER.log(Level.WARNING, "Failed to load asset store", e);
-				assetStore = new AssetStore(MusicMountBuilder.API_VERSION, musicFolder);
+				assetStore = new AssetStore(API_VERSION, musicFolder);
 			}
 			if (progressHandler != null) {
 				progressHandler.endTask();
@@ -239,7 +244,7 @@ public class MusicMountLive {
 
 		FolderContext music = new FolderContext("/music", musicFolder.getPath().toFile());
 		ResponseFormatter<?> responseFormatter =
-				new ResponseFormatter.JSON(MusicMountBuilder.API_VERSION, new LocalStrings(), false, unknownGenre, grouping, false);
+				new ResponseFormatter.JSON(API_VERSION, new LocalStrings(), false, unknownGenre, grouping, false);
 		ImageFormatter imageFormatter = new ImageFormatter(assetParser, retina);
 		AssetLocator assetLocator = new SimpleAssetLocator(musicFolder, music.getPath(), null);
 		LiveMount liveMount = new LiveMount(library, responseFormatter, imageFormatter, assetLocator, noTrackIndex);

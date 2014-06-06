@@ -23,6 +23,7 @@ import org.musicmount.linker.MusicMountLinkCommand;
 import org.musicmount.live.MusicMountLiveCommand;
 import org.musicmount.tester.MusicMountTestCommand;
 import org.musicmount.util.LoggingUtil;
+import org.musicmount.util.VersionUtil;
 
 public class MusicMount {
 	static final Logger LOGGER = Logger.getLogger(MusicMount.class.getName());
@@ -51,8 +52,7 @@ public class MusicMount {
 	}
 
 	public static void main(String[] args) throws Exception {
-		String version = MusicMount.class.getPackage().getImplementationVersion();
-		LOGGER.info("version " + (version != null ? version : "<unknown>") + " (java version " + System.getProperty("java.version") + ")");
+		LOGGER.info("version " + VersionUtil.getImplementationVersion() + " (java version " + System.getProperty("java.version") + ")");
 		if (args.length == 0) {
 			exitWithError("missing arguments");
 		}

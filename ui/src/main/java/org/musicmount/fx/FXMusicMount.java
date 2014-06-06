@@ -33,8 +33,8 @@ import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
-import org.musicmount.MusicMount;
 import org.musicmount.util.LoggingUtil;
+import org.musicmount.util.VersionUtil;
 
 public class FXMusicMount extends Application {
 	static final Logger LOGGER = Logger.getLogger(FXMusicMount.class.getName());
@@ -124,8 +124,7 @@ public class FXMusicMount extends Application {
 
 		console.start();
 		
-		String version = MusicMount.class.getPackage().getImplementationVersion();
-		LOGGER.info("version " + (version != null ? version : "<unknown>") + " (java version " + System.getProperty("java.version") + ")");
+		LOGGER.info("version " + VersionUtil.getImplementationVersion() + " (java version " + System.getProperty("java.version") + ")");
 	}
 
 	/**

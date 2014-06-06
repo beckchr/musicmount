@@ -61,7 +61,7 @@ public class MusicMountBuilderTest {
 		Resource musicFolder = resourceProvider.newResource(new File(inputFolder.toURI()).toPath());
 		Resource mountFolder = resourceProvider.newResource(outputFolder.getRoot().toPath());
 
-		AssetStore assetStore = new AssetStore(MusicMountBuilder.API_VERSION, musicFolder);
+		AssetStore assetStore = new AssetStore("test", musicFolder);
 		assetStore.update(new SimpleAssetParser(), 4, ProgressHandler.NOOP);
 		Library library = new LibraryParser(true).parse(assetStore.assets());
 
