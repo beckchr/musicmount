@@ -17,6 +17,8 @@ package org.musicmount.tester;
 
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
@@ -95,7 +97,7 @@ public class MusicMountTester {
 		engine.start(musicContext, mountContext, port, user, password);
 		LOGGER.info(String.format("Mount Settings"));
 		LOGGER.info(String.format("--------------"));
-		LOGGER.info(String.format("Site: %s", getSiteURL(musicPath, port)));
+		LOGGER.info(String.format("Site: %s", getSiteURL(getHostName("<hostname>"), port, musicPath)));
 		if (user != null) {
 			LOGGER.info(String.format("User: %s", user));
 			LOGGER.info(String.format("Pass: %s", "<not logged>"));
@@ -179,16 +181,23 @@ public class MusicMountTester {
 		return builder.toString();
 	}
 	
-	public String getSiteURL(String musicPath, int port) {
+	public String getHostName(String defaultName) {
+		try {
+			return InetAddress.getLocalHost().getHostName();
+		} catch (UnknownHostException e) {
+			return defaultName;
+		}
+	}
+
+	public URL getSiteURL(String hostName, int port, String musicPath) throws MalformedURLException {
 		if (!checkMusicPath(musicPath)) {
 			return null;
 		}
-		String host = null;
-		try {
-			host = InetAddress.getLocalHost().getHostName();
-		} catch (UnknownHostException e) {
-			host = "<hostname>";
+		String path = String.format("%s/index.json", mountContextPath(musicPath));
+		if (port == 80) {
+			return new URL("http", hostName, path);
+		} else {
+			return new URL("http", hostName, port, path);
 		}
-		return String.format("http://%s:%d%s/index.json", host, port, mountContextPath(musicPath));
 	}
 }

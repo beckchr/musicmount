@@ -23,6 +23,7 @@ import java.util.logging.Logger;
 import org.musicmount.io.Resource;
 import org.musicmount.io.file.FileResource;
 import org.musicmount.io.file.FileResourceProvider;
+import org.musicmount.util.BonjourService;
 import org.musicmount.util.LoggingUtil;
 
 public class MusicMountLiveCommand {
@@ -49,6 +50,7 @@ public class MusicMountLiveCommand {
 		System.err.println("       --port <port>      launch HTTP server on specified port (default 8080)");
 		System.err.println("       --user <user>      login user");
 		System.err.println("       --password <pass>  login password");
+		System.err.println("       --bonjour          publish as bonjour service ('Live @ <hostName>')");
 		System.err.println("       --full             full parse, don't use asset store");
 		System.err.println("       --verbose          more detailed console output");
 		System.err.close();
@@ -68,6 +70,7 @@ public class MusicMountLiveCommand {
 		String optionUser = null;
 		String optionPassword = null;
 		boolean optionVerbose = false;
+		boolean optionBonjour = false;
 
 		int optionsLength = 0;
 		boolean optionsDone = false;
@@ -105,6 +108,9 @@ public class MusicMountLiveCommand {
 					exitWithError(command, "invalid arguments");
 				}
 				optionPassword = args[optionsLength];
+				break;
+			case "--bonjour":
+				optionBonjour = true;
 				break;
 			case "--full":
 				live.setFull(true);
@@ -164,7 +170,7 @@ public class MusicMountLiveCommand {
 			LOGGER.log(Level.WARNING, "Could not locate asset store", e);
 		}
 
-		/**
+		/*
 		 * Configure logging
 		 */
 		LoggingUtil.configure(MusicMountLiveCommand.class.getPackage().getName(), optionVerbose ? Level.FINER : Level.FINE);
@@ -175,6 +181,35 @@ public class MusicMountLiveCommand {
 			e.printStackTrace();
 			System.exit(1);
 		}
+
+		/*
+		 * Register Bonjour service
+		 */
+		if (optionBonjour) {
+			LOGGER.info("Registering Bonjour service...");
+			BonjourService bonjourService = null;
+			try {
+				bonjourService = new BonjourService(true);
+			} catch (IOException e) {
+				LOGGER.log(Level.WARNING, "Failed to create Bonjour service", e);
+			}
+			if (bonjourService != null) {
+				String host = live.getHostName(bonjourService.getHostName());
+				try {
+					bonjourService.start(String.format("Live @ %s", host), live.getSiteURL(host, optionPort), optionUser);
+				} catch (IOException e) {
+					LOGGER.log(Level.WARNING, "Failed to start Bonjour service", e);
+					try {
+						bonjourService.close();
+					} catch (IOException e2) {
+						LOGGER.log(Level.WARNING, "Failed to close Bonjour service", e2);
+					} finally {
+						bonjourService = null;
+					}
+				}
+			}
+		}
+		
 		LOGGER.info("Press CTRL-C to exit...");
 		live.await();
 	}

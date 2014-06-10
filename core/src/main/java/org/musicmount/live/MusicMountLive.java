@@ -21,6 +21,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
@@ -64,6 +66,9 @@ public class MusicMountLive {
 	static {
 		ImageIO.setUseCache(false); // TODO not sure if this is really useful...
 	}
+	
+	private static final String MOUNT_PATH = "/musicmount";
+	private static final String MUSIC_PATH = "/music";
 
 	/**
 	 * API version string
@@ -169,15 +174,29 @@ public class MusicMountLive {
 	public void setVerbose(boolean verbose) {
 		this.verbose = verbose;
 	}
-	
-	public String getSiteURL(int port) {
-		String host = null;
+
+	public String getHostName(String defaultName) {
 		try {
-			host = InetAddress.getLocalHost().getHostName();
+			return InetAddress.getLocalHost().getHostName();
 		} catch (UnknownHostException e) {
-			host = "<hostname>";
+			return defaultName;
 		}
-		return String.format("http://%s:%d/musicmount/", host, port);
+	}
+
+	public String getServiceIndexPath() {
+		String path = MOUNT_PATH;
+		if (!path.startsWith("/")) {
+			path = "/" + path.substring(1);
+		}
+		return path;
+	}
+
+	public URL getSiteURL(String hostName, int port) throws MalformedURLException {
+		if (port == 80) {
+			return new URL("http", hostName, getServiceIndexPath());
+		} else {
+			return new URL("http", hostName, port, getServiceIndexPath());
+		}
 	}
 
 	Library loadLibrary(FileResource musicFolder, Resource assetStoreFile) throws Exception {
@@ -251,19 +270,19 @@ public class MusicMountLive {
 
 		Library library = loadLibrary(musicFolder, assetStore);
 
-		FolderContext music = new FolderContext("/music", musicFolder.getPath().toFile());
+		FolderContext music = new FolderContext(MUSIC_PATH, musicFolder.getPath().toFile());
 		ResponseFormatter<?> responseFormatter =
 				new ResponseFormatter.JSON(API_VERSION, new LocalStrings(), false, unknownGenre, grouping, false);
 		ImageFormatter imageFormatter = new ImageFormatter(assetParser, retina);
 		AssetLocator assetLocator = new SimpleAssetLocator(musicFolder, music.getPath(), null);
 		LiveMount liveMount = new LiveMount(library, responseFormatter, imageFormatter, assetLocator, noTrackIndex);
-		MountContext mount = new MountContext("/musicmount", new LiveMountServlet(liveMount));
+		MountContext mount = new MountContext(MOUNT_PATH, new LiveMountServlet(liveMount));
 		
 		LOGGER.info("Starting Server...");
 		server.start(music, mount, port, user, password);
 		LOGGER.info(String.format("Mount Settings"));
 		LOGGER.info(String.format("--------------"));
-		LOGGER.info(String.format("Site: %s", getSiteURL(port)));
+		LOGGER.info(String.format("Site: %s", getSiteURL(getHostName("<hostname>"), port)));
 		if (user != null) {
 			LOGGER.info(String.format("User: %s", user));
 			LOGGER.info(String.format("Pass: %s", "<not logged>"));

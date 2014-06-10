@@ -23,6 +23,7 @@ Options:
        --port <port>      launch HTTP server on specified port (default 8080)
        --user <user>      login user id
        --password <pass>  login password
+       --bonjour          publish as bonjour service ('Live @ <hostName>')
        --full             full parse, don't use asset store
        --verbose          more detailed console output
 
@@ -68,6 +69,7 @@ Options:
        --port <port>      launch HTTP server on specified port (default 8080)
        --user <user>      login user id
        --password <pass>  login password
+       --bonjour          publish as bonjour service ('Test @ <hostName>')
        --verbose          more detailed console output
 
  JavaFX UI

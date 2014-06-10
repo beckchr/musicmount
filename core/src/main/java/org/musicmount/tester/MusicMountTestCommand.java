@@ -15,12 +15,14 @@
  */
 package org.musicmount.tester;
 
+import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.musicmount.io.file.FileResource;
 import org.musicmount.io.file.FileResourceProvider;
+import org.musicmount.util.BonjourService;
 import org.musicmount.util.LoggingUtil;
 
 public class MusicMountTestCommand {
@@ -44,6 +46,7 @@ public class MusicMountTestCommand {
 		System.err.println("       --port <port>      launch HTTP server on specified port (default 8080)");
 		System.err.println("       --user <user>      login user");
 		System.err.println("       --password <pass>  login password");
+		System.err.println("       --bonjour          publish as bonjour service ('Test @ <hostName>')");
 		System.err.println("       --verbose          more detailed console output");
 		System.err.close();
 		System.exit(1);
@@ -61,6 +64,7 @@ public class MusicMountTestCommand {
 		String optionUser = null;
 		String optionPassword = null;
 		boolean optionVerbose = false;
+		boolean optionBonjour = false;
 
 		int optionsLength = 0;
 		boolean optionsDone = false;
@@ -89,6 +93,9 @@ public class MusicMountTestCommand {
 					exitWithError(command, "invalid arguments");
 				}
 				optionPassword = args[optionsLength];
+				break;
+			case "--bonjour":
+				optionBonjour = true;
 				break;
 			case "--verbose":
 				optionVerbose = true;
@@ -159,10 +166,39 @@ public class MusicMountTestCommand {
 		}
 		optionMusic = optionMusic.replace(FileSystems.getDefault().getSeparator(), "/");
 
-		MusicMountTester server = new MusicMountTester();
-		server.start(musicFolder, mountFolder, optionMusic, optionPort, optionUser, optionPassword);
+		MusicMountTester tester = new MusicMountTester();
+		tester.start(musicFolder, mountFolder, optionMusic, optionPort, optionUser, optionPassword);
+
+		/*
+		 * Register Bonjour service
+		 */
+		if (optionBonjour) {
+			LOGGER.info("Registering Bonjour service...");
+			BonjourService bonjourService = null;
+			try {
+				bonjourService = new BonjourService(true);
+			} catch (IOException e) {
+				LOGGER.log(Level.WARNING, "Failed to create Bonjour service", e);
+			}
+			if (bonjourService != null) {
+				String host = tester.getHostName(bonjourService.getHostName());
+				try {
+					bonjourService.start(String.format("Test @ %s", host), tester.getSiteURL(host, optionPort, optionMusic), optionUser);
+				} catch (IOException e) {
+					LOGGER.log(Level.WARNING, "Failed to start Bonjour service", e);
+					try {
+						bonjourService.close();
+					} catch (IOException e2) {
+						LOGGER.log(Level.WARNING, "Failed to close Bonjour service", e2);
+					} finally {
+						bonjourService = null;
+					}
+				}
+			}
+		}
+		
 		LOGGER.info("Press CTRL-C to exit...");
-		server.await();
+		tester.await();
 	}
 
 	public static void main(String[] args) throws Exception {
