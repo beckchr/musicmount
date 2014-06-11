@@ -15,8 +15,15 @@
  */
 package org.musicmount.builder.impl;
 
+import java.awt.AWTError;
+import java.awt.Component;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.MediaTracker;
+import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 
 import javax.imageio.ImageIO;
@@ -28,6 +35,18 @@ import org.musicmount.io.Resource;
  * Generic asset parser based on. 
  */
 public abstract class AudioInfoAssetParser implements AssetParser {
+	static final Toolkit TOOLKIT;
+	static {
+		Toolkit toolkit = null;
+		try {
+			toolkit = Toolkit.getDefaultToolkit();
+		} catch (AWTError e) {
+			System.err.println("AWT toolkit not available: " + e);
+		} finally {
+			TOOLKIT = toolkit;
+		}
+	}
+	
 	/**
 	 * Do the magic...
 	 * @param resource audio file
@@ -57,13 +76,64 @@ public abstract class AudioInfoAssetParser implements AssetParser {
 		return asset;
 	}
 
+	/**
+	 * Create image from bytes using ImageIO.
+	 * @param cover image bytes
+	 * @return buffered image
+	 */
+	BufferedImage toBufferedImageUsingImageIO(byte[] bytes) throws IOException {
+		try (InputStream data = new ByteArrayInputStream(bytes)) {
+			return ImageIO.read(data);
+		}
+	}
+
+	/**
+	 * Create image from bytes using AWT toolkit.
+	 * Seems to be faster than ImageIO... 
+	 * @param cover image bytes
+	 * @return buffered image
+	 */
+	BufferedImage toBufferedImageUsingToolkit(byte[] bytes) throws IOException {
+		if (TOOLKIT == null) {
+			return null;
+		}
+		Image image = TOOLKIT.createImage(bytes);
+		MediaTracker mediaTracker = new MediaTracker(new Component() {
+			private static final long serialVersionUID = 1L;
+		});
+		mediaTracker.addImage(image, 0);
+		try {
+			mediaTracker.waitForID(0, 0);
+		} catch (InterruptedException e) {
+			return null;
+		}
+		if (mediaTracker.isErrorID(0)) { // error -> use ImageIO
+			throw new IOException("Failed to load toolkit image");
+		} else {
+			BufferedImage bufferedImage =
+					new BufferedImage(image.getWidth(null), image.getHeight(null), BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d = bufferedImage.createGraphics();
+            g2d.drawImage(image, 0, 0, null);
+            g2d.dispose();
+            image.flush();
+            return bufferedImage;
+		}
+	}
+
 	@Override
 	public BufferedImage extractArtwork(Resource resource) throws Exception {
 		byte[] cover = getAudioInfo(resource, true).getCover();
 		if (cover != null) {
-			try (InputStream data = new ByteArrayInputStream(cover)) {
-				return ImageIO.read(data);
+			BufferedImage bufferedImage = null;
+			try {
+				bufferedImage = toBufferedImageUsingToolkit(cover);
+			} catch (Throwable e) {
+				// ignore
 			}
+			if (bufferedImage == null) {
+				bufferedImage = toBufferedImageUsingImageIO(cover);
+			}
+			return bufferedImage;
 		}
 		return null;
 	}
