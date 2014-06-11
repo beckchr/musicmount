@@ -16,6 +16,7 @@
 package org.musicmount.fx;
 
 import java.io.File;
+import java.net.MalformedURLException;
 import java.util.prefs.Preferences;
 
 import javafx.beans.value.ChangeListener;
@@ -199,7 +200,11 @@ public class FXTestController {
 
     	service.setOnRunning(new EventHandler<WorkerStateEvent>() {
 			public void handle(WorkerStateEvent event) {
-				statusText.setText("Server started - " + tester.getSiteURL(model.getMusicPath(), port));
+				try {
+					statusText.setText("Server started - " + tester.getSiteURL(tester.getHostName("<hostname>") ,port, model.getMusicPath()));
+				} catch (MalformedURLException e) {
+					statusText.setText("Server started - Failed to determine site URL: " + e.getMessage());
+				}
 				runButton.setText("Stop Server");
             	disableControls(true);
 			}

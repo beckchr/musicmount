@@ -97,7 +97,7 @@ public class MusicMountTester {
 		engine.start(musicContext, mountContext, port, user, password);
 		LOGGER.info(String.format("Mount Settings"));
 		LOGGER.info(String.format("--------------"));
-		LOGGER.info(String.format("Site: %s", getSiteURL(getHostName("<hostname>"), port, musicPath)));
+		LOGGER.info(String.format("Site: %s", getSiteURL(getHostName("<hostName>"), port, musicPath)));
 		if (user != null) {
 			LOGGER.info(String.format("User: %s", user));
 			LOGGER.info(String.format("Pass: %s", "<not logged>"));

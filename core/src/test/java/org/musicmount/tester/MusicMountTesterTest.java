@@ -1,5 +1,7 @@
 package org.musicmount.tester;
 
+import java.net.MalformedURLException;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.musicmount.tester.MusicMountTester;
@@ -34,5 +36,10 @@ public class MusicMountTesterTest {
 		Assert.assertEquals("/path", server.musicContextPath("../path"));
 		Assert.assertEquals("/path", server.musicContextPath("../../path"));
 		Assert.assertEquals("/path", server.musicContextPath("/path/"));
+	}
+
+	@Test
+	public void testGetSiteURL() throws MalformedURLException {
+		Assert.assertEquals("http://<hostName>:1234/musicmount/index.json", server.getSiteURL("<hostName>", 1234, "path").toString());
 	}
 }

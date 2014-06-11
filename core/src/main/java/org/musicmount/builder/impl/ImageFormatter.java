@@ -71,6 +71,16 @@ public class ImageFormatter {
 		}
 	}
 
+	private void deleteIfExists(Resource imageResource) {
+		try {
+			if (imageResource.exists()) {
+				imageResource.delete();
+			}
+		} catch (IOException e) {
+			LOGGER.warning("Could not delete image file: " + imageResource.getPath().toAbsolutePath());
+		}
+	}
+	
 	private void formatImages(BufferedImage image, Map<ImageType, Resource> targets) {
 		for (Map.Entry<ImageType, Resource> targetEntry : targets.entrySet()) {
 			ImageType imageType = targetEntry.getKey();
@@ -79,13 +89,7 @@ public class ImageFormatter {
 				writeImage(image, imageType, output);
 			} catch (IOException e) {
 				LOGGER.log(Level.WARNING, "Could not write image file: " + imageResource.getPath().toAbsolutePath(), e);
-				try {
-					if (imageResource.exists()) {
-						imageResource.delete();
-					}
-				} catch (IOException e1) {
-					LOGGER.warning("Could not delete image file: " + imageResource.getPath().toAbsolutePath());
-				}
+				deleteIfExists(imageResource);
 			}
 		}
 	}
@@ -94,7 +98,7 @@ public class ImageFormatter {
 		BufferedImage image = null;
 		try {
 			image = assetParser.extractArtwork(asset);
-			if (image.getTransparency() != Transparency.OPAQUE) {
+			if (image != null && image.getTransparency() != Transparency.OPAQUE) {
 				BufferedImage tmpImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
 				Graphics2D graphics = tmpImage.createGraphics();
 				graphics.drawImage(image, 0, 0, Color.WHITE, null);
@@ -114,6 +118,11 @@ public class ImageFormatter {
 				LOGGER.finer("Formatting images from: " + source);
 			}
 			BufferedImage image = extractImage(source);
+			if (image == null) {
+				for (Resource imageTarget : targets.values()) {
+					deleteIfExists(imageTarget);
+				}
+			}
 			formatImages(image, targets);
 			image.flush();
 		}
@@ -208,6 +217,9 @@ public class ImageFormatter {
 	
 	public void formatAsset(Resource asset, ImageType type, OutputStream output) throws IOException {
 		BufferedImage image = extractImage(asset);
+		if (image == null) {
+			throw new IOException("Could not extract image from asset: " + asset);
+		}
 		writeImage(image, type, output);
 		image.flush();
 	}

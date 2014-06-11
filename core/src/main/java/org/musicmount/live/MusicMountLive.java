@@ -183,19 +183,18 @@ public class MusicMountLive {
 		}
 	}
 
-	public String getServiceIndexPath() {
+	public URL getSiteURL(String hostName, int port) throws MalformedURLException {
 		String path = MOUNT_PATH;
 		if (!path.startsWith("/")) {
-			path = "/" + path.substring(1);
+			path = "/" + path;
 		}
-		return path;
-	}
-
-	public URL getSiteURL(String hostName, int port) throws MalformedURLException {
+		if (!path.endsWith("/")) {
+			path = path + "/";
+		}
 		if (port == 80) {
-			return new URL("http", hostName, getServiceIndexPath());
+			return new URL("http", hostName, path);
 		} else {
-			return new URL("http", hostName, port, getServiceIndexPath());
+			return new URL("http", hostName, port, path);
 		}
 	}
 
@@ -282,7 +281,7 @@ public class MusicMountLive {
 		server.start(music, mount, port, user, password);
 		LOGGER.info(String.format("Mount Settings"));
 		LOGGER.info(String.format("--------------"));
-		LOGGER.info(String.format("Site: %s", getSiteURL(getHostName("<hostname>"), port)));
+		LOGGER.info(String.format("Site: %s", getSiteURL(getHostName("<hostName>"), port)));
 		if (user != null) {
 			LOGGER.info(String.format("User: %s", user));
 			LOGGER.info(String.format("Pass: %s", "<not logged>"));
