@@ -293,10 +293,13 @@ public class M4AInfo extends AudioInfo {
 			}
 			break;
 		case "©day":
-			try {
-				year = Short.valueOf(atom.readString(UTF_8)).shortValue();
-			} catch (NumberFormatException e) {
-				// ignore
+			String day = atom.readString(UTF_8).trim();
+			if (day.length() >= 4) {
+				try {
+					year = Short.valueOf(day.substring(0, 4)).shortValue();
+				} catch (NumberFormatException e) {
+					// ignore
+				}
 			}
 			break;
 		case "disk":
