@@ -15,12 +15,10 @@
  */
 package org.musicmount.live;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.musicmount.io.Resource;
 import org.musicmount.io.file.FileResource;
 import org.musicmount.io.file.FileResourceProvider;
 import org.musicmount.util.BonjourService;
@@ -64,7 +62,7 @@ public class MusicMountLiveCommand {
 	 * @throws Exception something went wrong...
 	 */
 	public static void execute(String command, String... args) throws Exception {
-		MusicMountLive live = new MusicMountLive();
+		LiveMountBuilder builder = new LiveMountBuilder();
 		
 		int optionPort = 8080;
 		String optionUser = null;
@@ -77,19 +75,22 @@ public class MusicMountLiveCommand {
 		while (optionsLength < args.length && !optionsDone) {
 			switch (args[optionsLength]) {
 			case "--retina":
-				live.setRetina(true);
+				builder.setRetina(true);
 				break;
 			case "--grouping":
-				live.setGrouping(true);
+				builder.setGrouping(true);
 				break;
 			case "--unknownGenre":
-				live.setUnknownGenre(true);
+				builder.setUnknownGenre(true);
 				break;
 			case "--noTrackIndex":
-				live.setNoTrackIndex(true);
+				builder.setNoTrackIndex(true);
 				break;
 			case "--noVariousArtists":
-				live.setNoVariousArtists(true);
+				builder.setNoVariousArtists(true);
+				break;
+			case "--full":
+				builder.setFull(true);
 				break;
 			case "--port":
 				if (++optionsLength == args.length) {
@@ -111,9 +112,6 @@ public class MusicMountLiveCommand {
 				break;
 			case "--bonjour":
 				optionBonjour = true;
-				break;
-			case "--full":
-				live.setFull(true);
 				break;
 			case "--verbose":
 				optionVerbose = true;
@@ -154,31 +152,20 @@ public class MusicMountLiveCommand {
 			exitWithError(command, String.format("either both or none of user/password must be given: %s/%s", optionUser, optionPassword));
 		}
 		
-		Resource assetStore = null;
-		try {
-			String userHome = System.getProperty("user.home");
-			if (userHome == null) {
-				throw new FileNotFoundException("user.home property not set");
-			}
-			Resource repository = new FileResourceProvider(userHome).getBaseDirectory().resolve(".musicmount");
-			if (!repository.exists()) {
-				repository.mkdirs();
-			}
-			int hashCode = musicFolder.getPath().toUri().toString().hashCode();
-			assetStore = repository.resolve(String.format("live-%08x.gz", hashCode));
-		} catch (IOException e) {
-			LOGGER.log(Level.WARNING, "Could not locate asset store", e);
-		}
-
 		/*
 		 * Configure logging
 		 */
 		LoggingUtil.configure(MusicMountLiveCommand.class.getPackage().getName(), optionVerbose ? Level.FINER : Level.FINE);
+
+		/*
+		 * Start server
+		 */
+		MusicMountLive live = new MusicMountLive();
 		try {
-			live.start(musicFolder, assetStore, optionPort, optionUser, optionPassword);
+			live.start(musicFolder, builder.update(musicFolder, live.getMusicPath()), optionPort, optionUser, optionPassword);
 		} catch (Exception e) {
 			LOGGER.log(Level.SEVERE, "Could not start server", e);
-			e.printStackTrace();
+//			e.printStackTrace();
 			System.exit(1);
 		}
 
