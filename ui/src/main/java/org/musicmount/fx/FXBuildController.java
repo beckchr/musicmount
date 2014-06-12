@@ -142,7 +142,7 @@ public class FXBuildController {
 			@Override
 			public void handle(ActionEvent event) {
 				DirectoryChooser directoryChooser = new DirectoryChooser();
-				directoryChooser.setTitle("Mount Folder");
+				directoryChooser.setTitle("Site Folder");
 				File directory = directoryChooser.showDialog(null);
 				if (directory != null) {
 					mountFolderTextField.setText(directory.getAbsolutePath());
@@ -270,7 +270,7 @@ public class FXBuildController {
 		noTrackIndexCheckBox.setDisable(disable);
 		noVariousArtistsCheckBox.setDisable(disable);
 		unknownGenreCheckBox.setDisable(disable);
-		runButton.setDisable(disable || !model.isValid());
+		runButton.setDisable(disable || !model.isValidBuildModel());
 	}
 	
 	Pane createView() {
@@ -279,7 +279,7 @@ public class FXBuildController {
 		grid.setHgap(5);
 		grid.setVgap(10);
 
-//		grid.setGridLinesVisible(true);
+		grid.setGridLinesVisible(true);
 		grid.getColumnConstraints().add(0, ColumnConstraintsBuilder.create().hgrow(Priority.NEVER).build());
 		grid.getColumnConstraints().add(1, ColumnConstraintsBuilder.create().hgrow(Priority.ALWAYS).build());
 		grid.getColumnConstraints().add(2, ColumnConstraintsBuilder.create().hgrow(Priority.ALWAYS).build());
@@ -300,7 +300,7 @@ public class FXBuildController {
 		/*
 		 * mount folder
 		 */
-		Label mountFolderLabel = new Label("Mount Folder");
+		Label mountFolderLabel = new Label("Site Folder");
 		mountFolderTextField = new TextField();
 		mountFolderTextField.setPromptText("Output directory, containing your generated site");
 		mountFolderChooseButton = new Button("...");
@@ -429,7 +429,7 @@ public class FXBuildController {
 	}
 
 	void updateRunButton() {
-		runButton.setDisable(service.isRunning() || !model.isValid());
+		runButton.setDisable(service.isRunning() || !model.isValidBuildModel());
 	}
 
 	public Pane getPane() {

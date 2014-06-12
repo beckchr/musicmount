@@ -64,6 +64,10 @@ public class FXMusicMount extends Application {
 
 		FXCommandModel model = new FXCommandModel();
 
+		final FXLiveController liveController = new FXLiveController(model);
+		Pane livePane = liveController.getPane();
+		livePane.setId("live-pane");
+		
 		final FXBuildController buildController = new FXBuildController(model);
 		Pane buildPane = buildController.getPane();
 		buildPane.setId("build-pane");
@@ -76,6 +80,9 @@ public class FXMusicMount extends Application {
 		primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
 			@Override
 			public void handle(WindowEvent event) {
+				if (liveController.getService().isRunning()) {
+					liveController.getService().cancel();
+				}
 				if (buildController.getService().isRunning()) {
 					buildController.getService().cancel();
 				}
@@ -90,14 +97,17 @@ public class FXMusicMount extends Application {
 		tabPane.setId("tab-pane");
 		tabPane.setSide(Side.TOP);
 		tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+		final Tab liveTab = new Tab();
+		liveTab.setText("Live");
+		liveTab.setContent(livePane);
 		final Tab buildTab = new Tab();
 		buildTab.setText("Build");
 		buildTab.setContent(buildPane);
 		final Tab testTab = new Tab();
 		testTab.setText("Test");
 		testTab.setContent(testPane);
-		tabPane.getTabs().addAll(buildTab, testTab);
-		tabPane.getSelectionModel().select(buildTab);
+		tabPane.getTabs().addAll(liveTab, buildTab, testTab);
+		tabPane.getSelectionModel().select(liveTab);
 
 		ChangeListener<Boolean> serviceRunningListener = new ChangeListener<Boolean>() {
 			@Override
@@ -107,6 +117,7 @@ public class FXMusicMount extends Application {
 				}
 			}
 		};		
+		liveController.getService().runningProperty().addListener(serviceRunningListener);
 		buildController.getService().runningProperty().addListener(serviceRunningListener);
 		testController.getService().runningProperty().addListener(serviceRunningListener);
 

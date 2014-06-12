@@ -21,7 +21,6 @@ import java.util.prefs.Preferences;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.collections.FXCollections;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
@@ -31,58 +30,83 @@ import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
-import javafx.scene.control.ChoiceBox;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
+import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraintsBuilder;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 
-import org.musicmount.tester.MusicMountTester;
+import org.musicmount.live.LiveMount;
+import org.musicmount.live.LiveMountBuilder;
+import org.musicmount.live.MusicMountLive;
 
-public class FXTestController {
-	private static final String STATUS_NO_RELATIVE_MUSIC_PATH = "Cannot calculate relative music path, custom path path required";
-	
-	private static final Preferences PREFERENCES = Preferences.userNodeForPackage(FXTestController.class);;
-	private static final String PREFERENCE_KEY_PORT = "test.port";
-	private static final String PREFERENCE_KEY_USER = "test.user";
+public class FXLiveController {
+	private static final Preferences PREFERENCES = Preferences.userNodeForPackage(FXLiveController.class);
+	private static final String PREFERENCE_KEY_PORT = "live.port";
+	private static final String PREFERENCE_KEY_USER = "live.user";
+	private static final String PREFERENCE_KEY_GROUPING = "live.grouping";
+	private static final String PREFERENCE_KEY_NO_TRACK_INDEX = "live.noTrackIndex";
+	private static final String PREFERENCE_KEY_NO_VARIOUS_ARTISTS = "live.noVariousArtists";
+	private static final String PREFERENCE_KEY_RETINA = "live.retina";
+	private static final String PREFERENCE_KEY_UNKNOWN_GENRE = "live.unknownGenre";
 
 	private Pane pane;
 	private TextField musicFolderTextField;
 	private Button musicFolderChooseButton;
-	private TextField mountFolderTextField;
-	private Button mountFolderChooseButton;
-	private TextField musicPathTextField;
-	private ChoiceBox<String> musicPathChoiceBox;
 	private TextField portTextField;
 	private TextField userTextField;
 	private PasswordField passwordField;
+	private CheckBox retinaCheckBox;
+	private CheckBox groupingCheckBox;
+	private CheckBox fullCheckBox;
+	private CheckBox noTrackIndexCheckBox;
+	private CheckBox noVariousArtistsCheckBox;
+	private CheckBox unknownGenreCheckBox;
+	private ProgressIndicator progressIndicator;
 	private Button runButton;
 	private Text statusText;
 	
-	private final MusicMountTester tester;
+	LiveMount liveMount;
+	
 	private final FXCommandModel model;
 	private Integer port;
+	private final LiveMountBuilder builder = new LiveMountBuilder();
+	private final MusicMountLive live = new MusicMountLive();
+	private final Service<LiveMount> buildService = new Service<LiveMount>() {
+		@Override
+		protected Task<LiveMount> createTask() {
+			return new Task<LiveMount>() {
+				@Override
+				protected LiveMount call() throws Exception {
+					return builder.update(model.getMusicFolder(), live.getMusicPath());
+				}
+			};
+		}
+	};
 	private final Service<Object> service = new Service<Object>() {
 		@Override
 		protected Task<Object> createTask() {
 			return new Task<Object>() {
 				@Override
 				protected Object call() throws Exception {
-					tester.start(model.getMusicFolder(), model.getMountFolder(), model.getMusicPath(), port.intValue(), getUser(), getPassword());
-					tester.await();
+					live.start(model.getMusicFolder(), liveMount, port.intValue(), getUser(), getPassword());
+					live.await();
 					return null;
 				}
 				@Override
 				public boolean cancel(boolean mayInterruptIfRunning) {
 					try {
-						tester.stop();
+						live.stop();
 					} catch (Exception e) {
 						return false;
 					}
@@ -92,12 +116,12 @@ public class FXTestController {
 		}
 	};
 
-	public FXTestController(final FXCommandModel model) {
+	public FXLiveController(final FXCommandModel model) {
 		this.model = model;
-		this.pane = createView();
+		this.pane = createView(); 
 		
 		loadPreferences();
-
+		
 		pane.visibleProperty().addListener(new ChangeListener<Boolean>() {
 			@Override
 			public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
@@ -107,15 +131,12 @@ public class FXTestController {
 			}
 		});
 
-		tester = new MusicMountTester();
-
+		builder.setProgressHandler(new FXProgressHandler(statusText, progressIndicator, builder.getProgressHandler()));
+		
 		musicFolderTextField.textProperty().addListener(new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				model.setMusicFolder(model.toFolder(newValue));
-				if (model.getCustomMusicPath() == null) {
-					updateMusicPath();
-				}
 				updateRunButton();
 			}
 		});
@@ -129,48 +150,6 @@ public class FXTestController {
 					musicFolderTextField.setText(directory.getAbsolutePath());
 				}
 			}
-		});
-		mountFolderTextField.textProperty().addListener(new ChangeListener<String>() {
-			@Override
-			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-				model.setMountFolder(model.toFolder(newValue));
-				if (model.getCustomMusicPath() == null) {
-					updateMusicPath();
-				}
-                updateRunButton();
-			}
-		});
-		mountFolderChooseButton.setOnAction(new EventHandler<ActionEvent>() {
-			@Override
-			public void handle(ActionEvent event) {
-				DirectoryChooser directoryChooser = new DirectoryChooser();
-				directoryChooser.setTitle("Site Folder");
-				File directory = directoryChooser.showDialog(null);
-				if (directory != null) {
-					mountFolderTextField.setText(directory.getAbsolutePath());
-				}
-			}
-		});
-		musicPathTextField.textProperty().addListener(new ChangeListener<String>() {
-			@Override
-			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-				if (model.getCustomMusicPath() != null) {
-					model.setCustomMusicPath(newValue);
-				}
-                updateRunButton();
-			}
-		});
-        musicPathChoiceBox.getSelectionModel().selectedIndexProperty().addListener(new ChangeListener<Number>() {
-        	@Override
-        	public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
-                if(newValue.intValue() == 0) { // auto
-                	model.setCustomMusicPath(null);
-                } else if (model.getCustomMusicPath() == null) { // custom
-                	model.setCustomMusicPath(FXCommandModel.DEFAULT_CUSTOM_MUSIC_PATH);
-                }
-                updateMusicPath();
-                updateRunButton();
-        	}
 		});
 		portTextField.textProperty().addListener(new ChangeListener<String>() {
 			@Override
@@ -198,13 +177,80 @@ public class FXTestController {
 			}
 		});
 
+		retinaCheckBox.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				builder.setRetina(retinaCheckBox.isSelected());
+			}
+		});
+		groupingCheckBox.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				builder.setGrouping(groupingCheckBox.isSelected());
+			}
+		});
+		fullCheckBox.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				builder.setFull(fullCheckBox.isSelected());
+			}
+		});
+		noTrackIndexCheckBox.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				builder.setNoTrackIndex(noTrackIndexCheckBox.isSelected());
+			}
+		});
+		noVariousArtistsCheckBox.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				builder.setNoVariousArtists(noVariousArtistsCheckBox.isSelected());
+			}
+		});
+		unknownGenreCheckBox.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				builder.setUnknownGenre(unknownGenreCheckBox.isSelected());
+			}
+		});
+
+    	buildService.setOnRunning(new EventHandler<WorkerStateEvent>() {
+			public void handle(WorkerStateEvent event) {
+				statusText.setText(null);
+				runButton.setDisable(true);
+				runButton.setText("Analyzing...");
+            	disableControls(true);
+			}
+		});
+    	buildService.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
+			public void handle(WorkerStateEvent event) {
+				liveMount = buildService.getValue();
+				statusText.setText("Mount analysis done");
+            	savePreferences();
+				service.reset();
+				service.start();
+			}
+		});
+    	buildService.setOnFailed(new EventHandler<WorkerStateEvent>() {
+			public void handle(WorkerStateEvent event) {
+				liveMount = null;
+				statusText.setText("Mount analysis failed");
+				if (buildService.getException() != null) {
+					buildService.getException().printStackTrace();
+				}
+				runButton.setText("Start Server");
+				disableControls(false);
+			}
+		});
+
     	service.setOnRunning(new EventHandler<WorkerStateEvent>() {
 			public void handle(WorkerStateEvent event) {
 				try {
-					statusText.setText("Server started - " + tester.getSiteURL(tester.getHostName("<hostname>") ,port, model.getMusicPath()));
+					statusText.setText("Server started - " + live.getSiteURL(live.getHostName("<hostname>") ,port));
 				} catch (MalformedURLException e) {
 					statusText.setText("Server started - Failed to determine site URL: " + e.getMessage());
 				}
+				runButton.setDisable(false);
 				runButton.setText("Stop Server");
             	disableControls(true);
 			}
@@ -226,6 +272,7 @@ public class FXTestController {
 					statusText.setText("Server failed");
 				}
 				runButton.setText("Start Server");
+				runButton.setDisable(false);
 				disableControls(false);
 			}
 		});
@@ -235,8 +282,8 @@ public class FXTestController {
 				if (service.isRunning()) {
 					service.cancel();
 				} else {
-					service.reset();
-					service.start();
+					buildService.reset();
+					buildService.start();
 				}
 			}
 		});
@@ -250,6 +297,11 @@ public class FXTestController {
 			port = null;
 		}
 		userTextField.setText(PREFERENCES.get(PREFERENCE_KEY_USER, null));
+		builder.setGrouping(PREFERENCES.getBoolean(PREFERENCE_KEY_GROUPING, false));
+		builder.setNoTrackIndex(PREFERENCES.getBoolean(PREFERENCE_KEY_NO_TRACK_INDEX, false));
+		builder.setNoVariousArtists(PREFERENCES.getBoolean(PREFERENCE_KEY_NO_VARIOUS_ARTISTS, false));
+		builder.setRetina(PREFERENCES.getBoolean(PREFERENCE_KEY_RETINA, false));
+		builder.setUnknownGenre(PREFERENCES.getBoolean(PREFERENCE_KEY_UNKNOWN_GENRE, false));
 	}
 
 	private void savePreferences() {
@@ -263,18 +315,25 @@ public class FXTestController {
 		} else {
 			PREFERENCES.remove(PREFERENCE_KEY_USER);
 		}
+		PREFERENCES.putBoolean(PREFERENCE_KEY_GROUPING, builder.isGrouping());
+		PREFERENCES.putBoolean(PREFERENCE_KEY_NO_TRACK_INDEX, builder.isNoTrackIndex());
+		PREFERENCES.putBoolean(PREFERENCE_KEY_NO_VARIOUS_ARTISTS, builder.isNoVariousArtists());
+		PREFERENCES.putBoolean(PREFERENCE_KEY_RETINA, builder.isRetina());
+		PREFERENCES.putBoolean(PREFERENCE_KEY_UNKNOWN_GENRE, builder.isUnknownGenre());				
 	}
-
+	
 	void disableControls(boolean disable) {
 		musicFolderTextField.setDisable(disable);
 		musicFolderChooseButton.setDisable(disable);
-		mountFolderTextField.setDisable(disable);
-		mountFolderChooseButton.setDisable(disable);
-		musicPathChoiceBox.setDisable(disable);
-		musicPathTextField.setDisable(disable);
 		portTextField.setDisable(disable);
 		userTextField.setDisable(disable);
 		passwordField.setDisable(disable);
+		retinaCheckBox.setDisable(disable);
+		groupingCheckBox.setDisable(disable);
+		fullCheckBox.setDisable(disable);
+		noTrackIndexCheckBox.setDisable(disable);
+		noVariousArtistsCheckBox.setDisable(disable);
+		unknownGenreCheckBox.setDisable(disable);
 	}
 	
 	Pane createView() {
@@ -283,7 +342,7 @@ public class FXTestController {
 		grid.setHgap(5);
 		grid.setVgap(10);
 
-//		grid.setGridLinesVisible(true);
+		grid.setGridLinesVisible(true);
 		grid.getColumnConstraints().add(0, ColumnConstraintsBuilder.create().hgrow(Priority.NEVER).build());
 		grid.getColumnConstraints().add(1, ColumnConstraintsBuilder.create().hgrow(Priority.ALWAYS).build());
 		grid.getColumnConstraints().add(2, ColumnConstraintsBuilder.create().hgrow(Priority.NEVER).build());
@@ -303,123 +362,113 @@ public class FXTestController {
 		grid.add(musicFolderChooseButton, 4, 1);
 
 		/*
-		 * mount folder
-		 */
-		Label mountFolderLabel = new Label("Site Folder");
-		mountFolderTextField = new TextField();
-		mountFolderTextField.setPromptText("Output directory, containing your generated site");
-		mountFolderChooseButton = new Button("...");
-		grid.add(mountFolderLabel, 0, 2);
-		GridPane.setHalignment(mountFolderLabel, HPos.RIGHT);
-		grid.add(mountFolderTextField, 1, 2, 3, 1);
-		grid.add(mountFolderChooseButton, 4, 2);
-
-		/*
-		 * music path
-		 */
-		Label musicPathLabel = new Label("Music Path");
-		musicPathTextField = new TextField();
-		musicPathTextField.setPromptText("Web path to music, absolute or relative to site URL");
-		musicPathChoiceBox = new ChoiceBox<String>(FXCollections.observableArrayList("Auto", "Custom"));
-		grid.add(musicPathLabel, 0, 3);
-		GridPane.setHalignment(musicPathLabel, HPos.RIGHT);
-		HBox.setHgrow(musicPathTextField, Priority.ALWAYS);
-        HBox musicPathHBox = new HBox(10);
-        musicPathHBox.getChildren().addAll(musicPathChoiceBox, musicPathTextField);
-		grid.add(musicPathHBox, 1, 3, 3, 1);
-
-		/*
 		 * server port
 		 */
 		Label portLabel = new Label("Server Port");
-		grid.add(portLabel, 0, 4);
+		grid.add(portLabel, 0, 2);
 		GridPane.setHalignment(portLabel, HPos.RIGHT);
 		portTextField = new TextField();
 		portTextField.setPromptText("Number");
-		grid.add(portTextField, 1, 4);
+		grid.add(portTextField, 1, 2);
 
 		/*
 		 * user
 		 */
 		Label userLabel = new Label("User");
-		grid.add(userLabel, 0, 5);
+		grid.add(userLabel, 0, 3);
 		GridPane.setHalignment(userLabel, HPos.RIGHT);
 		userTextField = new TextField();
 		userTextField.setPromptText("Optional");
-		grid.add(userTextField, 1, 5);
+		grid.add(userTextField, 1, 3);
 
 		/*
 		 * password
 		 */
 		Label passwordLabel = new Label("Password");
-		grid.add(passwordLabel, 2, 5);
+		grid.add(passwordLabel, 2, 3);
 		GridPane.setHalignment(passwordLabel, HPos.RIGHT);
 		passwordField = new PasswordField();
 		passwordField.setPromptText("Optional");
-		grid.add(passwordField, 3, 5);
+		grid.add(passwordField, 3, 3);
+
+		/*
+		 * options
+		 */
+		Label optionsLabel = new Label("Options");
+		grid.add(optionsLabel, 0, 4);
+		GridPane.setHalignment(optionsLabel, HPos.RIGHT);
+		retinaCheckBox = new CheckBox("Retina Images");
+		retinaCheckBox.setTooltip(new Tooltip("Double image resolution, better for tables"));
+		grid.add(retinaCheckBox, 1, 4);
+		groupingCheckBox = new CheckBox("Track Grouping");
+		groupingCheckBox.setTooltip(new Tooltip("Use grouping tag to group album tracks"));
+		grid.add(groupingCheckBox, 1, 5);
+		fullCheckBox = new CheckBox("Full Parse");
+		fullCheckBox.setTooltip(new Tooltip("Force full parse, don't use asset store"));
+		grid.add(fullCheckBox, 1, 6);
+		noTrackIndexCheckBox = new CheckBox("No Track Index");
+		noTrackIndexCheckBox.setTooltip(new Tooltip("Do not generate a track index"));
+		grid.add(noTrackIndexCheckBox, 3, 4);
+		noVariousArtistsCheckBox = new CheckBox("No 'Various Artists' Item");
+		noVariousArtistsCheckBox.setTooltip(new Tooltip("Exclude 'Various Artists' from album artist index"));
+		grid.add(noVariousArtistsCheckBox, 3, 5);
+		unknownGenreCheckBox = new CheckBox("Add 'Unknown' Genre");
+		unknownGenreCheckBox.setTooltip(new Tooltip("Report missing genre as 'Unknown'"));
+		grid.add(unknownGenreCheckBox, 3, 6);
+
+		/*
+		 * progress
+		 */
+		progressIndicator = new ProgressIndicator();
+		progressIndicator.setPrefWidth(30);
+		progressIndicator.setVisible(false);
+		VBox progressBox = new VBox();
+		progressBox.setFillWidth(false);
+		progressBox.setAlignment(Pos.BOTTOM_CENTER);
+		progressBox.getChildren().add(progressIndicator);
+		grid.add(progressBox, 0, 5, 1, 3);
 
 		/*
 		 * run button
 		 */
 		runButton = new Button("Start Server");
-		runButton.setId("test-button");
+		runButton.setId("live-button");
 		runButton.getStyleClass().add("run-button");
 		HBox runButtonHBox = new HBox(10);
 		runButtonHBox.setAlignment(Pos.BOTTOM_RIGHT);
 		runButtonHBox.getChildren().add(runButton);
-		grid.add(runButtonHBox, 2, 6, 3, 1);
+		grid.add(runButtonHBox, 2, 7, 3, 1);
 		GridPane.setVgrow(runButtonHBox, Priority.ALWAYS);
 
 		BorderPane borderPane = new BorderPane();
 		borderPane.setCenter(grid);
 		BorderPane.setMargin(grid, new Insets(10));
-		
-		Text titleText = new Text("Launch MusicMount Test Server");
-		titleText.setId("test-title");
+
+		Text titleText = new Text("Run MusicMount Live Server");
+		titleText.setId("live-title");
 		titleText.getStyleClass().add("tool-title");
 		borderPane.setTop(titleText);
 		BorderPane.setMargin(titleText, new Insets(15, 10, 0, 10));
 
 		statusText = new Text();
-		statusText.setId("test-status");
+		statusText.setId("build-status");
 		statusText.getStyleClass().add("status-text");
 		borderPane.setBottom(statusText);
 		BorderPane.setMargin(statusText, new Insets(5, 10, 10, 10));
 
 		return borderPane;
 	}
-	
+
 	void updateAll() {
 		updateMusicFolder();
-		updateMountFolder();
-		updateMusicPath();
-		updateRunButton();
 		updatePort();
 		updateUserAndPassword();
+		updateOptions();
+		updateRunButton();
 	}
 
 	void updateMusicFolder() {
 		musicFolderTextField.setText(model.getMusicFolder() != null ? model.getMusicFolder().toString() : null);
-	}
-
-	void updateMountFolder() {
-		mountFolderTextField.setText(model.getMountFolder() != null ? model.getMountFolder().toString() : null);
-	}
-
-	void updateMusicPath() {
-        musicPathChoiceBox.getSelectionModel().select(model.getCustomMusicPath() == null ? 0 : 1);
-        musicPathTextField.setEditable(model.getCustomMusicPath() != null);
-		musicPathTextField.setText(model.getMusicPath());
-		if (model.getCustomMusicPath() == null && model.getMusicFolder() != null && model.getMountFolder() != null
-				&& !model.getMusicFolder().equals(model.getMountFolder()) && model.getMusicPath() == null) { // no relative path
-			statusText.setText(STATUS_NO_RELATIVE_MUSIC_PATH);
-		} else if (STATUS_NO_RELATIVE_MUSIC_PATH.equals(statusText.getText())) {
-			statusText.setText(null);
-		}
-	}
-	
-	void updateRunButton() {
-		runButton.setDisable(!model.isValidSiteModel() || port == null || !tester.checkMusicPath(model.getMusicPath()) || (getUser() == null) != (getPassword() == null));
 	}
 	
 	void updatePort() {
@@ -431,6 +480,19 @@ public class FXTestController {
 		passwordField.setPromptText(getUser() == null ? "Optional" : "Required");
 	}
 	
+	void updateOptions() {
+		fullCheckBox.setSelected(builder.isFull());
+		groupingCheckBox.setSelected(builder.isGrouping());
+		noTrackIndexCheckBox.setSelected(builder.isNoTrackIndex());
+		noVariousArtistsCheckBox.setSelected(builder.isNoVariousArtists());
+		retinaCheckBox.setSelected(builder.isRetina());
+		unknownGenreCheckBox.setSelected(builder.isUnknownGenre());
+	}
+
+	void updateRunButton() {
+		runButton.setDisable(service.isRunning() || !model.isValidLiveModel());
+	}
+
 	String getUser() {
 		return userTextField.getText() == null || userTextField.getText().trim().isEmpty() ? null : userTextField.getText().trim();
 	}

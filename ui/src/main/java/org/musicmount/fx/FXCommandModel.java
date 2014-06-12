@@ -74,8 +74,12 @@ public class FXCommandModel {
 		}
 		return relativePath.replace(FileSystems.getDefault().getSeparator(), "/");
 	}
-	
-	boolean isValid() {
+
+	boolean isValidLiveModel() {
+		return musicFolder != null;
+	}
+
+	boolean isValidBuildModel() {
 		if (musicFolder == null ||  mountFolder == null) {
 			return false;
 		}
@@ -90,7 +94,7 @@ public class FXCommandModel {
 		return musicPath != null && !musicPath.isEmpty();
 	}
 
-	boolean isSite() {
-		return isValid() && mountFolder.resolve("index.json").exists();
+	boolean isValidSiteModel() {
+		return isValidBuildModel() && mountFolder.resolve("index.json").exists();
 	}
 }
