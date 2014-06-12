@@ -279,7 +279,7 @@ public class FXBuildController {
 		grid.setHgap(5);
 		grid.setVgap(10);
 
-		grid.setGridLinesVisible(true);
+//		grid.setGridLinesVisible(true);
 		grid.getColumnConstraints().add(0, ColumnConstraintsBuilder.create().hgrow(Priority.NEVER).build());
 		grid.getColumnConstraints().add(1, ColumnConstraintsBuilder.create().hgrow(Priority.ALWAYS).build());
 		grid.getColumnConstraints().add(2, ColumnConstraintsBuilder.create().hgrow(Priority.ALWAYS).build());
