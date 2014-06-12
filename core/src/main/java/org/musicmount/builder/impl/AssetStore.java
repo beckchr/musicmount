@@ -15,6 +15,8 @@
  */
 package org.musicmount.builder.impl;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -37,6 +39,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
@@ -311,6 +315,22 @@ public class AssetStore {
 		}
 	}
 
+	public void save(Resource assetStoreFile, ProgressHandler progressHandler) throws IOException, XMLStreamException {
+		if (progressHandler != null) {
+			progressHandler.beginTask(-1, "Saving asset store...");
+		}
+		OutputStream output = assetStoreFile.getOutputStream();
+		if (assetStoreFile.getName().endsWith(".gz")) {
+			output = new GZIPOutputStream(output);
+		}
+		try (OutputStream assetStoreOutput = new BufferedOutputStream(output)) {
+			save(assetStoreOutput);
+		}
+		if (progressHandler != null) {
+			progressHandler.endTask();
+		}
+	}
+
 	synchronized void updateEntity(Resource resource, AssetParser assetParser) throws Exception {
 		if (LOGGER.isLoggable(Level.FINER)) {
 			LOGGER.finer("Parsing asset: " + resource.getPath());
@@ -324,7 +344,7 @@ public class AssetStore {
 		}
 	}
 	
-	void updateEntities(final AssetParser assetParser, Set<Resource> assetResources, int maxThreads, final ProgressHandler progressHandler) throws IOException, XMLStreamException {
+	void updateEntities(final AssetParser assetParser, Set<Resource> assetResources, int maxThreads, final ProgressHandler progressHandler) throws IOException {
 		final List<Resource> trashList = new ArrayList<>(); // deleted/bad resources
 
 		/*
@@ -463,7 +483,7 @@ public class AssetStore {
 		return assetResources;
 	}
 
-	public void update(final AssetParser assetParser, int maxThreads, ProgressHandler progressHandler) throws IOException, XMLStreamException {
+	public void update(final AssetParser assetParser, int maxThreads, ProgressHandler progressHandler) throws IOException {
 		long updateTimestamp = System.currentTimeMillis();
 
 		/*
@@ -633,6 +653,22 @@ public class AssetStore {
 			reader.require(XMLStreamConstants.END_ELEMENT, null, "assetStore");
 		} finally {
 			reader.close();
+		}
+	}
+	
+	public void load(Resource assetStoreFile, ProgressHandler progressHandler) throws IOException, XMLStreamException {
+		if (progressHandler != null) {
+			progressHandler.beginTask(-1, "Loading asset store...");
+		}
+		InputStream input = assetStoreFile.getInputStream();
+		if (assetStoreFile.getName().endsWith(".gz")) {
+			input = new GZIPInputStream(input);
+		}
+		try (InputStream assetStoreInput = new BufferedInputStream(input)) {
+			load(assetStoreInput);
+		}
+		if (progressHandler != null) {
+			progressHandler.endTask();
 		}
 	}
 }

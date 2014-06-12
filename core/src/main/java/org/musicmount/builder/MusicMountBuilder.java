@@ -15,10 +15,8 @@
  */
 package org.musicmount.builder;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.Normalizer;
 import java.util.HashMap;
@@ -28,13 +26,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import javax.imageio.ImageIO;
 
 import org.musicmount.builder.impl.AssetLocator;
-import org.musicmount.builder.impl.AssetParser;
 import org.musicmount.builder.impl.AssetStore;
 import org.musicmount.builder.impl.ImageFormatter;
 import org.musicmount.builder.impl.LibraryParser;
@@ -184,26 +179,11 @@ public class MusicMountBuilder {
 		this.normalizer = normalizer;
 	}
 
-	private InputStream createInputStream(Resource file) throws IOException {
-		if (!file.exists()) {
-			return null;
-		}
-		InputStream input = file.getInputStream();
-		if (file.getName().endsWith(".gz")) {
-			input = new GZIPInputStream(input);
-		}
-		return new BufferedInputStream(input);
-	}
-
 	private OutputStream createOutputStream(Resource file) throws IOException {
 		if (!file.getParent().exists()) { // file.getParent() may be a symbolic link target (mount folder)
 			file.getParent().mkdirs();
 		}
-		OutputStream output = new BufferedOutputStream(file.getOutputStream());
-		if (file.getName().endsWith(".gz")) {
-			output = new GZIPOutputStream(output);
-		}
-		return output;
+		return new BufferedOutputStream(file.getOutputStream());
 	}
 
 	public void build(Resource musicFolder, Resource mountFolder, String musicPath) throws Exception {
@@ -216,25 +196,19 @@ public class MusicMountBuilder {
 
 		AssetStore assetStore = new AssetStore(API_VERSION, musicFolder);
 		boolean assetStoreLoaded = false;
-		if (!full && assetStoreFile.exists()) {
-			if (progressHandler != null) {
-				progressHandler.beginTask(-1, "Loading asset store...");
-			}
-			try (InputStream assetStoreInput = createInputStream(assetStoreFile)) {
-				assetStore.load(assetStoreInput);
-				assetStoreLoaded = true;
+		if (!full) {
+			try {
+				if (assetStoreFile.exists()) {
+					assetStore.load(assetStoreFile, progressHandler);
+					assetStoreLoaded = true;
+				}
 			} catch (Exception e) {
 				LOGGER.log(Level.WARNING, "Failed to load asset store", e);
 				assetStore = new AssetStore(API_VERSION, musicFolder);
 			}
-			if (progressHandler != null) {
-				progressHandler.endTask();
-			}
 		}
 
-		AssetParser assetParser = new SimpleAssetParser();
-
-		assetStore.update(assetParser, maxAssetThreads, progressHandler);
+		assetStore.update(new SimpleAssetParser(), maxAssetThreads, progressHandler);
 
 		if (progressHandler != null) {
 			progressHandler.beginTask(-1, "Building music libary...");
@@ -254,7 +228,7 @@ public class MusicMountBuilder {
 		if (noImages) {
 			assetStore.setRetina(null);
 		} else {
-			ImageFormatter formatter = new ImageFormatter(assetParser, retina);
+			ImageFormatter formatter = new ImageFormatter(new SimpleAssetParser(), retina);
 			final boolean retinaChange = !Boolean.valueOf(retina).equals(assetStore.getRetina());
 			if (LOGGER.isLoggable(Level.FINE) && retinaChange && assetStoreLoaded) {
 				LOGGER.fine(String.format("Retina state %s", assetStore.getRetina() == null ? "unknown" : "changed"));
@@ -267,17 +241,12 @@ public class MusicMountBuilder {
 		
 		generateResponseFiles(library, musicFolder, mountFolder, musicPath);
 
-		if (progressHandler != null) {
-			progressHandler.beginTask(-1, "Saving asset store...");
-		}
-		try (OutputStream assetStoreOutput = createOutputStream(assetStoreFile)) {
-			assetStore.save(assetStoreOutput);
-		} catch (Exception e) {
-			LOGGER.log(Level.WARNING, "Failed to save asset store", e);
-			assetStoreFile.delete();
-		}
-		if (progressHandler != null) {
-			progressHandler.endTask();
+		if (!assetStoreLoaded || changedAlbums.size() > 0) {
+			try {
+				assetStore.save(assetStoreFile, progressHandler);
+			} catch (Exception e) {
+				LOGGER.log(Level.WARNING, "Failed to save asset store", e);
+			}
 		}
 
 		LOGGER.info("Done.");
