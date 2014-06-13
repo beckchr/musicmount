@@ -90,6 +90,7 @@ public class FXMusicMount extends Application {
 					testController.getService().cancel();
 				}
 				console.stop();
+				System.exit(0);
 			}
 		});
 
