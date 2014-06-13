@@ -281,9 +281,10 @@ public class FXBuildController {
 
 //		grid.setGridLinesVisible(true);
 		grid.getColumnConstraints().add(0, ColumnConstraintsBuilder.create().hgrow(Priority.NEVER).build());
-		grid.getColumnConstraints().add(1, ColumnConstraintsBuilder.create().hgrow(Priority.ALWAYS).build());
+		grid.getColumnConstraints().add(1, ColumnConstraintsBuilder.create().hgrow(Priority.ALWAYS).percentWidth(33).build());
 		grid.getColumnConstraints().add(2, ColumnConstraintsBuilder.create().hgrow(Priority.ALWAYS).build());
-		grid.getColumnConstraints().add(3, ColumnConstraintsBuilder.create().hgrow(Priority.NEVER).build());
+		grid.getColumnConstraints().add(3, ColumnConstraintsBuilder.create().hgrow(Priority.ALWAYS).percentWidth(33).build());
+		grid.getColumnConstraints().add(4, ColumnConstraintsBuilder.create().hgrow(Priority.NEVER).build());
 
 		/*
 		 * music folder
@@ -294,8 +295,8 @@ public class FXBuildController {
 		musicFolderChooseButton = new Button("...");
 		grid.add(musicFolderLabel, 0, 1);
 		GridPane.setHalignment(musicFolderLabel, HPos.RIGHT);
-		grid.add(musicFolderTextField, 1, 1, 2, 1);
-		grid.add(musicFolderChooseButton, 3, 1);
+		grid.add(musicFolderTextField, 1, 1, 3, 1);
+		grid.add(musicFolderChooseButton, 4, 1);
 
 		/*
 		 * mount folder
@@ -306,8 +307,8 @@ public class FXBuildController {
 		mountFolderChooseButton = new Button("...");
 		grid.add(mountFolderLabel, 0, 2);
 		GridPane.setHalignment(mountFolderLabel, HPos.RIGHT);
-		grid.add(mountFolderTextField, 1, 2, 2, 1);
-		grid.add(mountFolderChooseButton, 3, 2);
+		grid.add(mountFolderTextField, 1, 2, 3, 1);
+		grid.add(mountFolderChooseButton, 4, 2);
 
 		/*
 		 * music path
@@ -321,7 +322,7 @@ public class FXBuildController {
 		HBox.setHgrow(musicPathTextField, Priority.ALWAYS);
         HBox musicPathHBox = new HBox(10);
         musicPathHBox.getChildren().addAll(musicPathChoiceBox, musicPathTextField);
-		grid.add(musicPathHBox, 1, 3, 2, 1);
+		grid.add(musicPathHBox, 1, 3, 3, 1);
 
 		/*
 		 * options
@@ -340,13 +341,13 @@ public class FXBuildController {
 		grid.add(fullCheckBox, 1, 6);
 		noTrackIndexCheckBox = new CheckBox("No Track Index");
 		noTrackIndexCheckBox.setTooltip(new Tooltip("Do not generate a track index"));
-		grid.add(noTrackIndexCheckBox, 2, 4);
+		grid.add(noTrackIndexCheckBox, 3, 4);
 		noVariousArtistsCheckBox = new CheckBox("No 'Various Artists' Item");
 		noVariousArtistsCheckBox.setTooltip(new Tooltip("Exclude 'Various Artists' from album artist index"));
-		grid.add(noVariousArtistsCheckBox, 2, 5);
+		grid.add(noVariousArtistsCheckBox, 3, 5);
 		unknownGenreCheckBox = new CheckBox("Add 'Unknown' Genre");
 		unknownGenreCheckBox.setTooltip(new Tooltip("Report missing genre as 'Unknown'"));
-		grid.add(unknownGenreCheckBox, 2, 6);
+		grid.add(unknownGenreCheckBox, 3, 6);
 
 		/*
 		 * progress
@@ -369,7 +370,7 @@ public class FXBuildController {
 		HBox runButtonHBox = new HBox(10);
 		runButtonHBox.setAlignment(Pos.BOTTOM_RIGHT);
 		runButtonHBox.getChildren().add(runButton);
-		grid.add(runButtonHBox, 2, 7, 2, 1);
+		grid.add(runButtonHBox, 3, 7, 2, 1);
 		GridPane.setVgrow(runButtonHBox, Priority.ALWAYS);
 
 		BorderPane borderPane = new BorderPane();

@@ -344,9 +344,9 @@ public class FXLiveController {
 
 //		grid.setGridLinesVisible(true);
 		grid.getColumnConstraints().add(0, ColumnConstraintsBuilder.create().hgrow(Priority.NEVER).build());
-		grid.getColumnConstraints().add(1, ColumnConstraintsBuilder.create().hgrow(Priority.ALWAYS).build());
-		grid.getColumnConstraints().add(2, ColumnConstraintsBuilder.create().hgrow(Priority.NEVER).build());
-		grid.getColumnConstraints().add(3, ColumnConstraintsBuilder.create().hgrow(Priority.ALWAYS).build());
+		grid.getColumnConstraints().add(1, ColumnConstraintsBuilder.create().hgrow(Priority.ALWAYS).percentWidth(33).build());
+		grid.getColumnConstraints().add(2, ColumnConstraintsBuilder.create().hgrow(Priority.ALWAYS).build());
+		grid.getColumnConstraints().add(3, ColumnConstraintsBuilder.create().hgrow(Priority.ALWAYS).percentWidth(33).build());
 		grid.getColumnConstraints().add(4, ColumnConstraintsBuilder.create().hgrow(Priority.NEVER).build());
 
 		/*
@@ -370,6 +370,13 @@ public class FXLiveController {
 		portTextField = new TextField();
 		portTextField.setPromptText("Number");
 		grid.add(portTextField, 1, 2);
+
+		/*
+		 * bonjour service
+		 */
+		Label bonjourLabel = new Label("Bonjour");
+		grid.add(bonjourLabel, 2, 2);
+		GridPane.setHalignment(bonjourLabel, HPos.RIGHT);
 
 		/*
 		 * user
@@ -437,7 +444,7 @@ public class FXLiveController {
 		HBox runButtonHBox = new HBox(10);
 		runButtonHBox.setAlignment(Pos.BOTTOM_RIGHT);
 		runButtonHBox.getChildren().add(runButton);
-		grid.add(runButtonHBox, 2, 7, 3, 1);
+		grid.add(runButtonHBox, 3, 7, 2, 1);
 		GridPane.setVgrow(runButtonHBox, Priority.ALWAYS);
 
 		BorderPane borderPane = new BorderPane();
