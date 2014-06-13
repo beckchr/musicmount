@@ -16,7 +16,10 @@
 package org.musicmount.fx;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.prefs.Preferences;
 
 import javafx.beans.value.ChangeListener;
@@ -49,8 +52,11 @@ import javafx.stage.DirectoryChooser;
 import org.musicmount.live.LiveMount;
 import org.musicmount.live.LiveMountBuilder;
 import org.musicmount.live.MusicMountLive;
+import org.musicmount.util.BonjourService;
 
 public class FXLiveController {
+	static final Logger LOGGER = Logger.getLogger(FXLiveController.class.getName());
+
 	private static final Preferences PREFERENCES = Preferences.userNodeForPackage(FXLiveController.class);
 	private static final String PREFERENCE_KEY_PORT = "live.port";
 	private static final String PREFERENCE_KEY_USER = "live.user";
@@ -66,6 +72,7 @@ public class FXLiveController {
 	private TextField portTextField;
 	private TextField userTextField;
 	private PasswordField passwordField;
+	private CheckBox bonjourCheckBox;
 	private CheckBox retinaCheckBox;
 	private CheckBox groupingCheckBox;
 	private CheckBox fullCheckBox;
@@ -76,10 +83,11 @@ public class FXLiveController {
 	private Button runButton;
 	private Text statusText;
 	
-	LiveMount liveMount;
+	private LiveMount liveMount;
 	
 	private final FXCommandModel model;
 	private Integer port;
+	private final BonjourService bonjourService;
 	private final LiveMountBuilder builder = new LiveMountBuilder();
 	private final MusicMountLive live = new MusicMountLive();
 	private final Service<LiveMount> buildService = new Service<LiveMount>() {
@@ -99,6 +107,9 @@ public class FXLiveController {
 			return new Task<Object>() {
 				@Override
 				protected Object call() throws Exception {
+					if (bonjourService != null && bonjourCheckBox.isSelected()) {
+						startBonjour();
+					}
 					live.start(model.getMusicFolder(), liveMount, port.intValue(), getUser(), getPassword());
 					live.await();
 					return null;
@@ -106,6 +117,9 @@ public class FXLiveController {
 				@Override
 				public boolean cancel(boolean mayInterruptIfRunning) {
 					try {
+						if (bonjourService != null && bonjourCheckBox.isSelected()) {
+							stopBonjour();
+						}
 						live.stop();
 					} catch (Exception e) {
 						return false;
@@ -118,8 +132,9 @@ public class FXLiveController {
 
 	public FXLiveController(final FXCommandModel model) {
 		this.model = model;
+		this.bonjourService = createBonjour();
 		this.pane = createView(); 
-		
+
 		loadPreferences();
 		
 		pane.visibleProperty().addListener(new ChangeListener<Boolean>() {
@@ -290,6 +305,39 @@ public class FXLiveController {
 		
 		updateAll();
 	}
+	
+	private BonjourService createBonjour() {
+		try {
+			return new BonjourService(true);
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, "Failed to create Bonjour service", e);
+			return null;
+		}
+	}
+	
+	private void startBonjour() {
+		LOGGER.info("Starting Bonjour service...");
+		String host = live.getHostName(bonjourService.getHostName());
+		try {
+			bonjourService.start(String.format("Live @ %s", host), live.getSiteURL(host, port), getUser());
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, "Failed to start Bonjour service", e);
+			try {
+				bonjourService.stop();
+			} catch (IOException e2) {
+				LOGGER.log(Level.WARNING, "Failed to stop Bonjour service", e2);
+			}
+		}
+	}
+
+	private void stopBonjour() {
+		LOGGER.info("Stopping Bonjour service...");
+		try {
+			bonjourService.stop();
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, "Failed to close Bonjour service", e);
+		}
+	}
 
 	private void loadPreferences() {
 		port = Integer.valueOf(PREFERENCES.getInt(PREFERENCE_KEY_PORT, 8080));
@@ -328,6 +376,7 @@ public class FXLiveController {
 		portTextField.setDisable(disable);
 		userTextField.setDisable(disable);
 		passwordField.setDisable(disable);
+		bonjourCheckBox.setDisable(disable || bonjourService == null);
 		retinaCheckBox.setDisable(disable);
 		groupingCheckBox.setDisable(disable);
 		fullCheckBox.setDisable(disable);
@@ -372,11 +421,15 @@ public class FXLiveController {
 		grid.add(portTextField, 1, 2);
 
 		/*
-		 * bonjour service
+		 * bonjour
 		 */
 		Label bonjourLabel = new Label("Bonjour");
 		grid.add(bonjourLabel, 2, 2);
 		GridPane.setHalignment(bonjourLabel, HPos.RIGHT);
+		bonjourCheckBox = new CheckBox("Publish Site");
+		bonjourCheckBox.setDisable(bonjourService == null);
+		bonjourCheckBox.setTooltip(new Tooltip("Register as local Bonjour service"));
+		grid.add(bonjourCheckBox, 3, 2);
 
 		/*
 		 * user
