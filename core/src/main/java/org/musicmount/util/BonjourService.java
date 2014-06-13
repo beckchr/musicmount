@@ -32,20 +32,23 @@ public class BonjourService implements Closeable {
 	private static final String SERVICE_NAME = "MusicMount";
 	
 	private final JmDNS jmDNS;
+	private final Thread shutdownHook;
 
-	public BonjourService(boolean closeOnShutdown) throws IOException {
+	public BonjourService(boolean stopOnShutdown) throws IOException {
 		jmDNS = JmDNS.create();
-		if (closeOnShutdown) {
-			Runtime.getRuntime().addShutdownHook(new Thread() {
+		if (stopOnShutdown) {
+			Runtime.getRuntime().addShutdownHook(shutdownHook = new Thread() {
 				@Override
 				public void run() {
 					try {
-						BonjourService.this.close();
+						BonjourService.this.stop();
 					} catch (IOException e) {
 						// ignore
 					}
 				}
 			});
+		} else {
+			shutdownHook = null;
 		}
 	}
 	
@@ -99,9 +102,23 @@ public class BonjourService implements Closeable {
 		}
 		start(port, properties);
 	}
+	
+	/**
+	 * Unregister service.
+	 * @throws IOException
+	 */
+	public void stop() throws IOException {
+		jmDNS.unregisterAllServices();
+	}
 
 	@Override
 	public void close() throws IOException {
-		jmDNS.close();
+		try {
+			jmDNS.close();
+		} finally {
+			if (shutdownHook != null) {
+				Runtime.getRuntime().removeShutdownHook(shutdownHook);
+			}
+		}
 	}
 }

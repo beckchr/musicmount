@@ -173,7 +173,7 @@ public class MusicMountLiveCommand {
 		 * Register Bonjour service
 		 */
 		if (optionBonjour) {
-			LOGGER.info("Registering Bonjour service...");
+			LOGGER.info("Starting Bonjour service...");
 			BonjourService bonjourService = null;
 			try {
 				bonjourService = new BonjourService(true);
@@ -187,11 +187,9 @@ public class MusicMountLiveCommand {
 				} catch (IOException e) {
 					LOGGER.log(Level.WARNING, "Failed to start Bonjour service", e);
 					try {
-						bonjourService.close();
+						bonjourService.stop();
 					} catch (IOException e2) {
-						LOGGER.log(Level.WARNING, "Failed to close Bonjour service", e2);
-					} finally {
-						bonjourService = null;
+						LOGGER.log(Level.WARNING, "Failed to stop Bonjour service", e2);
 					}
 				}
 			}

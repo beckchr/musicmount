@@ -127,13 +127,12 @@ public class MusicMountLive {
 	}
 
 	public void start(FileResource musicFolder, LiveMount liveMount, int port, String user, String password) throws Exception {
-		LOGGER.info("Starting Build...");
+		LOGGER.info("Starting Server...");
 		LOGGER.info("Music folder: " + musicFolder.getPath());
 
 		FolderContext music = new FolderContext(getMusicPath(), musicFolder.getPath().toFile());
 		MountContext mount = new MountContext(getMountPath(), new LiveMountServlet(liveMount));
 		
-		LOGGER.info("Starting Server...");
 		server.start(music, mount, port, user, password);
 		LOGGER.info(String.format("Mount Settings"));
 		LOGGER.info(String.format("--------------"));
