@@ -48,8 +48,8 @@ public class LiveMount {
 	private final Map<Long, Album> albumLookup;
 	private final Map<Long, AlbumArtist> albumArtistLookup;
 	private final Map<Long, TrackArtist> trackArtistLookup;
-	private final Map<Artist, Album> representativeAlbums;
 	private final Map<Album, Resource> artworkAssetResources;
+	private final Map<Artist, Album> representativeAlbums;
 
 	public LiveMount(Library library, ResponseFormatter<?> responseFormatter, ImageFormatter imageFormatter, AssetLocator assetLocator, boolean noTrackIndex) {
 		this.library = library;
@@ -66,7 +66,10 @@ public class LiveMount {
 
 		for (Album album : library.getAlbums()) {
 			albumLookup.put(album.getAlbumId(), album);
-			artworkAssetResources.put(album, album.artworkAssetResource());
+			Resource artworkAssetResource = album.artworkAssetResource();
+			if (artworkAssetResource != null) {
+				artworkAssetResources.put(album, artworkAssetResource);
+			}
 		}
 		for (AlbumArtist albumArtist : library.getAlbumArtists().values()) {
 			albumArtistLookup.put(albumArtist.getArtistId(), albumArtist);
@@ -107,8 +110,8 @@ public class LiveMount {
 		}
 	}
 	
-	public Resource getArtworkAssetResource(Album album) {
-		return artworkAssetResources.get(album);
+	public boolean isArtworkPresent(Album album) {
+		return artworkAssetResources.containsKey(album);
 	}
 	
 	public boolean isNoTrackIndex() {
@@ -162,8 +165,8 @@ public class LiveMount {
 			throw new ServletException(e);
 		}
 	}
-	
-	public void formatImage(Resource assetResource, OutputStream output, ImageType type) throws IOException {
-		imageFormatter.formatAsset(assetResource, type, output);
+
+	public void formatImage(OutputStream output, ImageType type, Album album) throws IOException {
+		imageFormatter.formatAsset(artworkAssetResources.get(album), type, output);
 	}
 }

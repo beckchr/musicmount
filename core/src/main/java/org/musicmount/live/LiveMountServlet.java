@@ -93,7 +93,7 @@ public class LiveMountServlet extends HttpServlet implements ResourceLocator {
 
 	@Override
 	public String getAlbumImagePath(Album album, ImageType type) {
-		if (mount.getArtworkAssetResource(album) == null) {
+		if (!mount.isArtworkPresent(album)) {
 			return null;
 		}
 		return new StringBuilder(ALBUM_IMAGE_PATH)
@@ -211,9 +211,9 @@ public class LiveMountServlet extends HttpServlet implements ResourceLocator {
 		case ALBUM_IMAGE_PATH:
 			ImageType imageType = parseImageType(req.getParameter(IMAGE_TYPE_PARAM));
 			if (imageType != null) {
-				Resource assetResource = mount.getArtworkAssetResource(findAlbum(req.getParameter(ALBUM_ID_PARAM)));
-				if (assetResource != null) {
-					mount.formatImage(assetResource, content, imageType);
+				album = findAlbum(req.getParameter(ALBUM_ID_PARAM));
+				if (mount.isArtworkPresent(album)) {
+					mount.formatImage(content, imageType, album);
 					resp.setContentType(imageType.getMimeType());
 				} else {
 					resp.sendError(404);
