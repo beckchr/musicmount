@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.prefs.Preferences;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -56,10 +55,6 @@ public class FXTestController {
 	static final Logger LOGGER = Logger.getLogger(FXTestController.class.getName());
 
 	private static final String STATUS_NO_RELATIVE_MUSIC_PATH = "Cannot calculate relative music path, custom path path required";
-	
-	private static final Preferences PREFERENCES = Preferences.userNodeForPackage(FXTestController.class);;
-	private static final String PREFERENCE_KEY_PORT = "test.port";
-	private static final String PREFERENCE_KEY_USER = "test.user";
 
 	private Pane pane;
 	private TextField musicFolderTextField;
@@ -78,24 +73,23 @@ public class FXTestController {
 	private final BonjourService bonjourService;
 	private final MusicMountTester tester;
 	private final FXCommandModel model;
-	private Integer port;
 	private final Service<Object> service = new Service<Object>() {
 		@Override
 		protected Task<Object> createTask() {
 			return new Task<Object>() {
 				@Override
 				protected Object call() throws Exception {
-					if (bonjourService != null && bonjourCheckBox.isSelected()) {
+					if (bonjourService != null && model.isBonjour()) {
 						startBonjour();
 					}
-					tester.start(model.getMusicFolder(), model.getMountFolder(), model.getMusicPath(), port.intValue(), getUser(), getPassword());
+					tester.start(model.getMusicFolder(), model.getMountFolder(), model.getMusicPath(), model.getServerPort().intValue(), getUser(), getPassword());
 					tester.await();
 					return null;
 				}
 				@Override
 				public boolean cancel(boolean mayInterruptIfRunning) {
 					try {
-						if (bonjourService != null && bonjourCheckBox.isSelected()) {
+						if (bonjourService != null && model.isBonjour()) {
 							stopBonjour();
 						}
 						tester.stop();
@@ -112,8 +106,6 @@ public class FXTestController {
 		this.model = model;
 		this.bonjourService = createBonjour();
 		this.pane = createView();
-		
-		loadPreferences();
 
 		pane.visibleProperty().addListener(new ChangeListener<Boolean>() {
 			@Override
@@ -193,11 +185,17 @@ public class FXTestController {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				try {
-					port = Integer.valueOf(portTextField.getText());
+					model.setServerPort(Integer.valueOf(portTextField.getText()));
 				} catch (NumberFormatException e) {
-					port = null;
+					model.setServerPort(null);
 				}
                 updateRunButton();
+			}
+		});
+		bonjourCheckBox.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				model.setBonjour(bonjourCheckBox.isSelected());
 			}
 		});
 		userTextField.textProperty().addListener(new ChangeListener<String>() {
@@ -218,7 +216,7 @@ public class FXTestController {
     	service.setOnRunning(new EventHandler<WorkerStateEvent>() {
 			public void handle(WorkerStateEvent event) {
 				try {
-					statusText.setText("Server started - " + tester.getSiteURL(tester.getHostName("<hostname>") ,port, model.getMusicPath()));
+					statusText.setText("Server started - " + tester.getSiteURL(tester.getHostName("<hostname>"), model.getServerPort().intValue(), model.getMusicPath()));
 				} catch (MalformedURLException e) {
 					statusText.setText("Server started - Failed to determine site URL: " + e.getMessage());
 				}
@@ -231,7 +229,6 @@ public class FXTestController {
 				statusText.setText("Server stopped");
 				runButton.setText("Start Server");
 				disableControls(false);
-				savePreferences();
 			}
 		});
 		service.setOnFailed(new EventHandler<WorkerStateEvent>() {
@@ -274,7 +271,7 @@ public class FXTestController {
 		LOGGER.info("Starting Bonjour service...");
 		String host = tester.getHostName(bonjourService.getHostName());
 		try {
-			bonjourService.start(String.format("Test @ %s", host), tester.getSiteURL(host, port, model.getMusicPath()), getUser());
+			bonjourService.start(String.format("Test @ %s", host), tester.getSiteURL(host, model.getServerPort().intValue(), model.getMusicPath()), getUser());
 		} catch (IOException e) {
 			LOGGER.log(Level.WARNING, "Failed to start Bonjour service", e);
 		}
@@ -286,27 +283,6 @@ public class FXTestController {
 			bonjourService.stop();
 		} catch (IOException e) {
 			LOGGER.log(Level.WARNING, "Failed to stop Bonjour service", e);
-		}
-	}
-
-	private void loadPreferences() {
-		port = Integer.valueOf(PREFERENCES.getInt(PREFERENCE_KEY_PORT, 8080));
-		if (port == 0) {
-			port = null;
-		}
-		userTextField.setText(PREFERENCES.get(PREFERENCE_KEY_USER, null));
-	}
-
-	private void savePreferences() {
-		if (port != null) {
-			PREFERENCES.putInt(PREFERENCE_KEY_PORT, port.intValue());
-		} else {
-			PREFERENCES.remove(PREFERENCE_KEY_PORT);
-		}
-		if (getUser() != null) {
-			PREFERENCES.put(PREFERENCE_KEY_USER, getUser());
-		} else {
-			PREFERENCES.remove(PREFERENCE_KEY_USER);
 		}
 	}
 
@@ -451,6 +427,7 @@ public class FXTestController {
 		updateMusicPath();
 		updateRunButton();
 		updatePort();
+		updateBonjour();
 		updateUserAndPassword();
 	}
 
@@ -475,11 +452,15 @@ public class FXTestController {
 	}
 	
 	void updateRunButton() {
-		runButton.setDisable(!model.isValidSiteModel() || port == null || !tester.checkMusicPath(model.getMusicPath()) || (getUser() == null) != (getPassword() == null));
+		runButton.setDisable(!model.isValidSiteModel() || !tester.checkMusicPath(model.getMusicPath()) || (getUser() == null) != (getPassword() == null));
 	}
 	
 	void updatePort() {
-		portTextField.setText(port != null ? port.toString() : null);
+		portTextField.setText(model.getServerPort() != null ? model.getServerPort().toString() : null);
+	}
+
+	void updateBonjour() {
+		bonjourCheckBox.setSelected(model.isBonjour());
 	}
 
 	void updateUserAndPassword() {

@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.prefs.Preferences;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -57,15 +56,6 @@ import org.musicmount.util.BonjourService;
 public class FXLiveController {
 	static final Logger LOGGER = Logger.getLogger(FXLiveController.class.getName());
 
-	private static final Preferences PREFERENCES = Preferences.userNodeForPackage(FXLiveController.class);
-	private static final String PREFERENCE_KEY_PORT = "live.port";
-	private static final String PREFERENCE_KEY_USER = "live.user";
-	private static final String PREFERENCE_KEY_GROUPING = "live.grouping";
-	private static final String PREFERENCE_KEY_NO_TRACK_INDEX = "live.noTrackIndex";
-	private static final String PREFERENCE_KEY_NO_VARIOUS_ARTISTS = "live.noVariousArtists";
-	private static final String PREFERENCE_KEY_RETINA = "live.retina";
-	private static final String PREFERENCE_KEY_UNKNOWN_GENRE = "live.unknownGenre";
-
 	private Pane pane;
 	private TextField musicFolderTextField;
 	private Button musicFolderChooseButton;
@@ -86,9 +76,8 @@ public class FXLiveController {
 	private LiveMount liveMount;
 	
 	private final FXCommandModel model;
-	private Integer port;
 	private final BonjourService bonjourService;
-	private final LiveMountBuilder builder = new LiveMountBuilder();
+	private final LiveMountBuilder builder;
 	private final MusicMountLive live = new MusicMountLive();
 	private final Service<LiveMount> buildService = new Service<LiveMount>() {
 		@Override
@@ -107,17 +96,17 @@ public class FXLiveController {
 			return new Task<Object>() {
 				@Override
 				protected Object call() throws Exception {
-					if (bonjourService != null && bonjourCheckBox.isSelected()) {
+					if (bonjourService != null && model.isBonjour()) {
 						startBonjour();
 					}
-					live.start(model.getMusicFolder(), liveMount, port.intValue(), getUser(), getPassword());
+					live.start(model.getMusicFolder(), liveMount, model.getServerPort().intValue(), getUser(), getPassword());
 					live.await();
 					return null;
 				}
 				@Override
 				public boolean cancel(boolean mayInterruptIfRunning) {
 					try {
-						if (bonjourService != null && bonjourCheckBox.isSelected()) {
+						if (bonjourService != null && model.isBonjour()) {
 							stopBonjour();
 						}
 						live.stop();
@@ -133,9 +122,8 @@ public class FXLiveController {
 	public FXLiveController(final FXCommandModel model) {
 		this.model = model;
 		this.bonjourService = createBonjour();
+		this.builder = new LiveMountBuilder(model.getBuildConfig());
 		this.pane = createView(); 
-
-		loadPreferences();
 		
 		pane.visibleProperty().addListener(new ChangeListener<Boolean>() {
 			@Override
@@ -170,11 +158,17 @@ public class FXLiveController {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				try {
-					port = Integer.valueOf(portTextField.getText());
+					model.setServerPort(Integer.valueOf(portTextField.getText()));
 				} catch (NumberFormatException e) {
-					port = null;
+					model.setServerPort(null);
 				}
                 updateRunButton();
+			}
+		});
+		bonjourCheckBox.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				model.setBonjour(bonjourCheckBox.isSelected());
 			}
 		});
 		userTextField.textProperty().addListener(new ChangeListener<String>() {
@@ -195,37 +189,37 @@ public class FXLiveController {
 		retinaCheckBox.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				builder.setRetina(retinaCheckBox.isSelected());
+				builder.getConfig().setRetina(retinaCheckBox.isSelected());
 			}
 		});
 		groupingCheckBox.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				builder.setGrouping(groupingCheckBox.isSelected());
+				builder.getConfig().setGrouping(groupingCheckBox.isSelected());
 			}
 		});
 		fullCheckBox.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				builder.setFull(fullCheckBox.isSelected());
+				builder.getConfig().setFull(fullCheckBox.isSelected());
 			}
 		});
 		noTrackIndexCheckBox.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				builder.setNoTrackIndex(noTrackIndexCheckBox.isSelected());
+				builder.getConfig().setNoTrackIndex(noTrackIndexCheckBox.isSelected());
 			}
 		});
 		noVariousArtistsCheckBox.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				builder.setNoVariousArtists(noVariousArtistsCheckBox.isSelected());
+				builder.getConfig().setNoVariousArtists(noVariousArtistsCheckBox.isSelected());
 			}
 		});
 		unknownGenreCheckBox.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				builder.setUnknownGenre(unknownGenreCheckBox.isSelected());
+				builder.getConfig().setUnknownGenre(unknownGenreCheckBox.isSelected());
 			}
 		});
 
@@ -241,7 +235,6 @@ public class FXLiveController {
 			public void handle(WorkerStateEvent event) {
 				liveMount = buildService.getValue();
 				statusText.setText("Mount analysis done");
-            	savePreferences();
 				service.reset();
 				service.start();
 			}
@@ -261,7 +254,7 @@ public class FXLiveController {
     	service.setOnRunning(new EventHandler<WorkerStateEvent>() {
 			public void handle(WorkerStateEvent event) {
 				try {
-					statusText.setText("Server started - " + live.getSiteURL(live.getHostName("<hostname>") ,port));
+					statusText.setText("Server started - " + live.getSiteURL(live.getHostName("<hostname>"), model.getServerPort().intValue()));
 				} catch (MalformedURLException e) {
 					statusText.setText("Server started - Failed to determine site URL: " + e.getMessage());
 				}
@@ -275,7 +268,6 @@ public class FXLiveController {
 				statusText.setText("Server stopped");
 				runButton.setText("Start Server");
 				disableControls(false);
-				savePreferences();
 			}
 		});
 		service.setOnFailed(new EventHandler<WorkerStateEvent>() {
@@ -319,7 +311,7 @@ public class FXLiveController {
 		LOGGER.info("Starting Bonjour service...");
 		String host = live.getHostName(bonjourService.getHostName());
 		try {
-			bonjourService.start(String.format("Live @ %s", host), live.getSiteURL(host, port), getUser());
+			bonjourService.start(String.format("Live @ %s", host), live.getSiteURL(host, model.getServerPort().intValue()), getUser());
 		} catch (IOException e) {
 			LOGGER.log(Level.WARNING, "Failed to start Bonjour service", e);
 		}
@@ -332,37 +324,6 @@ public class FXLiveController {
 		} catch (IOException e) {
 			LOGGER.log(Level.WARNING, "Failed to stop Bonjour service", e);
 		}
-	}
-
-	private void loadPreferences() {
-		port = Integer.valueOf(PREFERENCES.getInt(PREFERENCE_KEY_PORT, 8080));
-		if (port == 0) {
-			port = null;
-		}
-		userTextField.setText(PREFERENCES.get(PREFERENCE_KEY_USER, null));
-		builder.setGrouping(PREFERENCES.getBoolean(PREFERENCE_KEY_GROUPING, false));
-		builder.setNoTrackIndex(PREFERENCES.getBoolean(PREFERENCE_KEY_NO_TRACK_INDEX, false));
-		builder.setNoVariousArtists(PREFERENCES.getBoolean(PREFERENCE_KEY_NO_VARIOUS_ARTISTS, false));
-		builder.setRetina(PREFERENCES.getBoolean(PREFERENCE_KEY_RETINA, false));
-		builder.setUnknownGenre(PREFERENCES.getBoolean(PREFERENCE_KEY_UNKNOWN_GENRE, false));
-	}
-
-	private void savePreferences() {
-		if (port != null) {
-			PREFERENCES.putInt(PREFERENCE_KEY_PORT, port.intValue());
-		} else {
-			PREFERENCES.remove(PREFERENCE_KEY_PORT);
-		}
-		if (getUser() != null) {
-			PREFERENCES.put(PREFERENCE_KEY_USER, getUser());
-		} else {
-			PREFERENCES.remove(PREFERENCE_KEY_USER);
-		}
-		PREFERENCES.putBoolean(PREFERENCE_KEY_GROUPING, builder.isGrouping());
-		PREFERENCES.putBoolean(PREFERENCE_KEY_NO_TRACK_INDEX, builder.isNoTrackIndex());
-		PREFERENCES.putBoolean(PREFERENCE_KEY_NO_VARIOUS_ARTISTS, builder.isNoVariousArtists());
-		PREFERENCES.putBoolean(PREFERENCE_KEY_RETINA, builder.isRetina());
-		PREFERENCES.putBoolean(PREFERENCE_KEY_UNKNOWN_GENRE, builder.isUnknownGenre());				
 	}
 	
 	void disableControls(boolean disable) {
@@ -517,6 +478,7 @@ public class FXLiveController {
 	void updateAll() {
 		updateMusicFolder();
 		updatePort();
+		updateBonjour();
 		updateUserAndPassword();
 		updateOptions();
 		updateRunButton();
@@ -527,7 +489,11 @@ public class FXLiveController {
 	}
 	
 	void updatePort() {
-		portTextField.setText(port != null ? port.toString() : null);
+		portTextField.setText(model.getServerPort() != null ? model.getServerPort().toString() : null);
+	}
+	
+	void updateBonjour() {
+		bonjourCheckBox.setSelected(model.isBonjour());
 	}
 
 	void updateUserAndPassword() {
@@ -536,12 +502,12 @@ public class FXLiveController {
 	}
 	
 	void updateOptions() {
-		fullCheckBox.setSelected(builder.isFull());
-		groupingCheckBox.setSelected(builder.isGrouping());
-		noTrackIndexCheckBox.setSelected(builder.isNoTrackIndex());
-		noVariousArtistsCheckBox.setSelected(builder.isNoVariousArtists());
-		retinaCheckBox.setSelected(builder.isRetina());
-		unknownGenreCheckBox.setSelected(builder.isUnknownGenre());
+		fullCheckBox.setSelected(builder.getConfig().isFull());
+		groupingCheckBox.setSelected(builder.getConfig().isGrouping());
+		noTrackIndexCheckBox.setSelected(builder.getConfig().isNoTrackIndex());
+		noVariousArtistsCheckBox.setSelected(builder.getConfig().isNoVariousArtists());
+		retinaCheckBox.setSelected(builder.getConfig().isRetina());
+		unknownGenreCheckBox.setSelected(builder.getConfig().isUnknownGenre());
 	}
 
 	void updateRunButton() {

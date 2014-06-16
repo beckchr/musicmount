@@ -75,22 +75,22 @@ public class MusicMountLiveCommand {
 		while (optionsLength < args.length && !optionsDone) {
 			switch (args[optionsLength]) {
 			case "--retina":
-				builder.setRetina(true);
+				builder.getConfig().setRetina(true);
 				break;
 			case "--grouping":
-				builder.setGrouping(true);
+				builder.getConfig().setGrouping(true);
 				break;
 			case "--unknownGenre":
-				builder.setUnknownGenre(true);
+				builder.getConfig().setUnknownGenre(true);
 				break;
 			case "--noTrackIndex":
-				builder.setNoTrackIndex(true);
+				builder.getConfig().setNoTrackIndex(true);
 				break;
 			case "--noVariousArtists":
-				builder.setNoVariousArtists(true);
+				builder.getConfig().setNoVariousArtists(true);
 				break;
 			case "--full":
-				builder.setFull(true);
+				builder.getConfig().setFull(true);
 				break;
 			case "--port":
 				if (++optionsLength == args.length) {

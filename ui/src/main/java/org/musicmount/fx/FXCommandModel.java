@@ -16,18 +16,77 @@
 package org.musicmount.fx;
 
 import java.nio.file.FileSystems;
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.Preferences;
 
+import org.musicmount.builder.MusicMountBuildConfig;
 import org.musicmount.io.file.FileResource;
 import org.musicmount.io.file.FileResourceProvider;
 
 public class FXCommandModel {
+	private static final Preferences PREFERENCES = Preferences.userNodeForPackage(FXCommandModel.class);
+	private static final String PREFERENCE_KEY_GROUPING = "builder.grouping";
+	private static final String PREFERENCE_KEY_NO_TRACK_INDEX = "builder.noTrackIndex";
+	private static final String PREFERENCE_KEY_NO_VARIOUS_ARTISTS = "builder.noVariousArtists";
+	private static final String PREFERENCE_KEY_RETINA = "builder.retina";
+	private static final String PREFERENCE_KEY_UNKNOWN_GENRE = "builder.unknownGenre";
+	private static final String PREFERENCE_KEY_PORT = "server.port";
+
 	public static final String DEFAULT_CUSTOM_MUSIC_PATH = "music";
+
 	private final FileResourceProvider fileResourceProvider = new FileResourceProvider();
+	private final MusicMountBuildConfig buildConfig = new MusicMountBuildConfig();
 
 	private FileResource musicFolder;
 	private FileResource mountFolder;
 	private String customMusicPath;
+	private Integer serverPort;
+	private boolean bonjour;
 
+	public FXCommandModel() {
+		loadBuilderPreferences();
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			@Override
+			public void run() {
+				try {
+					saveBuilderPreferences();
+				} catch (BackingStoreException e) {
+					e.printStackTrace();
+				}
+			}
+		});
+	}
+	
+	public MusicMountBuildConfig getBuildConfig() {
+		return buildConfig;
+	}
+	
+	private void loadBuilderPreferences() {
+		getBuildConfig().setGrouping(PREFERENCES.getBoolean(PREFERENCE_KEY_GROUPING, false));
+		getBuildConfig().setNoTrackIndex(PREFERENCES.getBoolean(PREFERENCE_KEY_NO_TRACK_INDEX, false));
+		getBuildConfig().setNoVariousArtists(PREFERENCES.getBoolean(PREFERENCE_KEY_NO_VARIOUS_ARTISTS, false));
+		getBuildConfig().setRetina(PREFERENCES.getBoolean(PREFERENCE_KEY_RETINA, false));
+		getBuildConfig().setUnknownGenre(PREFERENCES.getBoolean(PREFERENCE_KEY_UNKNOWN_GENRE, false));
+		serverPort = Integer.valueOf(PREFERENCES.getInt(PREFERENCE_KEY_PORT, 8080));
+		if (serverPort == 0) {
+			serverPort = null;
+		}
+	}
+
+	private void saveBuilderPreferences() throws BackingStoreException {
+		PREFERENCES.putBoolean(PREFERENCE_KEY_GROUPING, getBuildConfig().isGrouping());
+		PREFERENCES.putBoolean(PREFERENCE_KEY_NO_TRACK_INDEX, getBuildConfig().isNoTrackIndex());
+		PREFERENCES.putBoolean(PREFERENCE_KEY_NO_VARIOUS_ARTISTS, getBuildConfig().isNoVariousArtists());
+		PREFERENCES.putBoolean(PREFERENCE_KEY_RETINA, getBuildConfig().isRetina());
+		PREFERENCES.putBoolean(PREFERENCE_KEY_UNKNOWN_GENRE, getBuildConfig().isUnknownGenre());
+		if (serverPort != null) {
+			PREFERENCES.putInt(PREFERENCE_KEY_PORT, serverPort.intValue());
+		} else {
+			PREFERENCES.remove(PREFERENCE_KEY_PORT);
+		}
+		PREFERENCES.flush();
+	}
+	
 	public FileResource getMusicFolder() {
 		return musicFolder;
 	}
@@ -47,6 +106,20 @@ public class FXCommandModel {
 	}
 	public void setCustomMusicPath(String musicPath) {
 		this.customMusicPath = musicPath;
+	}
+	
+	public Integer getServerPort() {
+		return serverPort;
+	}
+	public void setServerPort(Integer serverPort) {
+		this.serverPort = serverPort;
+	}
+	
+	public boolean isBonjour() {
+		return bonjour;
+	}
+	public void setBonjour(boolean bonjour) {
+		this.bonjour = bonjour;
 	}
 	
 	public FileResource toFolder(String path) {
@@ -76,7 +149,7 @@ public class FXCommandModel {
 	}
 
 	boolean isValidLiveModel() {
-		return musicFolder != null;
+		return musicFolder != null && serverPort != null;
 	}
 
 	boolean isValidBuildModel() {
@@ -95,6 +168,6 @@ public class FXCommandModel {
 	}
 
 	boolean isValidSiteModel() {
-		return isValidBuildModel() && mountFolder.resolve("index.json").exists();
+		return isValidBuildModel() && serverPort != null &&  mountFolder.resolve("index.json").exists();
 	}
 }

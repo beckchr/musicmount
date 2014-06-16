@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.musicmount.builder.MusicMountBuildConfig;
 import org.musicmount.builder.impl.AssetLocator;
 import org.musicmount.builder.impl.AssetStore;
 import org.musicmount.builder.impl.ImageFormatter;
@@ -47,17 +48,17 @@ public class LiveMountBuilder {
 	static final String API_VERSION = VersionUtil.getSpecificationVersion();	
 
 	private final Resource repository;
-	
-	private boolean retina = false;
-	private boolean grouping = false;
-	private boolean unknownGenre = false;
-	private boolean noTrackIndex = false;
-	private boolean noVariousArtists = false;
-	private boolean full = false;
+	private final MusicMountBuildConfig config;
 
 	private ProgressHandler progressHandler = new LoggingProgressHandler(LOGGER, Level.FINE);
 
 	public LiveMountBuilder() {
+		this(new MusicMountBuildConfig());
+	}
+	
+	public LiveMountBuilder(MusicMountBuildConfig config) {
+		this.config = config;
+
 		String userHome = System.getProperty("user.home");
 		if (userHome != null) {
 			repository = new FileResourceProvider(userHome).getBaseDirectory().resolve(".musicmount");
@@ -77,8 +78,13 @@ public class LiveMountBuilder {
 		}
 	}
 
-	public LiveMountBuilder(Resource repository) {
+	public LiveMountBuilder(MusicMountBuildConfig config, Resource repository) {
+		this.config = config;
 		this.repository = repository;
+	}
+	
+	public MusicMountBuildConfig getConfig() {
+		return config;
 	}
 	
 	public ProgressHandler getProgressHandler() {
@@ -86,48 +92,6 @@ public class LiveMountBuilder {
 	}
 	public void setProgressHandler(ProgressHandler progressHandler) {
 		this.progressHandler = progressHandler;
-	}
-	
-	public boolean isRetina() {
-		return retina;
-	}
-	public void setRetina(boolean retina) {
-		this.retina = retina;
-	}
-
-	public boolean isGrouping() {
-		return grouping;
-	}
-	public void setGrouping(boolean grouping) {
-		this.grouping = grouping;
-	}
-
-	public boolean isUnknownGenre() {
-		return unknownGenre;
-	}
-	public void setUnknownGenre(boolean unknownGenre) {
-		this.unknownGenre = unknownGenre;
-	}
-
-	public boolean isNoTrackIndex() {
-		return noTrackIndex;
-	}
-	public void setNoTrackIndex(boolean noTrackIndex) {
-		this.noTrackIndex = noTrackIndex;
-	}
-
-	public boolean isNoVariousArtists() {
-		return noVariousArtists;
-	}
-	public void setNoVariousArtists(boolean noVariousArtists) {
-		this.noVariousArtists = noVariousArtists;
-	}
-	
-	public boolean isFull() {
-		return full;
-	}
-	public void setFull(boolean full) {
-		this.full = full;
 	}
 
 	private Resource assetStoreResource(FileResource musicFolder) {
@@ -142,7 +106,7 @@ public class LiveMountBuilder {
 		
 		AssetStore assetStore = new AssetStore(API_VERSION, musicFolder);
 		boolean assetStoreLoaded = false;
-		if (!full && assetStoreFile != null) {
+		if (!config.isFull() && assetStoreFile != null) {
 			try {
 				if (assetStoreFile.exists()) {
 					assetStore.load(assetStoreFile, progressHandler);
@@ -159,8 +123,8 @@ public class LiveMountBuilder {
 		if (progressHandler != null) {
 			progressHandler.beginTask(-1, "Building music libary...");
 		}
-		Library library = new LibraryParser(grouping).parse(assetStore.assets());
-		if (noVariousArtists) { // remove "various artists" album artist (hack)
+		Library library = new LibraryParser(config.isGrouping()).parse(assetStore.assets());
+		if (config.isNoVariousArtists()) { // remove "various artists" album artist (hack)
 			library.getAlbumArtists().remove(null);
 		}
 		Set<Album> changedAlbums = assetStore.sync(library.getAlbums());
@@ -179,10 +143,14 @@ public class LiveMountBuilder {
 			}
 		}
 		
-		ResponseFormatter<?> responseFormatter =
-				new ResponseFormatter.JSON(API_VERSION, new LocalStrings(), false, unknownGenre, grouping, false);
-		ImageFormatter imageFormatter = new ImageFormatter(new SimpleAssetParser(), retina);
-		AssetLocator assetLocator = new SimpleAssetLocator(musicFolder, musicPath, null);
-		return new LiveMount(library, responseFormatter, imageFormatter, assetLocator, noTrackIndex);
+		ResponseFormatter<?> responseFormatter;
+		if (config.isXml()) {
+			responseFormatter = new ResponseFormatter.XML(API_VERSION, new LocalStrings(), config.isDirectoryIndex(), config.isUnknownGenre(), config.isGrouping(), config.isPretty());
+		} else {
+			responseFormatter = new ResponseFormatter.JSON(API_VERSION, new LocalStrings(), config.isDirectoryIndex(), config.isUnknownGenre(), config.isGrouping(), config.isPretty());
+		}
+		AssetLocator assetLocator = new SimpleAssetLocator(musicFolder, musicPath, config.getNormalizer());
+		ImageFormatter imageFormatter = new ImageFormatter(new SimpleAssetParser(), config.isRetina());
+		return new LiveMount(library, responseFormatter, imageFormatter, assetLocator, config.isNoTrackIndex());
 	}
 }

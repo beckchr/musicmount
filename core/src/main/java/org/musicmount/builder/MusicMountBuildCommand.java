@@ -201,46 +201,46 @@ public class MusicMountBuildCommand {
 				optionBase = args[optionsLength];
 				break;
 			case "--retina":
-				builder.setRetina(true);
+				builder.getConfig().setRetina(true);
 				break;
 			case "--pretty":
-				builder.setPretty(true);
+				builder.getConfig().setPretty(true);
 				break;
 			case "--full":
-				builder.setFull(true);
+				builder.getConfig().setFull(true);
 				break;
 			case "--verbose":
 				optionVerbose = true;
 				break;
 			case "--unknownGenre":
-				builder.setUnknownGenre(true);
+				builder.getConfig().setUnknownGenre(true);
 				break;
 			case "--noTrackIndex":
-				builder.setNoTrackIndex(true);
+				builder.getConfig().setNoTrackIndex(true);
 				break;
 			case "--noVariousArtists":
-				builder.setNoVariousArtists(true);
+				builder.getConfig().setNoVariousArtists(true);
 				break;
 			case "--noImages":
-				builder.setNoImages(true);
+				builder.getConfig().setNoImages(true);
 				break;
 			case "--noDirectoryIndex": // deprecated
 				break;
 			case "--directoryIndex":
-				builder.setDirectoryIndex(true);
+				builder.getConfig().setDirectoryIndex(true);
 				break;
 			case "--xml":
-				builder.setXml(true);
+				builder.getConfig().setXml(true);
 				break;
 			case "--grouping":
-				builder.setGrouping(true);
+				builder.getConfig().setGrouping(true);
 				break;
 			case "--normalize":
 				if (++optionsLength == args.length) {
 					exitWithError(command, "invalid arguments");
 				}
 				try {
-					builder.setNormalizer(Normalizer.Form.valueOf(args[optionsLength]));
+					builder.getConfig().setNormalizer(Normalizer.Form.valueOf(args[optionsLength]));
 				} catch (IllegalArgumentException e) {
 					exitWithError(command, "invalid normalize form: " + args[optionsLength]);
 				}

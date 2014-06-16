@@ -18,7 +18,6 @@ package org.musicmount.builder;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.text.Normalizer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
@@ -68,17 +67,7 @@ public class MusicMountBuilder {
 	 */
 	static final String ASSET_STORE = ".musicmount.gz";	
 
-	private boolean retina = false;
-	private boolean pretty = false;
-	private boolean full = false;
-	private boolean noImages = false;
-	private boolean xml = false;
-	private boolean grouping = false;
-	private boolean unknownGenre = false;
-	private boolean noTrackIndex = false;
-	private boolean noVariousArtists = false;
-	private boolean directoryIndex = false;
-	private Normalizer.Form normalizer = null;
+	private final MusicMountBuildConfig config;
 
 	private ProgressHandler progressHandler = new LoggingProgressHandler(LOGGER, Level.FINE);
 
@@ -86,97 +75,28 @@ public class MusicMountBuilder {
 	private final int maxImageThreads;
 
 	public MusicMountBuilder() {
-		this(1, Integer.MAX_VALUE);
+		this(new MusicMountBuildConfig());
+	}
+	
+	public MusicMountBuilder(MusicMountBuildConfig config) {
+		this(config, 1, Integer.MAX_VALUE);
 	}
 
-	public MusicMountBuilder(int maxAssetThreads, int maxImageThreads) {
+	public MusicMountBuilder(MusicMountBuildConfig config, int maxAssetThreads, int maxImageThreads) {
+		this.config = config;
 		this.maxAssetThreads = maxAssetThreads;
 		this.maxImageThreads = maxImageThreads;
 	}
 
+	public MusicMountBuildConfig getConfig() {
+		return config;
+	}
+	
 	public ProgressHandler getProgressHandler() {
 		return progressHandler;
 	}
 	public void setProgressHandler(ProgressHandler progressHandler) {
 		this.progressHandler = progressHandler;
-	}
-
-	public boolean isRetina() {
-		return retina;
-	}
-	public void setRetina(boolean retina) {
-		this.retina = retina;
-	}
-
-	public boolean isPretty() {
-		return pretty;
-	}
-	public void setPretty(boolean pretty) {
-		this.pretty = pretty;
-	}
-
-	public boolean isFull() {
-		return full;
-	}
-	public void setFull(boolean full) {
-		this.full = full;
-	}
-
-	public boolean isNoImages() {
-		return noImages;
-	}
-	public void setNoImages(boolean noImages) {
-		this.noImages = noImages;
-	}
-
-	public boolean isXml() {
-		return xml;
-	}
-	public void setXml(boolean xml) {
-		this.xml = xml;
-	}
-
-	public boolean isGrouping() {
-		return grouping;
-	}
-	public void setGrouping(boolean grouping) {
-		this.grouping = grouping;
-	}
-
-	public boolean isUnknownGenre() {
-		return unknownGenre;
-	}
-
-	public void setUnknownGenre(boolean unknownGenre) {
-		this.unknownGenre = unknownGenre;
-	}
-	
-	public boolean isNoTrackIndex() {
-		return noTrackIndex;
-	}
-	public void setNoTrackIndex(boolean noTrackIndex) {
-		this.noTrackIndex = noTrackIndex;
-	}
-
-	public boolean isNoVariousArtists() {
-		return noVariousArtists;
-	}
-	public void setNoVariousArtists(boolean noVariousArtists) {
-		this.noVariousArtists = noVariousArtists;
-	}
-
-	public boolean isDirectoryIndex() {
-		return directoryIndex;
-	}
-	public void setDirectoryIndex(boolean directoryIndex) {
-		this.directoryIndex = directoryIndex;
-	}
-
-	public Normalizer.Form getNormalizer() {
-		return normalizer;
-	}
-	public void setNormalizer(Normalizer.Form normalizer) {
-		this.normalizer = normalizer;
 	}
 
 	private OutputStream createOutputStream(Resource file) throws IOException {
@@ -196,7 +116,7 @@ public class MusicMountBuilder {
 
 		AssetStore assetStore = new AssetStore(API_VERSION, musicFolder);
 		boolean assetStoreLoaded = false;
-		if (!full) {
+		if (!config.isFull()) {
 			try {
 				if (assetStoreFile.exists()) {
 					assetStore.load(assetStoreFile, progressHandler);
@@ -213,8 +133,8 @@ public class MusicMountBuilder {
 		if (progressHandler != null) {
 			progressHandler.beginTask(-1, "Building music libary...");
 		}
-		Library library = new LibraryParser(grouping).parse(assetStore.assets());
-		if (noVariousArtists) { // remove "various artists" album artist (hack)
+		Library library = new LibraryParser(config.isGrouping()).parse(assetStore.assets());
+		if (config.isNoVariousArtists()) { // remove "various artists" album artist (hack)
 			library.getAlbumArtists().remove(null);
 		}
 		Set<Album> changedAlbums = assetStore.sync(library.getAlbums());
@@ -225,18 +145,18 @@ public class MusicMountBuilder {
 			progressHandler.endTask();
 		}
 
-		if (noImages) {
+		if (config.isNoImages()) {
 			assetStore.setRetina(null);
 		} else {
-			ImageFormatter formatter = new ImageFormatter(new SimpleAssetParser(), retina);
-			final boolean retinaChange = !Boolean.valueOf(retina).equals(assetStore.getRetina());
+			ImageFormatter formatter = new ImageFormatter(new SimpleAssetParser(), config.isRetina());
+			final boolean retinaChange = !Boolean.valueOf(config.isRetina()).equals(assetStore.getRetina());
 			if (LOGGER.isLoggable(Level.FINE) && retinaChange && assetStoreLoaded) {
 				LOGGER.fine(String.format("Retina state %s", assetStore.getRetina() == null ? "unknown" : "changed"));
 			}
-			ResourceLocator resourceLocator = new SimpleResourceLocator(mountFolder, xml, noImages, noTrackIndex);
-			Set<Album> imageAlbums = retinaChange || full ? new HashSet<>(library.getAlbums()) : changedAlbums;
+			ResourceLocator resourceLocator = new SimpleResourceLocator(mountFolder, config.isXml(), config.isNoImages(), config.isNoTrackIndex());
+			Set<Album> imageAlbums = retinaChange || config.isFull() ? new HashSet<>(library.getAlbums()) : changedAlbums;
 			formatter.formatImages(library, resourceLocator, imageAlbums, maxImageThreads, progressHandler);
-			assetStore.setRetina(retina);
+			assetStore.setRetina(config.isRetina());
 		}
 		
 		generateResponseFiles(library, musicFolder, mountFolder, musicPath);
@@ -254,18 +174,18 @@ public class MusicMountBuilder {
 
 	void generateResponseFiles(Library library, Resource musicFolder, Resource mountFolder, String musicPath) throws Exception {
 		if (progressHandler != null) {
-			progressHandler.beginTask(noTrackIndex ? 3 : 4, "Generating JSON...");
+			progressHandler.beginTask(config.isNoTrackIndex() ? 3 : 4, "Generating JSON...");
 		}
 
 		LocalStrings localStrings = new LocalStrings(Locale.ENGLISH);
 		ResponseFormatter<?> formatter;
-		if (xml) {
-			formatter = new ResponseFormatter.XML(API_VERSION, localStrings, directoryIndex, unknownGenre, grouping, pretty);
+		if (config.isXml()) {
+			formatter = new ResponseFormatter.XML(API_VERSION, localStrings, config.isDirectoryIndex(), config.isUnknownGenre(), config.isGrouping(), config.isPretty());
 		} else {
-			formatter = new ResponseFormatter.JSON(API_VERSION, localStrings, directoryIndex, unknownGenre, grouping, pretty);
+			formatter = new ResponseFormatter.JSON(API_VERSION, localStrings, config.isDirectoryIndex(), config.isUnknownGenre(), config.isGrouping(), config.isPretty());
 		}
-		AssetLocator assetLocator = new SimpleAssetLocator(musicFolder, musicPath, normalizer);
-		ResourceLocator resourceLocator = new SimpleResourceLocator(mountFolder, xml, noImages, noTrackIndex);
+		AssetLocator assetLocator = new SimpleAssetLocator(musicFolder, musicPath, config.getNormalizer());
+		ResourceLocator resourceLocator = new SimpleResourceLocator(mountFolder, config.isXml(), config.isNoImages(), config.isNoTrackIndex());
 
 		int workDone = -1;
 		
@@ -328,7 +248,7 @@ public class MusicMountBuilder {
 		/*
 		 * track index
 		 */
-		if (!noTrackIndex) {
+		if (!config.isNoTrackIndex()) {
 			try (OutputStream output = createOutputStream(resourceLocator.getResource(resourceLocator.getTrackIndexPath()))) {
 				formatter.formatTrackIndex(library.getTracks(), output, resourceLocator, null);
 			}

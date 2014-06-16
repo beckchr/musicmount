@@ -16,7 +16,6 @@
 package org.musicmount.fx;
 
 import java.io.File;
-import java.util.prefs.Preferences;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -51,13 +50,6 @@ import org.musicmount.builder.MusicMountBuilder;
 public class FXBuildController {
 	private static final String STATUS_NO_RELATIVE_MUSIC_PATH = "Cannot calculate relative music path, custom path path required";
 
-	private static final Preferences PREFERENCES = Preferences.userNodeForPackage(FXBuildController.class);
-	private static final String PREFERENCE_KEY_GROUPING = "builder.grouping";
-	private static final String PREFERENCE_KEY_NO_TRACK_INDEX = "builder.noTrackIndex";
-	private static final String PREFERENCE_KEY_NO_VARIOUS_ARTISTS = "builder.noVariousArtists";
-	private static final String PREFERENCE_KEY_RETINA = "builder.retina";
-	private static final String PREFERENCE_KEY_UNKNOWN_GENRE = "builder.unknownGenre";
-
 	private Pane pane;
 	private TextField musicFolderTextField;
 	private Button musicFolderChooseButton;
@@ -76,7 +68,7 @@ public class FXBuildController {
 	private Text statusText;
 	
 	private final FXCommandModel model;
-	private final MusicMountBuilder builder = new MusicMountBuilder();
+	private final MusicMountBuilder builder;
 	private final Service<Object> service = new Service<Object>() {
 		@Override
 		protected Task<Object> createTask() {
@@ -92,9 +84,8 @@ public class FXBuildController {
 
 	public FXBuildController(final FXCommandModel model) {
 		this.model = model;
+		this.builder = new MusicMountBuilder(model.getBuildConfig());
 		this.pane = createView(); 
-		
-		loadPreferences();
 		
 		pane.visibleProperty().addListener(new ChangeListener<Boolean>() {
 			@Override
@@ -173,37 +164,37 @@ public class FXBuildController {
 		retinaCheckBox.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				builder.setRetina(retinaCheckBox.isSelected());
+				builder.getConfig().setRetina(retinaCheckBox.isSelected());
 			}
 		});
 		groupingCheckBox.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				builder.setGrouping(groupingCheckBox.isSelected());
+				builder.getConfig().setGrouping(groupingCheckBox.isSelected());
 			}
 		});
 		fullCheckBox.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				builder.setFull(fullCheckBox.isSelected());
+				builder.getConfig().setFull(fullCheckBox.isSelected());
 			}
 		});
 		noTrackIndexCheckBox.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				builder.setNoTrackIndex(noTrackIndexCheckBox.isSelected());
+				builder.getConfig().setNoTrackIndex(noTrackIndexCheckBox.isSelected());
 			}
 		});
 		noVariousArtistsCheckBox.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				builder.setNoVariousArtists(noVariousArtistsCheckBox.isSelected());
+				builder.getConfig().setNoVariousArtists(noVariousArtistsCheckBox.isSelected());
 			}
 		});
 		unknownGenreCheckBox.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				builder.setUnknownGenre(unknownGenreCheckBox.isSelected());
+				builder.getConfig().setUnknownGenre(unknownGenreCheckBox.isSelected());
 			}
 		});
 
@@ -217,7 +208,6 @@ public class FXBuildController {
 			public void handle(WorkerStateEvent event) {
 				statusText.setText("Site generation succeeded");
             	disableControls(false);
-            	savePreferences();
 			}
 		});
 		service.setOnFailed(new EventHandler<WorkerStateEvent>() {
@@ -238,22 +228,6 @@ public class FXBuildController {
 		});
 		
 		updateAll();
-	}
-
-	private void loadPreferences() {
-		builder.setGrouping(PREFERENCES.getBoolean(PREFERENCE_KEY_GROUPING, false));
-		builder.setNoTrackIndex(PREFERENCES.getBoolean(PREFERENCE_KEY_NO_TRACK_INDEX, false));
-		builder.setNoVariousArtists(PREFERENCES.getBoolean(PREFERENCE_KEY_NO_VARIOUS_ARTISTS, false));
-		builder.setRetina(PREFERENCES.getBoolean(PREFERENCE_KEY_RETINA, false));
-		builder.setUnknownGenre(PREFERENCES.getBoolean(PREFERENCE_KEY_UNKNOWN_GENRE, false));
-	}
-
-	private void savePreferences() {
-		PREFERENCES.putBoolean(PREFERENCE_KEY_GROUPING, builder.isGrouping());
-		PREFERENCES.putBoolean(PREFERENCE_KEY_NO_TRACK_INDEX, builder.isNoTrackIndex());
-		PREFERENCES.putBoolean(PREFERENCE_KEY_NO_VARIOUS_ARTISTS, builder.isNoVariousArtists());
-		PREFERENCES.putBoolean(PREFERENCE_KEY_RETINA, builder.isRetina());
-		PREFERENCES.putBoolean(PREFERENCE_KEY_UNKNOWN_GENRE, builder.isUnknownGenre());				
 	}
 	
 	void disableControls(boolean disable) {
@@ -421,12 +395,12 @@ public class FXBuildController {
 	}
 
 	void updateOptions() {
-		fullCheckBox.setSelected(builder.isFull());
-		groupingCheckBox.setSelected(builder.isGrouping());
-		noTrackIndexCheckBox.setSelected(builder.isNoTrackIndex());
-		noVariousArtistsCheckBox.setSelected(builder.isNoVariousArtists());
-		retinaCheckBox.setSelected(builder.isRetina());
-		unknownGenreCheckBox.setSelected(builder.isUnknownGenre());
+		fullCheckBox.setSelected(builder.getConfig().isFull());
+		groupingCheckBox.setSelected(builder.getConfig().isGrouping());
+		noTrackIndexCheckBox.setSelected(builder.getConfig().isNoTrackIndex());
+		noVariousArtistsCheckBox.setSelected(builder.getConfig().isNoVariousArtists());
+		retinaCheckBox.setSelected(builder.getConfig().isRetina());
+		unknownGenreCheckBox.setSelected(builder.getConfig().isUnknownGenre());
 	}
 
 	void updateRunButton() {

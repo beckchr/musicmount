@@ -46,12 +46,12 @@ public class MusicMountBuilderTest {
 		String musicPath = mountFolder.getPath().relativize(musicFolder.getPath()).toString();
 
 		MusicMountBuilder builder = new MusicMountBuilder();
-		builder.setPretty(true);
+		builder.getConfig().setPretty(true);
 
-		builder.setFull(true);
+		builder.getConfig().setFull(true);
 		builder.build(musicFolder, mountFolder, musicPath);
 
-		builder.setFull(false); // use asset store
+		builder.getConfig().setFull(false); // use asset store
 		builder.build(musicFolder, mountFolder, musicPath);
 	}
 	
