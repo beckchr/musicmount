@@ -322,11 +322,6 @@ public class FXLiveController {
 			bonjourService.start(String.format("Live @ %s", host), live.getSiteURL(host, port), getUser());
 		} catch (IOException e) {
 			LOGGER.log(Level.WARNING, "Failed to start Bonjour service", e);
-			try {
-				bonjourService.stop();
-			} catch (IOException e2) {
-				LOGGER.log(Level.WARNING, "Failed to stop Bonjour service", e2);
-			}
 		}
 	}
 
@@ -335,7 +330,7 @@ public class FXLiveController {
 		try {
 			bonjourService.stop();
 		} catch (IOException e) {
-			LOGGER.log(Level.WARNING, "Failed to close Bonjour service", e);
+			LOGGER.log(Level.WARNING, "Failed to stop Bonjour service", e);
 		}
 	}
 

@@ -16,7 +16,10 @@
 package org.musicmount.fx;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.prefs.Preferences;
 
 import javafx.beans.value.ChangeListener;
@@ -31,10 +34,12 @@ import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraintsBuilder;
 import javafx.scene.layout.GridPane;
@@ -45,8 +50,11 @@ import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 
 import org.musicmount.tester.MusicMountTester;
+import org.musicmount.util.BonjourService;
 
 public class FXTestController {
+	static final Logger LOGGER = Logger.getLogger(FXTestController.class.getName());
+
 	private static final String STATUS_NO_RELATIVE_MUSIC_PATH = "Cannot calculate relative music path, custom path path required";
 	
 	private static final Preferences PREFERENCES = Preferences.userNodeForPackage(FXTestController.class);;
@@ -63,9 +71,11 @@ public class FXTestController {
 	private TextField portTextField;
 	private TextField userTextField;
 	private PasswordField passwordField;
+	private CheckBox bonjourCheckBox;
 	private Button runButton;
 	private Text statusText;
 	
+	private final BonjourService bonjourService;
 	private final MusicMountTester tester;
 	private final FXCommandModel model;
 	private Integer port;
@@ -75,6 +85,9 @@ public class FXTestController {
 			return new Task<Object>() {
 				@Override
 				protected Object call() throws Exception {
+					if (bonjourService != null && bonjourCheckBox.isSelected()) {
+						startBonjour();
+					}
 					tester.start(model.getMusicFolder(), model.getMountFolder(), model.getMusicPath(), port.intValue(), getUser(), getPassword());
 					tester.await();
 					return null;
@@ -82,6 +95,9 @@ public class FXTestController {
 				@Override
 				public boolean cancel(boolean mayInterruptIfRunning) {
 					try {
+						if (bonjourService != null && bonjourCheckBox.isSelected()) {
+							stopBonjour();
+						}
 						tester.stop();
 					} catch (Exception e) {
 						return false;
@@ -94,6 +110,7 @@ public class FXTestController {
 
 	public FXTestController(final FXCommandModel model) {
 		this.model = model;
+		this.bonjourService = createBonjour();
 		this.pane = createView();
 		
 		loadPreferences();
@@ -244,6 +261,34 @@ public class FXTestController {
 		updateAll();
 	}
 
+	private BonjourService createBonjour() {
+		try {
+			return new BonjourService(true);
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, "Failed to create Bonjour service", e);
+			return null;
+		}
+	}
+	
+	private void startBonjour() {
+		LOGGER.info("Starting Bonjour service...");
+		String host = tester.getHostName(bonjourService.getHostName());
+		try {
+			bonjourService.start(String.format("Test @ %s", host), tester.getSiteURL(host, port, model.getMusicPath()), getUser());
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, "Failed to start Bonjour service", e);
+		}
+	}
+
+	private void stopBonjour() {
+		LOGGER.info("Stopping Bonjour service...");
+		try {
+			bonjourService.stop();
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, "Failed to stop Bonjour service", e);
+		}
+	}
+
 	private void loadPreferences() {
 		port = Integer.valueOf(PREFERENCES.getInt(PREFERENCE_KEY_PORT, 8080));
 		if (port == 0) {
@@ -337,6 +382,17 @@ public class FXTestController {
 		portTextField = new TextField();
 		portTextField.setPromptText("Number");
 		grid.add(portTextField, 1, 4);
+
+		/*
+		 * bonjour
+		 */
+		Label bonjourLabel = new Label("Bonjour");
+		grid.add(bonjourLabel, 2, 4);
+		GridPane.setHalignment(bonjourLabel, HPos.RIGHT);
+		bonjourCheckBox = new CheckBox("Publish Site");
+		bonjourCheckBox.setDisable(bonjourService == null);
+		bonjourCheckBox.setTooltip(new Tooltip("Register as local Bonjour service"));
+		grid.add(bonjourCheckBox, 3, 4);
 
 		/*
 		 * user
