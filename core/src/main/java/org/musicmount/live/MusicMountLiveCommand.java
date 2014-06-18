@@ -48,7 +48,7 @@ public class MusicMountLiveCommand {
 		System.err.println("       --port <port>      launch HTTP server on specified port (default 8080)");
 		System.err.println("       --user <user>      login user");
 		System.err.println("       --password <pass>  login password");
-		System.err.println("       --Bonjour          publish as bonjour service ('Live @ <hostName>')");
+		System.err.println("       --bonjour          publish as bonjour service ('Live @ <hostName>')");
 		System.err.println("       --full             full parse, don't use asset store");
 		System.err.println("       --verbose          more detailed console output");
 		System.err.close();
