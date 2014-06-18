@@ -133,7 +133,7 @@ public class FXTestController {
 			public void handle(ActionEvent event) {
 				DirectoryChooser directoryChooser = new DirectoryChooser();
 				directoryChooser.setTitle("Music Folder");
-				File directory = directoryChooser.showDialog(null);
+				File directory = directoryChooser.showDialog(musicFolderChooseButton.getScene().getWindow());
 				if (directory != null) {
 					musicFolderTextField.setText(directory.getAbsolutePath());
 				}
@@ -154,7 +154,7 @@ public class FXTestController {
 			public void handle(ActionEvent event) {
 				DirectoryChooser directoryChooser = new DirectoryChooser();
 				directoryChooser.setTitle("Site Folder");
-				File directory = directoryChooser.showDialog(null);
+				File directory = directoryChooser.showDialog(mountFolderChooseButton.getScene().getWindow());
 				if (directory != null) {
 					mountFolderTextField.setText(directory.getAbsolutePath());
 				}

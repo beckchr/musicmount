@@ -148,7 +148,7 @@ public class FXLiveController {
 			public void handle(ActionEvent event) {
 				DirectoryChooser directoryChooser = new DirectoryChooser();
 				directoryChooser.setTitle("Music Folder");
-				File directory = directoryChooser.showDialog(null);
+				File directory = directoryChooser.showDialog(musicFolderChooseButton.getScene().getWindow());
 				if (directory != null) {
 					musicFolderTextField.setText(directory.getAbsolutePath());
 				}
