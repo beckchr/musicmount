@@ -47,6 +47,34 @@ public class LiveMountBuilder {
 	 */
 	static final String API_VERSION = VersionUtil.getSpecificationVersion();	
 
+	static FileResource getRepository() {
+		String userHome = System.getProperty("user.home");
+		if (userHome != null) {
+			FileResource repo = new FileResourceProvider(userHome).getBaseDirectory().resolve(".musicmount");
+			try {
+				if (!repo.exists()) {
+					repo.mkdirs();
+				}
+				return repo;
+			} catch (IOException e) {
+				LOGGER.log(Level.WARNING, "Could not access user repository", e);
+			}
+		} else {
+			LOGGER.info("System property 'user.home' is not set");
+		}
+		LOGGER.info("Creating temporary repository folder");
+		String tempFolder = null;
+		try {
+			tempFolder = Files.createTempDirectory("musicmount-").toFile().getAbsolutePath();
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, "Could not create temporary repository folder", e);
+		}
+		if (tempFolder != null) {
+			return new FileResourceProvider(tempFolder).getBaseDirectory();
+		}
+		return null;
+	}
+	
 	private final Resource repository;
 	private final MusicMountBuildConfig config;
 
@@ -57,25 +85,7 @@ public class LiveMountBuilder {
 	}
 	
 	public LiveMountBuilder(MusicMountBuildConfig config) {
-		this.config = config;
-
-		String userHome = System.getProperty("user.home");
-		if (userHome != null) {
-			repository = new FileResourceProvider(userHome).getBaseDirectory().resolve(".musicmount");
-		} else {
-			LOGGER.info("System property 'user.home' is not set, creating temporary repository folder");
-			String tempFolder = null;
-			try {
-				tempFolder = Files.createTempDirectory("musicmount-").toFile().getAbsolutePath();
-			} catch (IOException e) {
-				LOGGER.log(Level.WARNING, "Could not create temporary repository folder", e);
-			}
-			if (tempFolder != null) {
-				repository = new FileResourceProvider(tempFolder).getBaseDirectory();
-			} else {
-				repository = null;
-			}
-		}
+		this(config, getRepository());
 	}
 
 	public LiveMountBuilder(MusicMountBuildConfig config, Resource repository) {
@@ -140,6 +150,9 @@ public class LiveMountBuilder {
 				assetStore.save(assetStoreFile, progressHandler);
 			} catch (Exception e) {
 				LOGGER.log(Level.WARNING, "Failed to save asset store", e);
+				if (progressHandler != null) {
+					progressHandler.endTask();
+				}
 			}
 		}
 		
