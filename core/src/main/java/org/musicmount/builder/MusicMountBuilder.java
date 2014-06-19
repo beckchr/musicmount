@@ -34,6 +34,7 @@ import org.musicmount.builder.impl.ImageFormatter;
 import org.musicmount.builder.impl.LibraryParser;
 import org.musicmount.builder.impl.LocalStrings;
 import org.musicmount.builder.impl.ResourceLocator;
+import org.musicmount.builder.impl.AssetStoreRepository;
 import org.musicmount.builder.impl.ResponseFormatter;
 import org.musicmount.builder.impl.SimpleAssetLocator;
 import org.musicmount.builder.impl.SimpleAssetParser;
@@ -107,24 +108,38 @@ public class MusicMountBuilder {
 	}
 
 	public void build(Resource musicFolder, Resource mountFolder, String musicPath) throws Exception {
-		Resource assetStoreFile = mountFolder.resolve(ASSET_STORE);
-
 		LOGGER.info("Starting Build...");
 		LOGGER.info("Music folder: " + musicFolder.getPath());
 		LOGGER.info("Mount folder: " + mountFolder.getPath());
 		LOGGER.info("Music path  : " + musicPath);
 
 		AssetStore assetStore = new AssetStore(API_VERSION, musicFolder);
-		boolean assetStoreLoaded = false;
+		Resource siteAssetStoreFile = mountFolder.resolve(ASSET_STORE);
+		boolean siteAssetStoreLoaded = false;
 		if (!config.isFull()) {
 			try {
-				if (assetStoreFile.exists()) {
-					assetStore.load(assetStoreFile, progressHandler);
-					assetStoreLoaded = true;
+				if (siteAssetStoreFile.exists()) {
+					assetStore.load(siteAssetStoreFile, progressHandler);
+					siteAssetStoreLoaded = true;
+				} else { // check user's asset store repository if it has an asset store to load from (e.g. from "live" command)
 				}
 			} catch (Exception e) {
-				LOGGER.log(Level.WARNING, "Failed to load asset store", e);
+				LOGGER.log(Level.WARNING, "Failed to load site asset store", e);
 				assetStore = new AssetStore(API_VERSION, musicFolder);
+			}
+			if (!siteAssetStoreLoaded) { // check user's asset store repository if it has an asset store to load from (e.g. from "live" command)
+				Resource userAssetStoreFile = AssetStoreRepository.getAssetStoreResource(AssetStoreRepository.getUserAssetStoreRepository(), musicFolder);
+				if (userAssetStoreFile != null) {
+					try {
+						if (userAssetStoreFile.exists()) {
+							LOGGER.fine("User asset store found");
+							assetStore.load(userAssetStoreFile, progressHandler);
+						}
+					} catch (Exception e) {
+						LOGGER.log(Level.WARNING, "Failed to load user asset store", e);
+						assetStore = new AssetStore(API_VERSION, musicFolder);
+					}
+				}
 			}
 		}
 
@@ -138,7 +153,7 @@ public class MusicMountBuilder {
 			library.getAlbumArtists().remove(null);
 		}
 		Set<Album> changedAlbums = assetStore.sync(library.getAlbums());
-		if (assetStoreLoaded) {
+		if (siteAssetStoreLoaded) {
 			LOGGER.fine(String.format("Number of albums changed: %d", changedAlbums.size()));
 		}
 		if (progressHandler != null) {
@@ -150,7 +165,7 @@ public class MusicMountBuilder {
 		} else {
 			ImageFormatter formatter = new ImageFormatter(new SimpleAssetParser(), config.isRetina());
 			final boolean retinaChange = !Boolean.valueOf(config.isRetina()).equals(assetStore.getRetina());
-			if (LOGGER.isLoggable(Level.FINE) && retinaChange && assetStoreLoaded) {
+			if (LOGGER.isLoggable(Level.FINE) && retinaChange && siteAssetStoreLoaded) {
 				LOGGER.fine(String.format("Retina state %s", assetStore.getRetina() == null ? "unknown" : "changed"));
 			}
 			ResourceLocator resourceLocator = new SimpleResourceLocator(mountFolder, config.isXml(), config.isNoImages(), config.isNoTrackIndex());
@@ -161,9 +176,9 @@ public class MusicMountBuilder {
 		
 		generateResponseFiles(library, musicFolder, mountFolder, musicPath);
 
-		if (!assetStoreLoaded || changedAlbums.size() > 0) {
+		if (!siteAssetStoreLoaded || changedAlbums.size() > 0) {
 			try {
-				assetStore.save(assetStoreFile, progressHandler);
+				assetStore.save(siteAssetStoreFile, progressHandler);
 			} catch (Exception e) {
 				LOGGER.log(Level.WARNING, "Failed to save asset store", e);
 			}

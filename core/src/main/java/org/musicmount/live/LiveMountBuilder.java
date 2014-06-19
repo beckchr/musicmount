@@ -16,7 +16,6 @@
 package org.musicmount.live;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,6 +26,7 @@ import org.musicmount.builder.impl.AssetStore;
 import org.musicmount.builder.impl.ImageFormatter;
 import org.musicmount.builder.impl.LibraryParser;
 import org.musicmount.builder.impl.LocalStrings;
+import org.musicmount.builder.impl.AssetStoreRepository;
 import org.musicmount.builder.impl.ResponseFormatter;
 import org.musicmount.builder.impl.SimpleAssetLocator;
 import org.musicmount.builder.impl.SimpleAssetParser;
@@ -34,7 +34,6 @@ import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.Library;
 import org.musicmount.io.Resource;
 import org.musicmount.io.file.FileResource;
-import org.musicmount.io.file.FileResourceProvider;
 import org.musicmount.util.LoggingProgressHandler;
 import org.musicmount.util.ProgressHandler;
 import org.musicmount.util.VersionUtil;
@@ -48,31 +47,15 @@ public class LiveMountBuilder {
 	static final String API_VERSION = VersionUtil.getSpecificationVersion();	
 
 	static FileResource getRepository() {
-		String userHome = System.getProperty("user.home");
-		if (userHome != null) {
-			FileResource repo = new FileResourceProvider(userHome).getBaseDirectory().resolve(".musicmount");
-			try {
-				if (!repo.exists()) {
-					repo.mkdirs();
-				}
-				return repo;
-			} catch (IOException e) {
-				LOGGER.log(Level.WARNING, "Could not access user repository", e);
+		FileResource repo = AssetStoreRepository.getUserAssetStoreRepository();
+		if (repo == null) {
+			LOGGER.info("No user asset store repository, creating temporary repository folder");
+			repo = AssetStoreRepository.createTemporaryAssetStoreRepository();
+			if (repo == null) {
+				LOGGER.warning("Could not create temporary repository folder");
 			}
-		} else {
-			LOGGER.info("System property 'user.home' is not set");
 		}
-		LOGGER.info("Creating temporary repository folder");
-		String tempFolder = null;
-		try {
-			tempFolder = Files.createTempDirectory("musicmount-").toFile().getAbsolutePath();
-		} catch (IOException e) {
-			LOGGER.log(Level.WARNING, "Could not create temporary repository folder", e);
-		}
-		if (tempFolder != null) {
-			return new FileResourceProvider(tempFolder).getBaseDirectory();
-		}
-		return null;
+		return repo;
 	}
 	
 	private final Resource repository;
@@ -104,15 +87,8 @@ public class LiveMountBuilder {
 		this.progressHandler = progressHandler;
 	}
 
-	private Resource assetStoreResource(FileResource musicFolder) {
-		if (repository == null) {
-			return null;
-		}
-		return repository.resolve(String.format("live-%08x.gz", musicFolder.getPath().toUri().toString().hashCode()));
-	}
-	
 	public LiveMount update(FileResource musicFolder, String musicPath) throws IOException {
-		Resource assetStoreFile = assetStoreResource(musicFolder);
+		Resource assetStoreFile = AssetStoreRepository.getAssetStoreResource(repository, musicFolder);
 		
 		AssetStore assetStore = new AssetStore(API_VERSION, musicFolder);
 		boolean assetStoreLoaded = false;
@@ -147,6 +123,9 @@ public class LiveMountBuilder {
 
 		if (assetStoreFile != null && changedAlbums.size() > 0) {
 			try {
+				if (!assetStoreFile.getParent().exists()) {
+					assetStoreFile.getParent().mkdirs();
+				}
 				assetStore.save(assetStoreFile, progressHandler);
 			} catch (Exception e) {
 				LOGGER.log(Level.WARNING, "Failed to save asset store", e);
