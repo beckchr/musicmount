@@ -21,6 +21,7 @@ import java.net.MalformedURLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Service;
@@ -90,7 +91,7 @@ public class FXLiveController {
 			};
 		}
 	};
-	private final Service<Object> service = new Service<Object>() {
+	private final Service<Object> liveService = new Service<Object>() {
 		@Override
 		protected Task<Object> createTask() {
 			return new Task<Object>() {
@@ -235,23 +236,30 @@ public class FXLiveController {
 			public void handle(WorkerStateEvent event) {
 				liveMount = buildService.getValue();
 				statusText.setText("Mount analysis done");
-				service.reset();
-				service.start();
+				Platform.runLater(new Runnable() {
+					@Override
+					public void run() {
+						liveService.reset();
+						liveService.start();
+					}
+				});
 			}
 		});
     	buildService.setOnFailed(new EventHandler<WorkerStateEvent>() {
 			public void handle(WorkerStateEvent event) {
 				liveMount = null;
+				builder.getProgressHandler().endTask();
 				statusText.setText("Mount analysis failed");
 				if (buildService.getException() != null) {
 					buildService.getException().printStackTrace();
 				}
 				runButton.setText("Start Server");
+				runButton.setDisable(false);
 				disableControls(false);
 			}
 		});
 
-    	service.setOnRunning(new EventHandler<WorkerStateEvent>() {
+    	liveService.setOnRunning(new EventHandler<WorkerStateEvent>() {
 			public void handle(WorkerStateEvent event) {
 				try {
 					statusText.setText("Server started - " + live.getSiteURL(live.getHostName("<hostname>"), model.getServerPort().intValue()));
@@ -263,18 +271,19 @@ public class FXLiveController {
             	disableControls(true);
 			}
 		});
-		service.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
+		liveService.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
 			public void handle(WorkerStateEvent event) {
 				statusText.setText("Server stopped");
+				runButton.setDisable(false);
 				runButton.setText("Start Server");
 				disableControls(false);
 			}
 		});
-		service.setOnFailed(new EventHandler<WorkerStateEvent>() {
+		liveService.setOnFailed(new EventHandler<WorkerStateEvent>() {
 			public void handle(WorkerStateEvent event) {
-				if (service.getException() != null) {
-					service.getException().printStackTrace();
-					statusText.setText("Server failed: " + service.getException().getMessage());
+				if (liveService.getException() != null) {
+					liveService.getException().printStackTrace();
+					statusText.setText("Server failed: " + liveService.getException().getMessage());
 				} else {
 					statusText.setText("Server failed");
 				}
@@ -286,9 +295,9 @@ public class FXLiveController {
 		runButton.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				if (service.isRunning()) {
-					service.cancel();
-				} else {
+				if (liveService.isRunning()) {
+					liveService.cancel();
+				} else if (!buildService.isRunning()) {
 					buildService.reset();
 					buildService.start();
 				}
@@ -511,7 +520,7 @@ public class FXLiveController {
 	}
 
 	void updateRunButton() {
-		runButton.setDisable(service.isRunning() || !model.isValidLiveModel());
+		runButton.setDisable(buildService.isRunning() || liveService.isRunning() || !model.isValidLiveModel());
 	}
 
 	String getUser() {
@@ -526,7 +535,11 @@ public class FXLiveController {
 		return pane;
 	}
 	
-	public Service<Object> getService() {
-		return service;
+	public Service<?> getLiveService() {
+		return liveService;
+	}
+
+	public Service<?> getBuildService() {
+		return buildService;
 	}
 }

@@ -80,8 +80,8 @@ public class FXMusicMount extends Application {
 		primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
 			@Override
 			public void handle(WindowEvent event) {
-				if (liveController.getService().isRunning()) {
-					liveController.getService().cancel();
+				if (liveController.getLiveService().isRunning()) {
+					liveController.getLiveService().cancel();
 				}
 				if (buildController.getService().isRunning()) {
 					buildController.getService().cancel();
@@ -118,7 +118,8 @@ public class FXMusicMount extends Application {
 				}
 			}
 		};		
-		liveController.getService().runningProperty().addListener(serviceRunningListener);
+		liveController.getLiveService().runningProperty().addListener(serviceRunningListener);
+		liveController.getBuildService().runningProperty().addListener(serviceRunningListener);
 		buildController.getService().runningProperty().addListener(serviceRunningListener);
 		testController.getService().runningProperty().addListener(serviceRunningListener);
 

@@ -212,6 +212,7 @@ public class FXBuildController {
 		});
 		service.setOnFailed(new EventHandler<WorkerStateEvent>() {
 			public void handle(WorkerStateEvent event) {
+				builder.getProgressHandler().endTask();
 				statusText.setText("Site generation failed");
 				if (service.getException() != null) {
 					service.getException().printStackTrace();
