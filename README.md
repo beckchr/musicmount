@@ -28,6 +28,15 @@ Documentation is available [here](http://musicmount.org/tool/).
 
 ## Change History
 
+#### Version 1.6 (2014/06/20)
+
+- added Bonjour support ("live" and "test" commands)
+- use AWT toolkit to read images (instead of ImageIO) for better performance
+- StAXON JSR 353 (javax.json) streaming backend for better JSON performance
+- fixed: M4AInfo fails to get year if '@day' contains full date
+- new "live" command to mount folder without generating a static site
+- [UI] new "Live" tab, lots of minor improvements
+
 #### Version 1.5.1 (2014/06/04)
 
 - fixed m4a issue with parsing year with length != 4
