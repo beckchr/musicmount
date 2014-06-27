@@ -189,15 +189,18 @@ public class MusicMountTester {
 		}
 	}
 
-	public URL getSiteURL(String hostName, int port, String musicPath) throws MalformedURLException {
+	public String getSitePath(String musicPath) {
 		if (!checkMusicPath(musicPath)) {
 			return null;
 		}
-		String path = String.format("%s/index.json", mountContextPath(musicPath));
+		return String.format("%s/index.json", mountContextPath(musicPath));
+	}
+	
+	public URL getSiteURL(String hostName, int port, String musicPath) throws MalformedURLException {
 		if (port == 80) {
-			return new URL("http", hostName, path);
+			return new URL("http", hostName, getSitePath(musicPath));
 		} else {
-			return new URL("http", hostName, port, path);
+			return new URL("http", hostName, port, getSitePath(musicPath));
 		}
 	}
 }

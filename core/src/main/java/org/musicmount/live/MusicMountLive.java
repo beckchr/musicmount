@@ -98,11 +98,11 @@ public class MusicMountLive {
 		this.updater = new LiveMountUpdater(60 * 1000L); // delay update for 60 seconds after change  
 	}
 	
-	public String getMusicPath() {
+	private String getMusicPath() {
 		return MUSIC_PATH;
 	}
 	
-	public String getMountPath() {
+	private String getMountPath() {
 		return MOUNT_PATH;
 	}
 
@@ -113,8 +113,8 @@ public class MusicMountLive {
 			return defaultName;
 		}
 	}
-
-	public URL getSiteURL(String hostName, int port) throws MalformedURLException {
+	
+	public String getSitePath() {
 		String path = getMountPath();
 		if (!path.startsWith("/")) {
 			path = "/" + path;
@@ -122,10 +122,14 @@ public class MusicMountLive {
 		if (!path.endsWith("/")) {
 			path = path + "/";
 		}
+		return path;
+	}
+
+	public URL getSiteURL(String hostName, int port) throws MalformedURLException {
 		if (port == 80) {
-			return new URL("http", hostName, path);
+			return new URL("http", hostName, getSitePath());
 		} else {
-			return new URL("http", hostName, port, path);
+			return new URL("http", hostName, port, getSitePath());
 		}
 	}
 
