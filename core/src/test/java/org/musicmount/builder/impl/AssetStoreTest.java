@@ -45,7 +45,7 @@ public class AssetStoreTest {
 
 		Set<Album> changedAlbums = assetStore.sync(library.getAlbums());
 		Assert.assertEquals(1, changedAlbums.size());
-		Assert.assertEquals(3, assetStore.getEntities().size());
+		Assert.assertEquals(3, assetStore.size());
 
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		assetStore.save(output);
@@ -56,7 +56,7 @@ public class AssetStoreTest {
 		assetStore.load(input);
 		input.close();
 		
-		Assert.assertEquals(3, assetStore.getEntities().size());
+		Assert.assertEquals(3, assetStore.size());
 		assetStore.update(new SimpleAssetParser(), 4, ProgressHandler.NOOP);
 
 		library = new LibraryParser(true).parse(assetStore.assets());
@@ -64,7 +64,7 @@ public class AssetStoreTest {
 		Assert.assertEquals(1, library.getTrackArtists().size());
 		Assert.assertEquals(1, library.getAlbums().size());
 
-		Assert.assertEquals(3, assetStore.getEntities().size());
+		Assert.assertEquals(3, assetStore.size());
 		changedAlbums = assetStore.sync(library.getAlbums());
 		Assert.assertEquals(0, changedAlbums.size());
 

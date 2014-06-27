@@ -116,8 +116,8 @@ public class AssetStore {
 		this.retina = retina;
 	}
 	
-	public Map<Resource, AssetEntity> getEntities() {
-		return Collections.unmodifiableMap(entities);
+	public int size() {
+		return entities.size();
 	}
 	
 	public Iterable<Asset> assets() {

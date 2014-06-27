@@ -95,18 +95,17 @@ public class LiveMountBuilder {
 		Resource assetStoreFile = AssetStoreRepository.getAssetStoreResource(repository, musicFolder);
 		
 		AssetStore assetStore = new AssetStore(API_VERSION, musicFolder);
-		boolean assetStoreLoaded = false;
 		if (!config.isFull() && assetStoreFile != null) {
 			try {
 				if (assetStoreFile.exists()) {
 					assetStore.load(assetStoreFile, progressHandler);
-					assetStoreLoaded = true;
 				}
 			} catch (Exception e) {
 				LOGGER.log(Level.WARNING, "Failed to load asset store", e);
 				assetStore = new AssetStore(API_VERSION, musicFolder);
 			}
 		}
+		int loadedAssetStoreSize = assetStore.size();
 
 		assetStore.update(new SimpleAssetParser(), 1, progressHandler); // throws IOException
 
@@ -118,14 +117,14 @@ public class LiveMountBuilder {
 			library.getAlbumArtists().remove(null);
 		}
 		Set<Album> changedAlbums = assetStore.sync(library.getAlbums());
-		if (assetStoreLoaded) {
+		if (loadedAssetStoreSize > 0) {
 			LOGGER.fine(String.format("Number of albums changed: %d", changedAlbums.size()));
 		}
 		if (progressHandler != null) {
 			progressHandler.endTask();
 		}
 
-		if (assetStoreFile != null && changedAlbums.size() > 0) {
+		if (assetStoreFile != null && (changedAlbums.size() > 0 || assetStore.size() < loadedAssetStoreSize)) {
 			try {
 				if (!assetStoreFile.getParent().exists()) {
 					assetStoreFile.getParent().mkdirs();
