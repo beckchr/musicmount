@@ -79,10 +79,10 @@ public class FXTestController {
 			return new Task<Object>() {
 				@Override
 				protected Object call() throws Exception {
+					tester.start(model.getMusicFolder(), model.getMountFolder(), model.getMusicPath(), model.getServerPort().intValue(), getUser(), getPassword());
 					if (bonjourService != null && model.isBonjour()) {
 						startBonjour();
 					}
-					tester.start(model.getMusicFolder(), model.getMountFolder(), model.getMusicPath(), model.getServerPort().intValue(), getUser(), getPassword());
 					tester.await();
 					return null;
 				}
@@ -268,19 +268,21 @@ public class FXTestController {
 	}
 	
 	private void startBonjour() {
-		LOGGER.info("Starting Bonjour service...");
-		String host = tester.getHostName(bonjourService.getHostName());
+		String host = bonjourService.getHostName();
+		String name = String.format("Test @ %s", tester.getHostName(host));
 		try {
-			bonjourService.start(String.format("Test @ %s", host), tester.getSiteURL(host, model.getServerPort().intValue(), model.getMusicPath()), getUser());
+//			bonjourService.start(name, model.getServerPort(), tester.getSitePath(model.getMusicPath()), getUser()); // bug in MM 1.5.2
+			bonjourService.start(name, tester.getSiteURL(host, model.getServerPort().intValue(), model.getMusicPath()), getUser());
+			LOGGER.info("Bonjour service started.");
 		} catch (IOException e) {
 			LOGGER.log(Level.WARNING, "Failed to start Bonjour service", e);
 		}
 	}
 
 	private void stopBonjour() {
-		LOGGER.info("Stopping Bonjour service...");
 		try {
 			bonjourService.stop();
+			LOGGER.info("Bonjour service stopped.");
 		} catch (IOException e) {
 			LOGGER.log(Level.WARNING, "Failed to stop Bonjour service", e);
 		}

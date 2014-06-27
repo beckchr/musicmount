@@ -312,19 +312,21 @@ public class FXLiveController {
 	}
 	
 	private void startBonjour() {
-		LOGGER.info("Starting Bonjour service...");
-		String host = live.getHostName(bonjourService.getHostName());
+		String host = bonjourService.getHostName();
+		String name = String.format("Live @ %s", live.getHostName(host));
 		try {
-			bonjourService.start(String.format("Live @ %s", host), live.getSiteURL(host, model.getServerPort().intValue()), getUser());
+//			bonjourService.start(name, model.getServerPort(), live.getSitePath(), getUser()); // bug in MM 1.5.2
+			bonjourService.start(name, live.getSiteURL(host, model.getServerPort().intValue()), getUser());
+			LOGGER.info("Bonjour service started.");
 		} catch (IOException e) {
 			LOGGER.log(Level.WARNING, "Failed to start Bonjour service", e);
 		}
 	}
 
 	private void stopBonjour() {
-		LOGGER.info("Stopping Bonjour service...");
 		try {
 			bonjourService.stop();
+			LOGGER.info("Bonjour service stopped.");
 		} catch (IOException e) {
 			LOGGER.log(Level.WARNING, "Failed to stop Bonjour service", e);
 		}
