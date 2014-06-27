@@ -31,14 +31,14 @@ public class LoggingProgressHandler implements ProgressHandler {
 	public void beginTask(int totalWork, String title) {
 		if (logger.isLoggable(level)) {
 			if (title != null) {
-				logger.fine(String.format("Progress: %s", title));
+				logger.log(level, String.format("Progress: %s", title));
 			}
 		}
 	}
 	@Override
 	public void progress(int workDone, String message) {
 		if (logger.isLoggable(level)) {
-			logger.fine(String.format("Progress: %s", message));
+			logger.log(level, String.format("Progress: %s", message));
 		}
 	}
 	@Override

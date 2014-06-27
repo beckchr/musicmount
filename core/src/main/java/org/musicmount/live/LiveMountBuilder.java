@@ -46,7 +46,7 @@ public class LiveMountBuilder {
 	 */
 	static final String API_VERSION = VersionUtil.getSpecificationVersion();	
 
-	static FileResource getRepository() {
+	static FileResource getDefaultRepository() {
 		FileResource repo = AssetStoreRepository.getUserAssetStoreRepository();
 		if (repo == null) {
 			LOGGER.info("No user asset store repository, creating temporary repository folder");
@@ -68,7 +68,7 @@ public class LiveMountBuilder {
 	}
 	
 	public LiveMountBuilder(MusicMountBuildConfig config) {
-		this(config, getRepository());
+		this(config, getDefaultRepository());
 	}
 
 	public LiveMountBuilder(MusicMountBuildConfig config, Resource repository) {
@@ -78,6 +78,10 @@ public class LiveMountBuilder {
 	
 	public MusicMountBuildConfig getConfig() {
 		return config;
+	}
+	
+	public Resource getRepository() {
+		return repository;
 	}
 	
 	public ProgressHandler getProgressHandler() {

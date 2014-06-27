@@ -162,7 +162,7 @@ public class MusicMountLiveCommand {
 		 */
 		MusicMountLive live = new MusicMountLive();
 		try {
-			live.start(musicFolder, builder.update(musicFolder, live.getMusicPath()), optionPort, optionUser, optionPassword);
+			live.start(musicFolder, builder, optionPort, optionUser, optionPassword);
 		} catch (Exception e) {
 			LOGGER.log(Level.SEVERE, "Could not start server", e);
 //			e.printStackTrace();

@@ -47,9 +47,16 @@ public class LiveMountServlet extends HttpServlet implements ResourceLocator {
 	private static final String ARTIST_ID_PARAM = "artistId";
 	private static final String ALBUM_ID_PARAM = "albumId";
 
-	private final LiveMount mount;
+	private LiveMount mount;
 
 	public LiveMountServlet(LiveMount mount) {
+		this.mount = mount;
+	}
+	
+	public LiveMount getMount() {
+		return mount;
+	}
+	void setMount(LiveMount mount) {
 		this.mount = mount;
 	}
 

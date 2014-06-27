@@ -49,7 +49,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 
-import org.musicmount.live.LiveMount;
 import org.musicmount.live.LiveMountBuilder;
 import org.musicmount.live.MusicMountLive;
 import org.musicmount.util.BonjourService;
@@ -74,19 +73,18 @@ public class FXLiveController {
 	private Button runButton;
 	private Text statusText;
 	
-	private LiveMount liveMount;
-	
 	private final FXCommandModel model;
 	private final BonjourService bonjourService;
 	private final LiveMountBuilder builder;
 	private final MusicMountLive live = new MusicMountLive();
-	private final Service<LiveMount> buildService = new Service<LiveMount>() {
+	private final Service<Object> buildService = new Service<Object>() {
 		@Override
-		protected Task<LiveMount> createTask() {
-			return new Task<LiveMount>() {
+		protected Task<Object> createTask() {
+			return new Task<Object>() {
 				@Override
-				protected LiveMount call() throws Exception {
-					return builder.update(model.getMusicFolder(), live.getMusicPath());
+				protected Object call() throws Exception {
+					live.start(model.getMusicFolder(), builder, model.getServerPort().intValue(), getUser(), getPassword());
+					return null;
 				}
 			};
 		}
@@ -100,7 +98,6 @@ public class FXLiveController {
 					if (bonjourService != null && model.isBonjour()) {
 						startBonjour();
 					}
-					live.start(model.getMusicFolder(), liveMount, model.getServerPort().intValue(), getUser(), getPassword());
 					live.await();
 					return null;
 				}
@@ -234,7 +231,6 @@ public class FXLiveController {
 		});
     	buildService.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
 			public void handle(WorkerStateEvent event) {
-				liveMount = buildService.getValue();
 				statusText.setText("Mount analysis done");
 				Platform.runLater(new Runnable() {
 					@Override
@@ -247,7 +243,6 @@ public class FXLiveController {
 		});
     	buildService.setOnFailed(new EventHandler<WorkerStateEvent>() {
 			public void handle(WorkerStateEvent event) {
-				liveMount = null;
 				builder.getProgressHandler().endTask();
 				statusText.setText("Mount analysis failed");
 				if (buildService.getException() != null) {

@@ -34,6 +34,7 @@ import org.musicmount.server.MusicMountServer.AccessLog;
 import org.musicmount.server.MusicMountServer.FolderContext;
 import org.musicmount.server.MusicMountServer.MountContext;
 import org.musicmount.server.MusicMountServerJetty;
+import org.musicmount.util.ProgressHandler;
 import org.musicmount.util.VersionUtil;
 
 public class MusicMountLive {
@@ -86,6 +87,7 @@ public class MusicMountLive {
 	};
 	
 	private final MusicMountServer server;
+	private final LiveMountUpdater updater;
 
 	public MusicMountLive() {
 		this(new MusicMountServerJetty(LOGGER_ACCESS_LOG));
@@ -93,6 +95,7 @@ public class MusicMountLive {
 	
 	public MusicMountLive(MusicMountServer server) {
 		this.server = server;
+		this.updater = new LiveMountUpdater(60 * 1000L); // delay update for 60 seconds after change  
 	}
 	
 	public String getMusicPath() {
@@ -126,12 +129,14 @@ public class MusicMountLive {
 		}
 	}
 
-	public void start(FileResource musicFolder, LiveMount liveMount, int port, String user, String password) throws Exception {
+	public void start(final FileResource musicFolder, final LiveMountBuilder mountBuilder, int port, String user, String password) throws Exception {
 		LOGGER.info("Starting Server...");
 		LOGGER.info("Music folder: " + musicFolder.getPath());
 
+		LiveMountServlet servlet = new LiveMountServlet(mountBuilder.update(musicFolder, getMusicPath()));
+		
 		FolderContext music = new FolderContext(getMusicPath(), musicFolder.getPath().toFile());
-		MountContext mount = new MountContext(getMountPath(), new LiveMountServlet(liveMount));
+		MountContext mount = new MountContext(getMountPath(), servlet);
 		
 		server.start(music, mount, port, user, password);
 		LOGGER.info(String.format("Mount Settings"));
@@ -143,6 +148,12 @@ public class MusicMountLive {
 		}
 		LOGGER.info(String.format("--------------"));
 		LOGGER.info("Done.");
+
+		LiveMountBuilder updateBuilder = new LiveMountBuilder(mountBuilder.getConfig().clone(), mountBuilder.getRepository());
+		mountBuilder.getConfig().setFull(false); // never do a full build when updating
+		updateBuilder.setProgressHandler(ProgressHandler.NOOP); // no progress handling
+		updater.start(musicFolder, getMusicPath(), updateBuilder, servlet);
+		LOGGER.info("Auto updater is ready.");
 	}
 	
 	public void await() {
@@ -155,6 +166,7 @@ public class MusicMountLive {
 
 	public void stop() throws Exception {
 		LOGGER.info("Stopping Server...");
+		updater.stop();
 		server.stop();
 		LOGGER.info("Done.");
 	}

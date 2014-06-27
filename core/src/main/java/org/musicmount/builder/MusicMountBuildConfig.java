@@ -17,7 +17,7 @@ package org.musicmount.builder;
 
 import java.text.Normalizer;
 
-public class MusicMountBuildConfig {
+public final class MusicMountBuildConfig implements Cloneable {
 
 	private boolean retina = false;
 	private boolean pretty = false;
@@ -31,6 +31,15 @@ public class MusicMountBuildConfig {
 	private boolean directoryIndex = false;
 	private Normalizer.Form normalizer = null;
 
+	@Override
+	public MusicMountBuildConfig clone() {
+		try {
+			return (MusicMountBuildConfig)super.clone();
+		} catch (CloneNotSupportedException e) {
+			return null;
+		}
+	}
+	
 	public boolean isRetina() {
 		return retina;
 	}
