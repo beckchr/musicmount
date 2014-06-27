@@ -31,6 +31,7 @@ public class FXCommandModel {
 	private static final String PREFERENCE_KEY_RETINA = "builder.retina";
 	private static final String PREFERENCE_KEY_UNKNOWN_GENRE = "builder.unknownGenre";
 	private static final String PREFERENCE_KEY_PORT = "server.port";
+	private static final String PREFERENCE_KEY_BONJOUR = "server.bonjour";
 
 	public static final String DEFAULT_CUSTOM_MUSIC_PATH = "music";
 
@@ -44,12 +45,12 @@ public class FXCommandModel {
 	private boolean bonjour;
 
 	public FXCommandModel() {
-		loadBuilderPreferences();
+		loadPreferences();
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
 				try {
-					saveBuilderPreferences();
+					savePreferences();
 				} catch (BackingStoreException e) {
 					e.printStackTrace();
 				}
@@ -61,7 +62,7 @@ public class FXCommandModel {
 		return buildConfig;
 	}
 	
-	private void loadBuilderPreferences() {
+	private void loadPreferences() {
 		getBuildConfig().setGrouping(PREFERENCES.getBoolean(PREFERENCE_KEY_GROUPING, false));
 		getBuildConfig().setNoTrackIndex(PREFERENCES.getBoolean(PREFERENCE_KEY_NO_TRACK_INDEX, false));
 		getBuildConfig().setNoVariousArtists(PREFERENCES.getBoolean(PREFERENCE_KEY_NO_VARIOUS_ARTISTS, false));
@@ -71,9 +72,10 @@ public class FXCommandModel {
 		if (serverPort == 0) {
 			serverPort = null;
 		}
+		bonjour = PREFERENCES.getBoolean(PREFERENCE_KEY_BONJOUR, false);
 	}
 
-	private void saveBuilderPreferences() throws BackingStoreException {
+	private void savePreferences() throws BackingStoreException {
 		PREFERENCES.putBoolean(PREFERENCE_KEY_GROUPING, getBuildConfig().isGrouping());
 		PREFERENCES.putBoolean(PREFERENCE_KEY_NO_TRACK_INDEX, getBuildConfig().isNoTrackIndex());
 		PREFERENCES.putBoolean(PREFERENCE_KEY_NO_VARIOUS_ARTISTS, getBuildConfig().isNoVariousArtists());
@@ -84,6 +86,7 @@ public class FXCommandModel {
 		} else {
 			PREFERENCES.remove(PREFERENCE_KEY_PORT);
 		}
+		PREFERENCES.putBoolean(PREFERENCE_KEY_BONJOUR, bonjour);
 		PREFERENCES.flush();
 	}
 	
