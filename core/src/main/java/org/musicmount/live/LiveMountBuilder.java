@@ -23,10 +23,10 @@ import java.util.logging.Logger;
 import org.musicmount.builder.MusicMountBuildConfig;
 import org.musicmount.builder.impl.AssetLocator;
 import org.musicmount.builder.impl.AssetStore;
+import org.musicmount.builder.impl.AssetStoreRepository;
 import org.musicmount.builder.impl.ImageFormatter;
 import org.musicmount.builder.impl.LibraryParser;
 import org.musicmount.builder.impl.LocalStrings;
-import org.musicmount.builder.impl.AssetStoreRepository;
 import org.musicmount.builder.impl.ResponseFormatter;
 import org.musicmount.builder.impl.SimpleAssetLocator;
 import org.musicmount.builder.impl.SimpleAssetParser;
@@ -34,7 +34,6 @@ import org.musicmount.builder.model.Album;
 import org.musicmount.builder.model.Library;
 import org.musicmount.io.Resource;
 import org.musicmount.io.file.FileResource;
-import org.musicmount.util.LoggingProgressHandler;
 import org.musicmount.util.ProgressHandler;
 import org.musicmount.util.VersionUtil;
 
@@ -61,8 +60,6 @@ public class LiveMountBuilder {
 	private final Resource repository;
 	private final MusicMountBuildConfig config;
 
-	private ProgressHandler progressHandler = new LoggingProgressHandler(LOGGER, Level.FINE);
-
 	public LiveMountBuilder() {
 		this(new MusicMountBuildConfig());
 	}
@@ -84,14 +81,7 @@ public class LiveMountBuilder {
 		return repository;
 	}
 	
-	public ProgressHandler getProgressHandler() {
-		return progressHandler;
-	}
-	public void setProgressHandler(ProgressHandler progressHandler) {
-		this.progressHandler = progressHandler;
-	}
-
-	public LiveMount update(FileResource musicFolder, String musicPath) throws IOException {
+	public LiveMount update(FileResource musicFolder, String musicPath, ProgressHandler progressHandler) throws IOException {
 		Resource assetStoreFile = AssetStoreRepository.getAssetStoreResource(repository, musicFolder);
 		
 		AssetStore assetStore = new AssetStore(API_VERSION, musicFolder);

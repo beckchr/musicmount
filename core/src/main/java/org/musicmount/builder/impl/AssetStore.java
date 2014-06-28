@@ -94,6 +94,10 @@ public class AssetStore {
 		this.musicFolder = musicFolder;
 	}
 	
+	public Resource getMusicFolder() {
+		return musicFolder;
+	}
+	
 	/*
 	 * visible for testing
 	 */

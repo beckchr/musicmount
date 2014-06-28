@@ -62,7 +62,7 @@ public class MusicMountLiveCommand {
 	 * @throws Exception something went wrong...
 	 */
 	public static void execute(String command, String... args) throws Exception {
-		LiveMountBuilder builder = new LiveMountBuilder();
+		MusicMountLive live = new MusicMountLive();
 		
 		int optionPort = 8080;
 		String optionUser = null;
@@ -75,22 +75,22 @@ public class MusicMountLiveCommand {
 		while (optionsLength < args.length && !optionsDone) {
 			switch (args[optionsLength]) {
 			case "--retina":
-				builder.getConfig().setRetina(true);
+				live.getConfig().setRetina(true);
 				break;
 			case "--grouping":
-				builder.getConfig().setGrouping(true);
+				live.getConfig().setGrouping(true);
 				break;
 			case "--unknownGenre":
-				builder.getConfig().setUnknownGenre(true);
+				live.getConfig().setUnknownGenre(true);
 				break;
 			case "--noTrackIndex":
-				builder.getConfig().setNoTrackIndex(true);
+				live.getConfig().setNoTrackIndex(true);
 				break;
 			case "--noVariousArtists":
-				builder.getConfig().setNoVariousArtists(true);
+				live.getConfig().setNoVariousArtists(true);
 				break;
 			case "--full":
-				builder.getConfig().setFull(true);
+				live.getConfig().setFull(true);
 				break;
 			case "--port":
 				if (++optionsLength == args.length) {
@@ -160,12 +160,10 @@ public class MusicMountLiveCommand {
 		/*
 		 * Start server
 		 */
-		MusicMountLive live = new MusicMountLive();
 		try {
-			live.start(musicFolder, builder, optionPort, optionUser, optionPassword);
+			live.start(musicFolder, optionPort, optionUser, optionPassword);
 		} catch (Exception e) {
 			LOGGER.log(Level.SEVERE, "Could not start server", e);
-//			e.printStackTrace();
 			System.exit(1);
 		}
 

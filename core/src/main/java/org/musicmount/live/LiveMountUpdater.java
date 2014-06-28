@@ -27,6 +27,7 @@ import java.util.logging.Logger;
 
 import org.musicmount.io.file.FileResource;
 import org.musicmount.util.FolderTreeWatcher;
+import org.musicmount.util.ProgressHandler;
 
 public class LiveMountUpdater {
 	protected static final Logger LOGGER = Logger.getLogger(LiveMountUpdater.class.getName());
@@ -51,7 +52,7 @@ public class LiveMountUpdater {
 				public void run() {
 					LOGGER.info("Updating live mount...");
 					try {
-						servlet.setMount(builder.update(musicFolder, musicPath));
+						servlet.setMount(builder.update(musicFolder, musicPath, ProgressHandler.NOOP));
 						LOGGER.info("Done.");
 					} catch (Exception e) {
 						LOGGER.log(Level.WARNING, "Could not update live mount", e);

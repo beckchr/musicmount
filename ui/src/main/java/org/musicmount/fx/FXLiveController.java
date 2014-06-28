@@ -49,7 +49,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 
-import org.musicmount.live.LiveMountBuilder;
 import org.musicmount.live.MusicMountLive;
 import org.musicmount.util.BonjourService;
 
@@ -75,15 +74,14 @@ public class FXLiveController {
 	
 	private final FXCommandModel model;
 	private final BonjourService bonjourService;
-	private final LiveMountBuilder builder;
-	private final MusicMountLive live = new MusicMountLive();
+	private final MusicMountLive live;
 	private final Service<Object> buildService = new Service<Object>() {
 		@Override
 		protected Task<Object> createTask() {
 			return new Task<Object>() {
 				@Override
 				protected Object call() throws Exception {
-					live.start(model.getMusicFolder(), builder, model.getServerPort().intValue(), getUser(), getPassword());
+					live.start(model.getMusicFolder(), model.getServerPort().intValue(), getUser(), getPassword());
 					return null;
 				}
 			};
@@ -120,7 +118,7 @@ public class FXLiveController {
 	public FXLiveController(final FXCommandModel model) {
 		this.model = model;
 		this.bonjourService = createBonjour();
-		this.builder = new LiveMountBuilder(model.getBuildConfig());
+		this.live = new MusicMountLive(model.getBuildConfig());
 		this.pane = createView(); 
 		
 		pane.visibleProperty().addListener(new ChangeListener<Boolean>() {
@@ -132,7 +130,7 @@ public class FXLiveController {
 			}
 		});
 
-		builder.setProgressHandler(new FXProgressHandler(statusText, progressIndicator, builder.getProgressHandler()));
+		live.setProgressHandler(new FXProgressHandler(statusText, progressIndicator, live.getProgressHandler()));
 		
 		musicFolderTextField.textProperty().addListener(new ChangeListener<String>() {
 			@Override
@@ -187,37 +185,37 @@ public class FXLiveController {
 		retinaCheckBox.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				builder.getConfig().setRetina(retinaCheckBox.isSelected());
+				live.getConfig().setRetina(retinaCheckBox.isSelected());
 			}
 		});
 		groupingCheckBox.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				builder.getConfig().setGrouping(groupingCheckBox.isSelected());
+				live.getConfig().setGrouping(groupingCheckBox.isSelected());
 			}
 		});
 		fullCheckBox.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				builder.getConfig().setFull(fullCheckBox.isSelected());
+				live.getConfig().setFull(fullCheckBox.isSelected());
 			}
 		});
 		noTrackIndexCheckBox.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				builder.getConfig().setNoTrackIndex(noTrackIndexCheckBox.isSelected());
+				live.getConfig().setNoTrackIndex(noTrackIndexCheckBox.isSelected());
 			}
 		});
 		noVariousArtistsCheckBox.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				builder.getConfig().setNoVariousArtists(noVariousArtistsCheckBox.isSelected());
+				live.getConfig().setNoVariousArtists(noVariousArtistsCheckBox.isSelected());
 			}
 		});
 		unknownGenreCheckBox.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				builder.getConfig().setUnknownGenre(unknownGenreCheckBox.isSelected());
+				live.getConfig().setUnknownGenre(unknownGenreCheckBox.isSelected());
 			}
 		});
 
@@ -243,7 +241,7 @@ public class FXLiveController {
 		});
     	buildService.setOnFailed(new EventHandler<WorkerStateEvent>() {
 			public void handle(WorkerStateEvent event) {
-				builder.getProgressHandler().endTask();
+				live.getProgressHandler().endTask();
 				statusText.setText("Mount analysis failed");
 				if (buildService.getException() != null) {
 					buildService.getException().printStackTrace();
@@ -508,12 +506,12 @@ public class FXLiveController {
 	}
 	
 	void updateOptions() {
-		fullCheckBox.setSelected(builder.getConfig().isFull());
-		groupingCheckBox.setSelected(builder.getConfig().isGrouping());
-		noTrackIndexCheckBox.setSelected(builder.getConfig().isNoTrackIndex());
-		noVariousArtistsCheckBox.setSelected(builder.getConfig().isNoVariousArtists());
-		retinaCheckBox.setSelected(builder.getConfig().isRetina());
-		unknownGenreCheckBox.setSelected(builder.getConfig().isUnknownGenre());
+		fullCheckBox.setSelected(live.getConfig().isFull());
+		groupingCheckBox.setSelected(live.getConfig().isGrouping());
+		noTrackIndexCheckBox.setSelected(live.getConfig().isNoTrackIndex());
+		noVariousArtistsCheckBox.setSelected(live.getConfig().isNoVariousArtists());
+		retinaCheckBox.setSelected(live.getConfig().isRetina());
+		unknownGenreCheckBox.setSelected(live.getConfig().isUnknownGenre());
 	}
 
 	void updateRunButton() {

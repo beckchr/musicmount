@@ -28,12 +28,14 @@ import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
 
+import org.musicmount.builder.MusicMountBuildConfig;
 import org.musicmount.io.file.FileResource;
 import org.musicmount.server.MusicMountServer;
 import org.musicmount.server.MusicMountServer.AccessLog;
 import org.musicmount.server.MusicMountServer.FolderContext;
 import org.musicmount.server.MusicMountServer.MountContext;
 import org.musicmount.server.MusicMountServerJetty;
+import org.musicmount.util.LoggingProgressHandler;
 import org.musicmount.util.ProgressHandler;
 import org.musicmount.util.VersionUtil;
 
@@ -86,18 +88,37 @@ public class MusicMountLive {
 		}
 	};
 	
+	private ProgressHandler progressHandler = new LoggingProgressHandler(LOGGER, Level.FINE);
+
+	private final MusicMountBuildConfig config;
 	private final MusicMountServer server;
 	private final LiveMountUpdater updater;
 
 	public MusicMountLive() {
-		this(new MusicMountServerJetty(LOGGER_ACCESS_LOG));
+		this(new MusicMountBuildConfig());
 	}
 	
-	public MusicMountLive(MusicMountServer server) {
+	public MusicMountLive(MusicMountBuildConfig config) {
+		this(config, new MusicMountServerJetty(LOGGER_ACCESS_LOG));
+	}
+	
+	public MusicMountLive(MusicMountBuildConfig config, MusicMountServer server) {
+		this.config = config;
 		this.server = server;
 		this.updater = new LiveMountUpdater(60 * 1000L); // delay update for 60 seconds after change  
 	}
 	
+	public MusicMountBuildConfig getConfig() {
+		return config;
+	}
+	
+	public ProgressHandler getProgressHandler() {
+		return progressHandler;
+	}
+	public void setProgressHandler(ProgressHandler progressHandler) {
+		this.progressHandler = progressHandler;
+	}
+
 	private String getMusicPath() {
 		return MUSIC_PATH;
 	}
@@ -133,11 +154,12 @@ public class MusicMountLive {
 		}
 	}
 
-	public void start(final FileResource musicFolder, final LiveMountBuilder mountBuilder, int port, String user, String password) throws Exception {
+	public void start(FileResource musicFolder, int port, String user, String password) throws Exception {
 		LOGGER.info("Starting Server...");
 		LOGGER.info("Music folder: " + musicFolder.getPath());
 
-		LiveMountServlet servlet = new LiveMountServlet(mountBuilder.update(musicFolder, getMusicPath()));
+		LiveMountBuilder mountBuilder = new LiveMountBuilder(config);
+		LiveMountServlet servlet = new LiveMountServlet(mountBuilder.update(musicFolder, getMusicPath(), progressHandler));
 		
 		FolderContext music = new FolderContext(getMusicPath(), musicFolder.getPath().toFile());
 		MountContext mount = new MountContext(getMountPath(), servlet);
@@ -153,9 +175,8 @@ public class MusicMountLive {
 		LOGGER.info(String.format("--------------"));
 		LOGGER.info("Done.");
 
-		LiveMountBuilder updateBuilder = new LiveMountBuilder(mountBuilder.getConfig().clone(), mountBuilder.getRepository());
-		mountBuilder.getConfig().setFull(false); // never do a full build when updating
-		updateBuilder.setProgressHandler(ProgressHandler.NOOP); // no progress handling
+		LiveMountBuilder updateBuilder = new LiveMountBuilder(config.clone(), mountBuilder.getRepository());
+		updateBuilder.getConfig().setFull(false); // never do a full build when updating
 		updater.start(musicFolder, getMusicPath(), updateBuilder, servlet);
 		LOGGER.info("Auto updater is ready.");
 	}
