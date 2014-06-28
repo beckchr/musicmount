@@ -179,9 +179,11 @@ public class MusicMountLiveCommand {
 				LOGGER.log(Level.WARNING, "Failed to create Bonjour service", e);
 			}
 			if (bonjourService != null) {
-				String host = live.getHostName(bonjourService.getHostName());
+				String host = bonjourService.getHostName();
+				String name = String.format("Live @ %s", live.getHostName(host));
 				try {
-					bonjourService.start(String.format("Live @ %s", host), live.getSiteURL(host, optionPort), optionUser);
+//					bonjourService.start(name, optionPort, live.getSitePath(), optionUser); // bug in MM 1.5.2
+					bonjourService.start(name, live.getSiteURL(host, optionPort), optionUser);
 				} catch (IOException e) {
 					LOGGER.log(Level.WARNING, "Failed to start Bonjour service", e);
 					try {
