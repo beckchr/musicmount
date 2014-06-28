@@ -38,8 +38,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.musicmount.io.file.FileResource;
-
 public class FolderTreeWatcher implements Runnable {
 	static final Logger LOGGER = Logger.getLogger(FolderTreeWatcher.class.getName());
 
@@ -59,12 +57,12 @@ public class FolderTreeWatcher implements Runnable {
 	/**
 	 * Creates a WatchService and registers the given folder
 	 */
-	public FolderTreeWatcher(FileResource folder, Delegate delegate) throws IOException {
+	public FolderTreeWatcher(Path folder, Delegate delegate) throws IOException {
 		this.delegate = delegate;
 		this.watcher = FileSystems.getDefault().newWatchService();
 		this.keys = new HashMap<WatchKey, Path>();
 
-		registerAll(folder.getPath());
+		registerAll(folder);
 	}
 	
 

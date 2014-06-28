@@ -100,7 +100,7 @@ public class LiveMountUpdater {
 	}
 
 	public void start(FileResource musicFolder, String musicPath, LiveMountBuilder builder, LiveMountServlet servlet) throws IOException {
-		watcherThread = new Thread(new FolderTreeWatcher(musicFolder, new FolderTreeWatcher.Delegate() {
+		watcherThread = new Thread(new FolderTreeWatcher(musicFolder.getPath(), new FolderTreeWatcher.Delegate() {
 			@Override
 			public void pathModified(Path path) {
 				lastChange = System.currentTimeMillis();
