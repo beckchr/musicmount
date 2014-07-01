@@ -12,6 +12,10 @@ It then computes an album-centric model and generates a static _MusicMount_ site
 A _MusicMount_ site can be hosted on a NAS, Raspberry Pi or even on a wireless drive.
 Once your site is built and deployed, you can access your site from your mobile device.
 
+There's also a "live" command to quickly launch a server without generating a static
+site. This is the easiest way to get things going, to temporarily mount music from
+iTunes, stored on a thumb drive, etc.
+
 ![_MusicMount_ for iOS](http://musicmount.org/images/musicmount-ios.jpg)
 
 ## Features
@@ -27,6 +31,12 @@ Once your site is built and deployed, you can access your site from your mobile 
 Documentation is available [here](http://musicmount.org/tool/).
 
 ## Change History
+
+#### Version 1.6.1 (2014/07/01)
+
+- use jmDNS host name in Bonjour site URL
+- added auto-update for "live" sites
+- [UI] Bonjour user preference
 
 #### Version 1.6 (2014/06/20)
 
