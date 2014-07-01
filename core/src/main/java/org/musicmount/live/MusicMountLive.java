@@ -15,6 +15,7 @@
  */
 package org.musicmount.live;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
@@ -177,8 +178,12 @@ public class MusicMountLive {
 
 		LiveMountBuilder updateBuilder = new LiveMountBuilder(config.clone(), mountBuilder.getRepository());
 		updateBuilder.getConfig().setFull(false); // never do a full build when updating
-		updater.start(musicFolder, getMusicPath(), updateBuilder, servlet);
-		LOGGER.info("Auto updater is ready.");
+		try {
+			updater.start(musicFolder, getMusicPath(), updateBuilder, servlet);
+			LOGGER.info("Auto updater is ready.");
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, "Auto updater could not be started", e);
+		}
 	}
 	
 	public void await() {
@@ -191,7 +196,9 @@ public class MusicMountLive {
 
 	public void stop() throws Exception {
 		LOGGER.info("Stopping Server...");
-		updater.stop();
+		if (updater.isStarted()) {
+			updater.stop();
+		}
 		server.stop();
 		LOGGER.info("Done.");
 	}

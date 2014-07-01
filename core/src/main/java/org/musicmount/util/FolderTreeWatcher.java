@@ -23,7 +23,6 @@ import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.ClosedWatchServiceException;
-import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -59,7 +58,7 @@ public class FolderTreeWatcher implements Runnable {
 	 */
 	public FolderTreeWatcher(Path folder, Delegate delegate) throws IOException {
 		this.delegate = delegate;
-		this.watcher = FileSystems.getDefault().newWatchService();
+		this.watcher = folder.getFileSystem().newWatchService();
 		this.keys = new HashMap<WatchKey, Path>();
 
 		registerAll(folder);
@@ -104,7 +103,7 @@ public class FolderTreeWatcher implements Runnable {
 
 			// print out event
 			if (LOGGER.isLoggable(Level.FINER)) {
-				LOGGER.finer(String.format("%s: %s\n", kind.name(), event.context()));
+				LOGGER.finer(String.format("%s: %s", kind.name(), event.context()));
 			}
 
 			if (kind != OVERFLOW) {
