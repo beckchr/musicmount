@@ -16,7 +16,6 @@
 package org.musicmount.fx;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -261,7 +260,7 @@ public class FXTestController {
 	private BonjourService createBonjour() {
 		try {
 			return new BonjourService(true);
-		} catch (IOException e) {
+		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to create Bonjour service", e);
 			return null;
 		}
@@ -274,7 +273,7 @@ public class FXTestController {
 //			bonjourService.start(name, model.getServerPort(), tester.getSitePath(model.getMusicPath()), getUser()); // bug in MM 1.5.2
 			bonjourService.start(name, tester.getSiteURL(host, model.getServerPort().intValue(), model.getMusicPath()), getUser());
 			LOGGER.info("Bonjour service started.");
-		} catch (IOException e) {
+		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to start Bonjour service", e);
 		}
 	}
@@ -283,7 +282,7 @@ public class FXTestController {
 		try {
 			bonjourService.stop();
 			LOGGER.info("Bonjour service stopped.");
-		} catch (IOException e) {
+		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to stop Bonjour service", e);
 		}
 	}
