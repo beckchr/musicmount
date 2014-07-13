@@ -19,10 +19,11 @@ import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.nio.file.Path;
 
-import org.musicmount.audio.AudioInfo;
-import org.musicmount.audio.mp3.ID3v2Info;
-import org.musicmount.audio.mp3.MP3Info;
 import org.musicmount.io.Resource;
+
+import de.odysseus.ithaka.audioinfo.AudioInfo;
+import de.odysseus.ithaka.audioinfo.mp3.ID3v2Info;
+import de.odysseus.ithaka.audioinfo.mp3.MP3Info;
 
 /**
  * MP3 asset parser. 

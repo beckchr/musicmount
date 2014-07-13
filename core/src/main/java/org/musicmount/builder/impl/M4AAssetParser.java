@@ -19,9 +19,10 @@ import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.nio.file.Path;
 
-import org.musicmount.audio.AudioInfo;
-import org.musicmount.audio.m4a.M4AInfo;
 import org.musicmount.io.Resource;
+
+import de.odysseus.ithaka.audioinfo.AudioInfo;
+import de.odysseus.ithaka.audioinfo.m4a.M4AInfo;
 
 /**
  * M4A (MP4 audio) asset parser. 

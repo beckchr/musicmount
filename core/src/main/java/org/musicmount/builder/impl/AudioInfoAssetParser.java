@@ -28,8 +28,9 @@ import java.io.InputStream;
 
 import javax.imageio.ImageIO;
 
-import org.musicmount.audio.AudioInfo;
 import org.musicmount.io.Resource;
+
+import de.odysseus.ithaka.audioinfo.AudioInfo;
 
 /**
  * Generic asset parser based on. 

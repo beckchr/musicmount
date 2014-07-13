@@ -11,6 +11,13 @@
 	<artifactId>musicmount</artifactId>
 	<name>MusicMount</name>
 
+	<repositories>
+		<repository>
+		    <id>ithaka</id>
+		    <url>http://beckchr.github.com/ithaka-maven/mvnrepo/</url>
+		</repository>
+	</repositories>
+
 	<dependencies>
 	    <dependency>
 	        <groupId>de.odysseus.staxon</groupId>
@@ -64,7 +71,11 @@
 			<artifactId>jcl-over-slf4j</artifactId>
 			<version>1.7.5</version>
 		</dependency>
-
+		<dependency>
+		    <groupId>de.odysseus.ithaka</groupId>
+		    <artifactId>ithaka-audioinfo</artifactId>
+		    <version>1.0</version>
+		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty.aggregate</groupId>
 			<artifactId>jetty-servlet</artifactId>
