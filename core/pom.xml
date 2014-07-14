@@ -9,7 +9,7 @@
 	</parent>
 
 	<artifactId>musicmount</artifactId>
-	<name>MusicMount</name>
+	<name>MusicMount Core</name>
 
 	<repositories>
 		<repository>
