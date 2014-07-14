@@ -32,6 +32,12 @@ Documentation is available [here](http://musicmount.org/tool/).
 
 ## Change History
 
+#### Version 1.6.2 (2014/07/14)
+
+- separated audio info/tag extraction code into new project
+  ([Ithaka Audio Info](https://github.com/beckchr/ithaka-audioinfo/))
+- [UI] catch runtime exceptions when starting/stopping bonjour service
+
 #### Version 1.6.1 (2014/07/01)
 
 - use jmDNS host name in Bonjour site URL
