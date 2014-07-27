@@ -9,12 +9,16 @@ extracts metadata like track names, album titles, artists, genres, cover art, et
 It then computes an album-centric model and generates a static _MusicMount_ site
 (also known as _mount_) consisting of JSON and image files.
 
+![_MusicMount_ Tool](http://musicmount.org/images/musicmount-tool-build.png)
+
 A _MusicMount_ site can be hosted on a NAS, Raspberry Pi or even on a wireless drive.
 Once your site is built and deployed, you can access your site from your mobile device.
 
 There's also a "live" command to quickly launch a server without generating a static
 site. This is the easiest way to get things going, to temporarily mount music from
 iTunes, stored on a thumb drive, etc.
+
+The _MusicMount_ client app for iOS is available on the App Store. 
 
 ![_MusicMount_ for iOS](http://musicmount.org/images/musicmount-ios.jpg)
 
