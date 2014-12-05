@@ -98,7 +98,9 @@ public class ImageFormatter {
 		BufferedImage image = null;
 		try {
 			image = assetParser.extractArtwork(asset);
-			if (image != null && image.getTransparency() != Transparency.OPAQUE) {
+			if (image == null) {
+				LOGGER.warning("Could not extract image from: " + asset);
+			} else if (image.getTransparency() != Transparency.OPAQUE) {
 				BufferedImage tmpImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
 				Graphics2D graphics = tmpImage.createGraphics();
 				graphics.drawImage(image, 0, 0, Color.WHITE, null);
@@ -118,13 +120,14 @@ public class ImageFormatter {
 				LOGGER.finer("Formatting images from: " + source);
 			}
 			BufferedImage image = extractImage(source);
-			if (image == null) {
+			if (image != null) {
+				formatImages(image, targets);
+				image.flush();
+			} else { // remove existing image files
 				for (Resource imageTarget : targets.values()) {
 					deleteIfExists(imageTarget);
 				}
 			}
-			formatImages(image, targets);
-			image.flush();
 		}
 	}
 	
