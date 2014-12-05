@@ -119,15 +119,6 @@ public class FXLiveController {
 		this.bonjourService = createBonjour();
 		this.live = new MusicMountLive(model.getBuildConfig());
 		this.pane = createView(); 
-		
-		pane.visibleProperty().addListener(new ChangeListener<Boolean>() {
-			@Override
-			public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
-				if (newValue) {
-					updateAll();
-				}
-			}
-		});
 
 		live.setProgressHandler(new FXProgressHandler(statusText, progressIndicator, live.getProgressHandler()));
 		

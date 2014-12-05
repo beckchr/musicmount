@@ -86,15 +86,6 @@ public class FXBuildController {
 		this.model = model;
 		this.builder = new MusicMountBuilder(model.getBuildConfig());
 		this.pane = createView(); 
-		
-		pane.visibleProperty().addListener(new ChangeListener<Boolean>() {
-			@Override
-			public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
-				if (newValue) {
-					updateAll();
-				}
-			}
-		});
 
 		builder.setProgressHandler(new FXProgressHandler(statusText, progressIndicator, builder.getProgressHandler()));
 		

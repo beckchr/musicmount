@@ -106,15 +106,6 @@ public class FXTestController {
 		this.bonjourService = createBonjour();
 		this.pane = createView();
 
-		pane.visibleProperty().addListener(new ChangeListener<Boolean>() {
-			@Override
-			public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
-				if (newValue) {
-					updateAll();
-				}
-			}
-		});
-
 		tester = new MusicMountTester();
 
 		musicFolderTextField.textProperty().addListener(new ChangeListener<String>() {

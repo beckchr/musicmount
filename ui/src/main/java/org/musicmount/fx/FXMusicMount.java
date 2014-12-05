@@ -108,7 +108,19 @@ public class FXMusicMount extends Application {
 		testTab.setText("Test");
 		testTab.setContent(testPane);
 		tabPane.getTabs().addAll(liveTab, buildTab, testTab);
-		tabPane.getSelectionModel().select(liveTab);
+		tabPane.getSelectionModel().select(liveTab);		
+		tabPane.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<Tab>() {
+			@Override
+			public void changed(ObservableValue<? extends Tab> observable, Tab oldValue, Tab newValue) {
+				if (newValue == liveTab) {
+					liveController.updateAll();
+				} else if (newValue == buildTab) {
+					buildController.updateAll();
+				} else if (newValue == testTab) {
+					testController.updateAll();
+				}
+			}
+		});
 
 		ChangeListener<Boolean> serviceRunningListener = new ChangeListener<Boolean>() {
 			@Override
