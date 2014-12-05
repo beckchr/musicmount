@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceInfo;
@@ -28,6 +29,10 @@ import javax.jmdns.ServiceInfo;
  * MusicMount Bonjour service
  */
 public class BonjourService implements Closeable {
+	static {
+		LoggingUtil.configure("javax.jmdns", Level.SEVERE); // get rid of "WARNING: There was an OPT answer. Not currently handled."
+	}
+	
 	private static final String SERVICE_TYPE = "_musicmount._tcp.local.";
 	private static final String SERVICE_NAME = "MusicMount";
 	
