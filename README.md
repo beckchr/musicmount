@@ -36,6 +36,13 @@ Documentation is available [here](http://musicmount.org/tool/).
 
 ## Change History
 
+#### Version 1.6.3 (2014/12/05)
+
+- set log level for `"javax.jmdns"` to `SEVERE`
+- fix NPE if `AssetParser.extractArtwork(...)` gives null
+- [UI] fixed: fields not updated from model when switching tab (Java 8u5 and later)
+- [UI] Mac application (with internal JRE), disk image (DMG) and installer package (PKG)
+
 #### Version 1.6.2 (2014/07/14)
 
 - separated audio info/tag extraction code into new project
